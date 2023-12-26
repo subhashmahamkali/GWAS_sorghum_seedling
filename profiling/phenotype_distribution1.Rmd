@@ -1,0 +1,55 @@
+---
+title: "Phenotype_distribution"
+author: "SUBHASH MAHAMKALI"
+date: "12/25/2023"
+output: NULL
+DATA : "sorghum_seedling"
+Phenotypic Traits : "plant seedling height, leaf count, shoot dry weight, shoot fresh weight"
+---
+
+### path normalization
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE) 
+knitr::opts_knit$set(root.dir=normalizePath('..//')) 
+```
+
+### setting input files
+
+```{r}
+library(data.table)
+d=fread("output/blup_HN_dry.txt",head=T,data.table=F)
+#d=fread("output/blup_HN_fresh.txt",head=T,data.table=F)
+#d=fread("output/blup_HN_leaf.txt",head=T,data.table=F)
+#d=fread("output/blup_HN_PH.txt",head=T,data.table=F)
+
+
+#d=fread("output/blup_LN_dry.txt",head=T,data.table=F)
+#d=fread("output/blup_LN_fresh.txt",head=T,data.table=F)
+#d=fread("output/blup_LN_leaf.txt",head=T,data.table=F)
+#d=fread("output/blup_LN_PH.txt",head=T,data.table=F)
+```
+
+### creating the histogram and density plot and saving it as png
+
+```{r}
+png("graphs/Dry_weight_HN.png", width=785, height=600) # Set the file name and dimensions in pixels
+cols=colours()[c(136,257,91)]
+cols=adjustcolor(cols,alpha.f = 0.6)
+par(mar=c(3,4,2,1),mfrow=c(1,2))
+#creating Histogram
+hist(d[,2],breaks = 30,xlab="g",main="Dry shoot weight HN",col="skyblue")
+#creating density plot
+va=na.omit(d[,2])
+plot(0,0,xlab="",ylab="",xlim=range(va),ylim=range(density(va)$y),
+     axes=F,pch=16,col="white",main="Dry shoot weight HN",cex.lab=1)
+
+axis(1,cex.axis=1.1)
+axis(2,cex.axis=1.1,las=1)
+lines(density(va),lty=1,col="skyblue",lwd=2.5)
+m=mean(va)
+abline(v=m,col="green",lty=2,lwd=2)
+dev.off() # Closes the plotting device and saves the file
+
+```
+

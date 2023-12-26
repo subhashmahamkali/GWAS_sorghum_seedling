@@ -1,0 +1,143 @@
+---
+title: "BLUP_calculation"
+author: "SUBHASH MAHAMKALI"
+date: "12/25/2023"
+output: NULL
+DATA : "sorghum_seedling"
+Phenotypic Traits : "plant seedling height, leaf count, shoot dry weight, shoot fresh weight"
+---
+
+### path normalization
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE) 
+knitr::opts_knit$set(root.dir=normalizePath('..//')) 
+```
+
+### load required R packages
+
+```{r}
+#install.packages("lme4")
+#install.packages("readxl")
+#install.packages("openxlsx")
+#install.packages("dplyrx")
+#install.packages("tidyr")
+library(lme4)
+library(readxl)
+library(openxlsx)
+library(dplyr)
+library(tidyr)
+```
+
+### Setting input files and subsetting
+
+```{r}
+# Read the input file 
+df <- read_excel('data/2023_sorghum_PH_LC.xlsx')
+#df <- read_excel('data/2023_sorghum_shoot_phenotyping.xlsx')
+
+# subsetting the plant  height(PH) and leaf count (LC)
+#same for Fresh and dry shoot weight
+PH <- df %>% select(1:12)
+
+LC <- df %>% select(1:9, 13:15)
+
+#subsetting fresh and dry shoot weight
+#FW <- df %>% select(1:12)
+#DW <- df %>% select(1:9, 13:15)
+
+
+#saving these subset files
+#write.xlsx(PH, 'data/PH.xlsx')
+#write.xlsx(LC, 'data/LC.xlsx')
+#write.xlsx(FW, 'data/FW.xlsx')
+#write.xlsx(DW, 'data/DW.xlsx')
+
+data <- read_excel("data/PH.xlsx")
+
+#removing the space between PI and number since there is no space in genotype file
+#matching the phenotype names with genotype names
+data$Pedigree <- gsub("PI ", "PI", data$Pedigree)
+#write.xlsx(data, "PH_HN.xlsx")
+
+#changing the structure of the data for the ease of analysis
+data_clean <- pivot_longer(data, cols = starts_with("plant_height_r"), names_to = "replicate", values_to = "height")
+#data_clean <- pivot_longer(data, cols = starts_with("leaf_Cou"), names_to = "replicate", values_to = "leaf")
+#data_clean <- pivot_longer(data, cols = starts_with("Whole_Fre"), names_to = "replicate", values_to = "fresh")
+#data_clean <- pivot_longer(data, cols = starts_with("Whole_D"), names_to = "replicate", values_to = "Dry")
+
+#subsetting the files with high and low nitrogen seprately
+data_HN <- filter(data_clean, Treatment == "HN")
+#data_LN <- filter(data_clean, Treatment == "LN")
+```
+
+### preparing data and defining variables for the final output
+
+```{r}
+#HN
+data_HN$height<- as.numeric(data_HN$height)
+#data_HN$leaf<- as.numeric(data_HN$leaf)
+#data_HN$fresh<- as.numeric(data_HN$fresh)
+#data_HN$Dry<- as.numeric(data_HN$Dry)
+
+#LN
+#data_LN$height<- as.numeric(data_LN$height)
+#data_LN$leaf<- as.numeric(data_LN$leaf)
+#data_LN$fresh<- as.numeric(data_LN$fresh)
+#data_LN$Dry<- as.numeric(data_LN$Dry)
+
+
+bl=as.data.frame(unique(data_HN$Pedigree))
+#bl=as.data.frame(unique(data_LN$Pedigree))
+colnames(bl)="id"
+na = colnames(data_HN)[12]
+data = data_HN[,c(2:4,5:12)]
+
+#na = colnames(data_LN)[12]
+#data = data_LN[,c(2:4,5:12)]
+```
+
+### model for blup calculation
+
+```{r}
+data$Genotype = factor(data$Genotype)
+data$Year = factor(data$Year)
+data$Treatment = factor(data$Treatment)
+data$Bench = factor(data$Bench)
+data$Row = factor(data$Row)
+data$`Column(Bench)` = factor(data$`Column(Bench)`)
+data$`Block(Bench)` = factor(data$`Block(Bench)`)
+data$Pedigree = factor(data$Pedigree)
+colnames(data)[11] = "y"
+
+#Main Model for blup calculation
+
+blp = lmer(y ~ 1 + (1 |Pedigree) + (1 |Genotype) + (1 |Bench) + (1|Row) + (1|`Column(Bench)`) + (1|`Block(Bench)`), data=data, 
+           control=lmerControl(check.nobs.vs.nlev = "ignore",
+                               check.nobs.vs.rankZ = "ignore",
+                               check.nlev.gtr.1 = "ignore",
+                               check.nobs.vs.nRE="ignore"))
+x=summary(blp)
+
+blups= ranef(blp)
+names(blups)
+lines=blups$Pedigree+blp@beta[1]
+blp.out=data.frame(id=rownames(lines),blp=lines)
+colnames(blp.out)[2]=na
+bl=merge(bl,blp.out,by=1,all=T)
+
+```
+### output of the blups calculated files 
+```{r}
+write.table(bl,file="output/blup_HN_PH.txt",row.names = F,quote = F,sep="\t")
+#write.table(bl,file="output/blup_HN_leaf.txt",row.names = F,quote = F,sep="\t")
+#write.table(bl,file="output/blup_HN_fresh.txt",row.names = F,quote = F,sep="\t")
+#write.table(bl,file="output/blup_HN_dry.txt",row.names = F,quote = F,sep="\t")
+
+#write.table(bl,file="output/blup_LN_PH.txt",row.names = F,quote = F,sep="\t")
+#write.table(bl,file="output/blup_LN_leaf.txt",row.names = F,quote = F,sep="\t")
+#write.table(bl,file="output/blup_LN_fresh.txt",row.names = F,quote = F,sep="\t")
+#write.table(bl,file="output/blup_LN_dry.txt",row.names = F,quote = F,sep="\t")
+
+```
+
