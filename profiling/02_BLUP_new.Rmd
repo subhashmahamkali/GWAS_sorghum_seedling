@@ -32,7 +32,7 @@ library(tidyr)
 ### Setting input files and subsetting
 
 ```{r}
-#data <- read.csv("data/PH_hong.csv")
+#data <- read.csv("data/Revised_exp_data/PH_Revised.csv")
 data$Pedigree <- gsub("PI ", "PI", data$Pedigree)
 
 # Convert all plant_height_r_ columns to numeric, handling non-numeric values gracefully
