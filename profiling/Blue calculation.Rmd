@@ -1,0 +1,88 @@
+---
+title: "BLUE_calculation"
+author: "SUBHASH MAHAMKALI"
+date: "12/02/2024"
+output: NULL
+DATA : "sorghum_seedling"
+Phenotypic Traits : "plant seedling height, leaf count, shoot dry weight, shoot fresh weight"
+---
+
+### path normalization
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE) 
+knitr::opts_knit$set(root.dir=normalizePath('..//')) 
+```
+
+### load required R packages
+
+```{r}
+#install.packages("lme4")
+#install.packages("readxl")
+#install.packages("openxlsx")
+#install.packages("dplyrx")
+#install.packages("tidyr")
+library(lme4)
+library(readxl)
+library(openxlsx)
+library(dplyr)
+library(tidyr)
+```
+
+### Setting input files and subsetting
+
+```{r}
+#data <- read.csv("data/PH_hong.csv")
+data$Pedigree <- gsub("PI ", "PI", data$Pedigree)
+
+# Convert all plant_height_r_ columns to numeric, handling non-numeric values gracefully
+data <- data %>%
+  mutate(across(starts_with("plant_height_r_"), ~ as.numeric(as.character(.)), .names = "{.col}_numeric"))
+
+# After the conversion, check if there are still any non-numeric columns and attempt conversion again if necessary
+data <- data %>%
+  mutate(across(starts_with("plant_height_r_"), ~ ifelse(is.na(as.numeric(.)), NA, as.numeric(.)), .names = "{.col}_numeric"))
+data$plant_height_rep_3 <- as.numeric(data$plant_height_rep_3)
+
+# Changing the structure of the data for the ease of analysis
+# Note: Ensure the cols parameter in pivot_longer matches the new column names after conversion if they were changed
+data <- pivot_longer(data, cols = starts_with("plant_height_r"), names_to = "replicate", values_to = "height")
+data <- filter(data, Treatment == "HN")
+data$height<- as.numeric(data$height)
+
+```
+
+### model for blup calculation
+
+```{r}
+data$Treatment = factor(data$Treatment)
+data$Bench = factor(data$Bench)
+data$Row = factor(data$Row)
+data$Column = factor(data$Column)
+data$Pot_id = factor(data$Pot_id)
+data$Pedigree = factor(data$Pedigree)
+data$replicate = factor(data$replicate)
+
+model <- lmer(height ~ Pedigree + (1|Row) + (1|Column) + (1|Pot_id), data = data)
+x = summary(model)
+
+# Extracting the fixed effects estimates
+fixed_effects <- summary(model)$coefficients
+
+# Creating a dataframe from the fixed effects
+blue_values_df <- as.data.frame(fixed_effects)
+
+# Resetting the row names to have a clean 'Pedigree' column
+blue_values_df$Pedigree <- rownames(blue_values_df)
+
+# Optionally, you might want to select specific columns, e.g., just the Estimate and Pedigree
+#blue_values_df <- blue_values_df[, c("Pedigree", "Estimate")]
+
+# Renaming for clarity
+colnames(blue_values_df)[2] <- "BLUE_Value"
+```
+### output of the blups calculated files 
+```{r}
+write.table(bl,file="output/USING_NEW_MODEL/PH_HN.txt",row.names = F,quote = F,sep="\t")
+```
+
