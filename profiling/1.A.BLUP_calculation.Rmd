@@ -33,7 +33,7 @@ library(tidyr)
 
 ```{r}
 # Read the input file 
-df <- read_excel('data/2023_sorghum_PH_LC.xlsx')
+#df <- read_excel('data/2023_sorghum_PH_LC.xlsx')
 #df <- read_excel('data/2023_sorghum_shoot_phenotyping.xlsx')
 
 # subsetting the plant  height(PH) and leaf count (LC)
@@ -95,6 +95,13 @@ data = data_HN[,c(2:4,5:12)]
 
 #na = colnames(data_LN)[12]
 #data = data_LN[,c(2:4,5:12)]
+```
+
+```{r}
+model <- lmer(plant_height_rep_1 ~ Treatment + (1|Pedigree), data = data)
+blups <- ranef(model)$Pedigree
+print(blups)
+
 ```
 
 ### model for blup calculation

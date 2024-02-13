@@ -5,7 +5,7 @@ library(ggplot2)
 
 # Read the Excel file
 # Replace 'path_to_your_excel_file.xlsx' with the actual path to your Excel file
-df <- read_excel('Copy of PH.xlsx')
+df <- read.csv("PH_hong.csv")
 df$Pedigree <- gsub("PI ", "PI", df$Pedigree)
 # Calculate the mean of the three replicates
 
@@ -16,7 +16,7 @@ df <- df %>%
   mutate(MeanDryWeight = rowMeans(select(., ends_with("_numeric")), na.rm = TRUE))
 
 df <- df %>%
-  mutate(MeanDryWeight = rowMeans(select(., starts_with("leaf_Count"))))
+  mutate(MeanDryWeight = rowMeans(select(., starts_with("Whole_Fresh"))))
 
 # View the first few rows of the dataframe to check the MeanDryWeight column
 head(df)
@@ -32,7 +32,7 @@ df_LN <- df %>%
 # Plotting the histogram for HN treatment
 ggplot(df_HN, aes(x = MeanDryWeight)) +
   geom_histogram(binwidth = 0.1, fill = "blue", color = "black") +
-  labs(x = "Mean plant height", y = "Frequency", title = "Distribution of Mean plant height (HN)") +
+  labs(x = "Mean shoot fresh weight", y = "Frequency", title = "Distribution of Mean Fresh weight (HN)") +
   theme_minimal()
 
 # Plotting the histogram for LN treatment
