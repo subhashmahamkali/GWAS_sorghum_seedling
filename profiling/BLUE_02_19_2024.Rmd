@@ -1,0 +1,69 @@
+---
+title: "BLUE_calculation"
+author: "SUBHASH MAHAMKALI"
+date: "02/15/2024"
+output: NULL
+DATA : "sorghum_seedling"
+Phenotypic Traits : "plant seedling height, leaf count, shoot dry weight, shoot fresh weight"
+---
+
+### path normalization
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE) 
+knitr::opts_knit$set(root.dir=normalizePath('..//')) 
+```
+
+### load required R packages
+
+```{r}
+#install.packages("lme4")
+#install.packages("readxl")
+#install.packages("openxlsx")
+#install.packages("dplyrx")
+#install.packages("tidyr")
+library(lme4)
+library(readxl)
+library(openxlsx)
+library(dplyr)
+library(tidyr)
+```
+
+### Setting input files and subsetting
+
+```{r}
+data <- read.csv("PH_Revised.csv")
+data$Pedigree <- gsub("PI ", "PI", data$Pedigree)
+
+data <- pivot_longer(data, cols = starts_with("plant_height_r"), names_to = "replicate", values_to = "height")
+
+data$plant_height_rep_1<- as.numeric(data$plant_height_rep_1)
+data$plant_height_rep_2<- as.numeric(data$plant_height_rep_2)
+data$plant_height_rep_3<- as.numeric(data$plant_height_rep_3)
+data1 <- filter(data, Treatment == "HN")
+data2 <- filter(data, Treatment == "LN")
+```
+
+### model for blup calculation
+
+```{r}
+data$Treatment = factor(data$Treatment)
+data$Bench = factor(data$Bench)
+data$Row = factor(data$Row)
+data$Column = factor(data$Column)
+data$Pot_id = factor(data$Pot_id)
+data$Pedigree = factor(data$Pedigree)
+
+
+#mod = lm(height ~ Treatment + Pedigree + Treatment*Pedigree, data = data)
+#mod = lm(height ~ Pedigree + (1|Row) + (1|Column) + (1|Pot_id), data = data1)
+
+mod = lmer(height ~ Pedigree + (1|Row) + (1|Column) + (1|Pot_id), data = data1)
+x = summary(mod)
+anova = anova(mod)
+
+estimates = emmeans(mod, "Pedigree")
+estimates_df = as.data.frame(summary(estimates))
+print(estimates_df)
+
+```
