@@ -32,14 +32,14 @@ library(tidyr)
 ### Setting input files and subsetting
 
 ```{r}
-data <- read.csv("PH_Revised.csv")
+data <- read.csv("data/Revised_exp_data/PH_Revised.csv")
 data$Pedigree <- gsub("PI ", "PI", data$Pedigree)
-
-data <- pivot_longer(data, cols = starts_with("plant_height_r"), names_to = "replicate", values_to = "height")
-
 data$plant_height_rep_1<- as.numeric(data$plant_height_rep_1)
 data$plant_height_rep_2<- as.numeric(data$plant_height_rep_2)
 data$plant_height_rep_3<- as.numeric(data$plant_height_rep_3)
+data <- pivot_longer(data, cols = starts_with("plant_height_r"), names_to = "replicate", values_to = "height")
+
+
 data1 <- filter(data, Treatment == "HN")
 data2 <- filter(data, Treatment == "LN")
 ```
@@ -54,16 +54,10 @@ data$Column = factor(data$Column)
 data$Pot_id = factor(data$Pot_id)
 data$Pedigree = factor(data$Pedigree)
 
-
 #mod = lm(height ~ Treatment + Pedigree + Treatment*Pedigree, data = data)
-#mod = lm(height ~ Pedigree + (1|Row) + (1|Column) + (1|Pot_id), data = data1)
+mod = lm(height ~ Pedigree + Row + Column + Pot_id, data = data1)
 
 mod = lmer(height ~ Pedigree + (1|Row) + (1|Column) + (1|Pot_id), data = data1)
 x = summary(mod)
 anova = anova(mod)
-
-estimates = emmeans(mod, "Pedigree")
-estimates_df = as.data.frame(summary(estimates))
-print(estimates_df)
-
 ```
