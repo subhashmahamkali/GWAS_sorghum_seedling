@@ -20,7 +20,7 @@ library(ggplot2)
 
 # Read the Excel file
 # Replace 'path_to_your_excel_file.xlsx' with the actual path to your Excel file
-df <- read_excel('data/FW.xlsx')
+df <- read.csv("data/Revised_exp_data/PH_Revised.csv")
 df$Pedigree <- gsub("PI ", "PI", df$Pedigree)
 # Calculate the mean of the three replicates
 head(df)
@@ -29,11 +29,10 @@ head(df)
 # take a quick and dirty look at the data distribution
 ```{r}
 # calculated mean fresh weight
+df[, 6:8] <- sapply(df[, 6:8], as.numeric)
 mymean <- function(x) mean(x, na.rm=T);
-df$mval <- apply(df[,10:12], 1, mymean)
-
-
-hist(df[df$Treatment == "HN", ]$mval)
+df$mval <- apply(df[,6:8], 1, mymean)
+#hist(df[df$Treatment == "HN", ]$mval)
 
 # Plotting the histogram for HN treatment
 ggplot(df, aes(x = mval, fill=Treatment)) +
@@ -43,69 +42,56 @@ ggplot(df, aes(x = mval, fill=Treatment)) +
 
 # change the font size
 fsize =16
-p1 <- ggplot(data=df, aes(x=mval, fill= as.factor(Treatment)) ) +
-    geom_histogram(bins=50) +
+p1 <- ggplot(data=df, aes(x=mval, col= as.factor(Treatment)) ) +
+    geom_histogram(bins=100) +
     #geom_density(adjust = 0.8, size=1.5) +
     #facet_wrap(~ trait, scales="free") +
     #scale_fill_manual(values = alpha(c("grey", "red"), .2)) +
     #guides(fill=FALSE) + factor(trait, levels=out$trait)
-    labs(y=NULL, fill="treatment") + 
-    xlab("") + 
-    ylab("") + 
+    labs(title="Distribution of seedling height", y=NULL, fill="Treatment") + 
+    xlab("Average seedling height (cm)") + 
+    ylab("Freequency") + 
     theme_bw() +
     theme(#axis.text.x=element_blank(), axis.ticks.x=element_blank(),
           axis.text=element_text(size=fsize),
           axis.title=element_text(size=fsize, face="bold"),
           legend.title = element_text(size=fsize, face="bold"),
-          legend.text = element_text(size=fsize))
+          legend.text = element_text(size=fsize, face = "bold"),
+          plot.title=element_text(size=fsize, face="bold")) + scale_x_continuous(breaks = seq(min(df$mval, na.rm = TRUE), max(df$mval, na.rm = TRUE), by = 3))
 p1    
 
+
+# Set your specific directory path
+directory_path <- "graphs/Raw_combined/"
+# Specify the filename
+filename <- "height.png"
+# Combine directory path and filename
+full_path <- file.path(directory_path, filename)
+
+# Use ggsave() to save the plot
+ggsave(full_path, plot = p1, width = 10, height = 6, dpi = 500)
 ```
 
 
 
 ```{r}
-df <- df %>%
-  mutate(across(starts_with("plant_height_rep_"), ~ as.numeric(.), .names = "{.col}_numeric"))
 
-df <- df %>%
-  mutate(MeanDryWeight = rowMeans(select(., ends_with("_numeric")), na.rm = TRUE))
+#histogram with density plots
 
-df <- df %>%
-  mutate(MeanDryWeight = rowMeans(select(., starts_with("leaf_Count"))))
+p1 <- ggplot(data=df, aes(x=mval, fill=as.factor(Treatment))) +
+  geom_histogram(aes(y=..density..), bins=100, alpha=0.7) + 
+  geom_density(aes(color= (Treatment)), size=1, alpha=0.5) + 
+  labs(title="Distribution of Seedling Height", fill="Treatment") +
+  xlab("Average Seedling Height (cm)") +
+  ylab("Density") + 
+  theme_bw() +
+  theme(axis.text=element_text(size=fsize),
+        axis.title=element_text(size=fsize, face="bold"),
+        legend.title=element_text(size=fsize, face="bold"),
+        legend.text=element_text(size=fsize),
+        plot.title=element_text(size=fsize, face="bold"))
 
-# View the first few rows of the dataframe to check the MeanDryWeight column
-head(df)
-
-# Filter data for High Nitrogen (HN) treatment
-df_HN <- df %>% 
-  filter(Treatment == "HN")
-
-# Filter data for Low Nitrogen (LN) treatment
-df_LN <- df %>% 
-  filter(Treatment == "LN")
-
-# Adjusting font size for the high nutrient (HN) treatment histogram
-ggplot(df_HN, aes(x = MeanDryWeight)) +
-  geom_histogram(binwidth = 0.1, fill = "blue", color = "black") +
-  labs(x = " plant height(cm)", y = "Frequency", title = "Distribution of average plant height (HN)") +
-  theme_minimal() +
-  theme(text = element_text(size = 14),  # Base text size for all text elements
-        axis.title = element_text(size = 16),  # Axis titles
-        axis.text = element_text(size = 12),  # Axis text
-        plot.title = element_text(size = 18, hjust = 0.5))  # Plot title
-
-# Adjusting font size for the low nutrient (LN) treatment histogram
-ggplot(df_LN, aes(x = MeanDryWeight)) +
-  geom_histogram(binwidth = 0.1, fill = "red", color = "black") +
-  labs(x = "plant height(cm) ", y = "Frequency", title = "Distribution of average plant height (LN)") +
-  theme_minimal() +
-  theme(text = element_text(size = 14),  # Base text size for all text elements
-        axis.title = element_text(size = 16),  # Axis titles
-        axis.text = element_text(size = 12),  # Axis text
-        plot.title = element_text(size = 18, hjust = 0.5))  # Plot title
-
-
+p1
 ```
 
 

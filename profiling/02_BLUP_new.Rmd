@@ -47,7 +47,7 @@ data$plant_height_rep_3 <- as.numeric(data$plant_height_rep_3)
 # Changing the structure of the data for the ease of analysis
 # Note: Ensure the cols parameter in pivot_longer matches the new column names after conversion if they were changed
 data <- pivot_longer(data, cols = starts_with("plant_height_r"), names_to = "replicate", values_to = "height")
-data <- filter(data, Treatment == "HN")
+#data <- filter(data, Treatment == "HN")
 data$height<- as.numeric(data$height)
 
 ```
@@ -75,8 +75,7 @@ data$replicate = factor(data$replicate)
 
 #model with pedigree as random effects for BLUPS.
 
-model <- lmer(height ~ 1 + (1|Pedigree), data = data)
-
+model <- s
 #model <- lmer(height ~ 1 + (1|Pedigree) + (1|Row) + (1| Column) + (1| Pot_id), data = data)
 
 x=summary(model)
