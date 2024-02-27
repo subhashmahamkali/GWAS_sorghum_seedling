@@ -1,5 +1,5 @@
 #https://speciationgenomics.github.io/pca/
-#pca was conducted using VCF file susing plink.
+#pca was conducted using VCF file susing plink on HCC.
 
 library(tidyverse)
 # read in data
