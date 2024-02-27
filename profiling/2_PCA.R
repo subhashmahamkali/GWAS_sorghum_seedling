@@ -3,8 +3,8 @@
 
 library(tidyverse)
 # read in data
-pca <- read_table2("./sorghum.eigenvec", col_names = FALSE)
-eigenval <- scan("./sorghum.eigenval")
+pca <- read_table2("data/sorghum.eigenvec", col_names = FALSE)
+eigenval <- scan("data/sorghum.eigenval")
 
 # sort out the pca data
 # remove nuisance column
