@@ -1,0 +1,156 @@
+---
+title: "basic_stat_comparison"
+author: "subhash"
+date: "2024-03-19"
+output: NULL
+DATA : "sorghum_SAP_genotype data- subsetted"
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE) 
+knitr::opts_knit$set(root.dir=normalizePath('..//')) 
+```
+
+
+```{r}
+#install.packages("tidyverse")
+#install.packages("ggplot2")
+#install.packages("vcfR")
+#install.packages("ggplot2")
+library(tidyverse)
+library(ggplot2)
+library(vcfR)
+library(ggplot2)
+```
+
+```{r}
+
+#all the output files are otained from plink2.0    allele frequency = --freq , missing rate = --misssing  
+#from PLINK2.0
+
+var_freq <- read_delim("./basic_stat/ID.afreq", delim = "\t") #reading the data frame
+var_freq$REF_FREQS <- 1 - var_freq$ALT_FREQS#calculating refrence allele frreequency since plink2.0 has calcuated only alternative allele
+var_freq$maf <- pmin(var_freq$ALT_FREQS, var_freq$REF_FREQS)#minimum freequency of alt or ref
+#hist(var_freq$maf,breaks = 50)#normal R histogram
+#using ggplot to create a histogram
+ggplot(var_freq, aes(x = maf)) + 
+  geom_histogram(fill = "blue", color = "black") +
+  labs(title = "Histogram of Minor Allele Frequency", x = "MAF", y = "Count") + 
+  theme(axis.text.x = element_text(size = 14, face = "bold"),
+        axis.text.y = element_text(size = 14, face = "bold")) +
+  theme(axis.title.x = element_text(size = 14, face = "bold"),
+        axis.title.y = element_text(size = 14, face = "bold"))
+
+var_miss <- read_delim("./basic_stat/ID.vmiss", delim = "\t")
+#hist(var_miss$F_MISS,breaks = 50)
+ggplot(var_miss, aes(x = F_MISS)) + 
+  geom_histogram(fill = "blue", color = "black") +
+  labs(title = "Histogram of variant missing rate from PLINK2.0", x = "missing rate", y = "Count (Variants)") +
+  theme(axis.text.x = element_text(size = 14, face = "bold"),
+        axis.text.y = element_text(size = 14, face = "bold"),
+        axis.title.x = element_text(size = 14, face = "bold"),
+        axis.title.y = element_text(size = 14, face = "bold"),
+        plot.title = element_text(size = 16, face = "bold", hjust = 0.5))
+
+```
+
+
+
+
+
+```{r}
+
+vcf <- read.vcfR("./basic_stat/SAP_subset.vcf")
+geno_matrix <- extract.gt(vcf)
+geno_df <- as.data.frame(geno_matrix)
+g_df <- as.data.frame(geno_matrix)
+g_df$ID <- rownames(g_df)
+g_df <- g_df[, c("ID", names(g_df)[1:ncol(g_df)-1])]
+IDs <- g_df[, 1]
+
+calculate_allele_frequencies <- function(geno_df) {
+  # Flatten the geno_row into a single vector and exclude NAs
+  genotypes <- unlist(geno_df)
+  genotypes <- genotypes[!is.na(genotypes)]
+  
+  # Initialize counters for alleles
+  total_alleles <- 0
+  allele_0_count <- 0
+  allele_1_count <- 0
+  
+  # Loop through all genotypes to count alleles
+  for (genotype in genotypes) {
+    alleles <- strsplit(genotype, "")[[1]]  # Split genotype into individual alleles
+    alleles <- as.numeric(alleles)  # Convert characters to numeric
+    
+    # Count alleles
+    allele_0_count <- allele_0_count + sum(alleles == 0, na.rm = TRUE)
+    allele_1_count <- allele_1_count + sum(alleles == 1, na.rm = TRUE)
+    total_alleles <- total_alleles + 2  # Each genotype contributes 2 alleles
+  }
+  
+  # Calculate allele frequencies
+  freq_0 <- round(allele_0_count / total_alleles , 8)
+  freq_1 <- round(allele_1_count / total_alleles , 8)
+  
+  return(c(ref = freq_0, alt = freq_1))
+}
+
+# Apply the function to each row of the dataframe
+allele_freqs <- t(apply(geno_df, 1, calculate_allele_frequencies))
+
+# Convert to a dataframe for easier viewing/manipulation
+allele_freqs_df <- as.data.frame(allele_freqs)
+manual_allele_freq <- data.frame(ID = IDs, allele_freqs_df)
+manual_allele_freq$maf <- pmin(manual_allele_freq$ref, manual_allele_freq$alt)
+#hist(geno_df$maf,breaks = 50)
+ggplot(manual_allele_freq, aes(x = maf)) + 
+  geom_histogram(fill = "green", color = "black") +
+  labs(title = "MAF_manual", x = "MAF", y = "Count") +
+  theme(axis.text.x = element_text(size = 14, face = "bold"),
+        axis.text.y = element_text(size = 14, face = "bold"),
+        axis.title.x = element_text(size = 14, face = "bold"),
+        axis.title.y = element_text(size = 14, face = "bold"),
+        plot.title = element_text(size = 16, face = "bold", hjust = 0.5))
+
+
+missing_rate_variant <- apply(geno_df, 1, function(x) mean(is.na(x)))
+var_miss_manual <- data.frame(ID = IDs, missing_rate_variant = missing_rate_variant)
+ggplot(var_miss_manual, aes(x = missing_rate_variant)) + 
+  geom_histogram(fill = "green", color = "black") +
+  labs(title = "Histogram of variant missing rate manual", x = "missing rate", y = "Count (Variants)") +
+  theme(axis.text.x = element_text(size = 14, face = "bold"),
+        axis.text.y = element_text(size = 14, face = "bold"),
+        axis.title.x = element_text(size = 14, face = "bold"),
+        axis.title.y = element_text(size = 14, face = "bold"),
+        plot.title = element_text(size = 16, face = "bold", hjust = 0.5))
+```
+
+
+
+```{r}
+
+#comparing allele frequency from manual calculation to Plink2.0
+af_df <- merge(manual_allele_freq, var_freq, by = "ID")
+af_df <- af_df[, c("ID", "maf.x", "maf.y")]
+#scatter plot for allele freequency comparision
+ggplot(af_df, aes(x = maf.x, y = maf.y)) +
+  geom_point() +
+  labs(title = "minor allele freequency",
+       x = "Manual Calculation", y = "Plink2.0") +
+  theme_minimal()
+
+
+#comparing manually calculated and Plink2.0 calculated variant missing rate with scatter plot
+comp_var_miss <- merge(var_miss_manual, var_miss, by = "ID")
+comp_var_miss <- comp_var_miss[, c("ID", "missing_rate_variant", "F_MISS")]
+#scatterplot for variant missingrate
+ggplot(comp_var_miss, aes(x = missing_rate_variant, y = F_MISS)) +
+  geom_point() +  # This adds the scatter plot points
+  labs(title = "Scatter Plot of variant missing rate comparision",
+       x = "Manual_calculation", y = "Plink2.0") +
+  theme_minimal()  
+
+
+```
+
