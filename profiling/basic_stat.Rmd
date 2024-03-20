@@ -28,7 +28,7 @@ library(ggplot2)
 #all the output files are otained from plink2.0    allele frequency = --freq , missing rate = --misssing  
 #from PLINK2.0
 
-var_freq <- read_delim("./basic_stat/ID.afreq", delim = "\t") #reading the data frame
+var_freq <- read_delim("data/basic_statistics/ID.afreq", delim = "\t") #reading the data frame
 var_freq$REF_FREQS <- 1 - var_freq$ALT_FREQS#calculating refrence allele frreequency since plink2.0 has calcuated only alternative allele
 var_freq$maf <- pmin(var_freq$ALT_FREQS, var_freq$REF_FREQS)#minimum freequency of alt or ref
 #hist(var_freq$maf,breaks = 50)#normal R histogram
@@ -41,7 +41,7 @@ ggplot(var_freq, aes(x = maf)) +
   theme(axis.title.x = element_text(size = 14, face = "bold"),
         axis.title.y = element_text(size = 14, face = "bold"))
 
-var_miss <- read_delim("./basic_stat/ID.vmiss", delim = "\t")
+var_miss <- read_delim("data/basic_statistics/ID.vmiss", delim = "\t")
 #hist(var_miss$F_MISS,breaks = 50)
 ggplot(var_miss, aes(x = F_MISS)) + 
   geom_histogram(fill = "blue", color = "black") +
@@ -60,7 +60,7 @@ ggplot(var_miss, aes(x = F_MISS)) +
 
 ```{r}
 
-vcf <- read.vcfR("./basic_stat/SAP_subset.vcf")
+vcf <- read.vcfR("data/basic_statistics/SAP_subset.vcf")
 geno_matrix <- extract.gt(vcf)
 geno_df <- as.data.frame(geno_matrix)
 g_df <- as.data.frame(geno_matrix)
