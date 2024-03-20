@@ -7,3 +7,12 @@ Here entire main data and sub-data sets are in the data folder.
 Blup_out files are saved under the output folder.
 all the code is in the profiling folder.
 after creating the histograms and density plots they are saved under the graphs folder.
+
+update 03.20.2024
+
+curently working on genotype data collected from WGS of SAP
+
+using plink2.0 to estimate basic stats (minor allele freequecny and misssing rate) from vcf file (RAW) 
+#RAW variants:-43811787
+compared plink2.0 by calculating these basic stats manually result was corelated.
+now filtering these vcf with maf=0.05 and missing rate=0.7 using plink2.0
