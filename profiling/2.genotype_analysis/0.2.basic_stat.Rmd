@@ -198,7 +198,7 @@ comp_het$`O(HET_REF)` = round(comp_het$`O(HET_REF)`, 4)
 
 ggplot(comp_het, aes(x = hetero, y = `O(HET_REF)`)) +
   geom_point() +  # This adds the scatter plot points
-  labs(title = "Scatter Plot of variant missing rate comparision",
+  labs(title = "Scatter Plot of heterozygosity rate comparision",
        x = "Manual_calculation", y = "Plink2.0") +
   theme_minimal()  
 ```
