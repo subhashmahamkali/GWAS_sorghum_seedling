@@ -79,7 +79,8 @@ ggplot(het, aes(x = `O(HET_REF)`)) +
 
 
 
-manuall calculation and plotting graphs for the basi stats from subsetted data
+manuall calculation and plotting graphs 
+missing rate calculation manually
 
 ```{r}
 #using vcfR library to read the subset of raw vcf file
@@ -89,14 +90,10 @@ geno_matrix <- extract.gt(vcf)
 geno_df <- as.data.frame(geno_matrix) 
 #look at the data frame
 head(geno_df)
-#intializing IDs to compare plink2.0 and manual calculation of basic statistics 
-g_df <- as.data.frame(geno_matrix)
-g_df$ID <- rownames(g_df)
-IDs <- g_df$ID
 
 #caclculation of missing rate manually
 missing_rate_variant <- apply(geno_df, 1, function(x) mean(is.na(x))) #calculating fraction of missing rate.
-var_miss_manual <- data.frame(ID = IDs, missing_rate_variant = missing_rate_variant)
+var_miss_manual <- data.frame(ID = rownames(geno_df), missing_rate_variant = missing_rate_variant)
 ggplot(var_miss_manual, aes(x = missing_rate_variant)) + 
   geom_histogram(fill = "green", color = "black") +
   labs(title = "Histogram of variant missing rate manual", x = "missing rate", y = "Count (Variants)") +
@@ -105,7 +102,10 @@ ggplot(var_miss_manual, aes(x = missing_rate_variant)) +
         axis.title.x = element_text(size = 14, face = "bold"),
         axis.title.y = element_text(size = 14, face = "bold"),
         plot.title = element_text(size = 16, face = "bold", hjust = 0.5))
+```
+heterozygosity rate calculation manually
 
+```{r}
 #calculating heterozygosity manually
 #calculating expected hetrozygosity
 #manual_allele_freq$het = 2 * manual_allele_freq$ref * manual_allele_freq$alt
@@ -116,7 +116,7 @@ hetero = apply(geno_df, 1, function(x) {
   obs_het = heterozygotes_count/N
   return(obs_het)}
 )
-heterozygosity = data.frame(ID = IDs, hetero)
+heterozygosity = data.frame(ID = rownames(geno_df), hetero)
 ggplot(heterozygosity, aes(x = hetero)) + 
   geom_histogram(fill = "green", color = "black") +
   labs(title = "Histogram of observed heterozygosity", x = "rate of heterozygosity", y = "Count (Variants)") +
@@ -125,39 +125,30 @@ ggplot(heterozygosity, aes(x = hetero)) +
         axis.title.x = element_text(size = 14, face = "bold"),
         axis.title.y = element_text(size = 14, face = "bold"),
         plot.title = element_text(size = 16, face = "bold", hjust = 0.5))
+```
 
+minor allele freequency calculation manually
 
+```{r}
 #function to calculate allele freequencies
-calculate_allele_frequencies <- function(geno_df) {
-  # Flatten the geno_row into a single vector and exclude NAs
-  genotypes <- unlist(geno_df)
-  genotypes <- genotypes[!is.na(genotypes)]
-  # Initialize counters for alleles
-  total_alleles <- 0
-  allele_0_count <- 0
-  allele_1_count <- 0
-  # Loop through all genotypes to count alleles
-  for (genotype in genotypes) {
-    alleles <- strsplit(genotype, "")[[1]]  # Split genotype into individual alleles
-    alleles <- as.numeric(alleles)  # Convert characters to numeric
-    # Count alleles
-    allele_0_count <- allele_0_count + sum(alleles == 0, na.rm = TRUE)
-    allele_1_count <- allele_1_count + sum(alleles == 1, na.rm = TRUE)
-    total_alleles <- total_alleles + 2  # Each genotype contributes 2 alleles
-  }
-  # Calculate allele frequencies
-  freq_0 <- round(allele_0_count / total_alleles , 8)
-  freq_1 <- round(allele_1_count / total_alleles , 8)
-  return(c(ref = freq_0, alt = freq_1))
+maf = function(ro){
+  ro=as.character(ro)
+  ro=sapply(ro,function(x){gsub("\\|","/",x)})
+  a1=sapply(ro, function(x){strsplit(x,split = "/")})
+  a1=unlist(a1)
+  b=as.data.frame(table(a1))
+  b[b[,1]=="0" |b[,1]=="1" ,]
+  b=b[order(b[,1]),]
+  total_count = sum(b$Freq)
+  freq1 = b$Freq/total_count
+  k=min(freq1)
+  k
 }
-# Apply the function to calculate allele freequency for each row of the dataframe
-allele_freqs <- t(apply(geno_df, 1, calculate_allele_frequencies))
-# Convert to a dataframe for easier viewing/manipulation
-allele_freqs_df <- as.data.frame(allele_freqs)
-manual_allele_freq <- data.frame(ID = IDs, allele_freqs_df)
-manual_allele_freq$maf <- pmin(manual_allele_freq$ref, manual_allele_freq$alt)
-#hist(geno_df$maf,breaks = 50)
-ggplot(manual_allele_freq, aes(x = maf)) + 
+#maf(g1)
+m=apply(geno_df,1,maf)
+m1=data.frame(ID=rownames(geno_df),MAF=m)
+#hist(m1$MAF,breaks = 50)
+ggplot(m1, aes(x = MAF)) + 
   geom_histogram(fill = "green", color = "black") +
   labs(title = "MAF_manual", x = "MAF", y = "Count") +
   theme(axis.text.x = element_text(size = 14, face = "bold"),
@@ -165,17 +156,16 @@ ggplot(manual_allele_freq, aes(x = maf)) +
         axis.title.x = element_text(size = 14, face = "bold"),
         axis.title.y = element_text(size = 14, face = "bold"),
         plot.title = element_text(size = 16, face = "bold", hjust = 0.5))
-
 ```
 
 comparing manual calculation and plink2.0 out put 
 
 ```{r}
 #comparing allele frequency from manual calculation to Plink2.0
-af_df <- merge(manual_allele_freq, var_freq, by = "ID")
-af_df <- af_df[, c("ID", "maf.x", "maf.y")]
+mscat <- merge(m1, var_freq, by = "ID")
+mscat <- mscat[, c("ID", "MAF", "maf")]
 #scatter plot for allele freequency comparision
-ggplot(af_df, aes(x = maf.x, y = maf.y)) +
+ggplot(af_df, aes(x = MAF, y = maf)) +
   geom_point() +
   labs(title = "minor allele freequency",
        x = "Manual Calculation", y = "Plink2.0") +
