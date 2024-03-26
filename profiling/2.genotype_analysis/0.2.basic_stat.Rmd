@@ -185,7 +185,6 @@ ggplot(comp_var_miss, aes(x = missing_rate_variant, y = F_MISS)) +
 comp_het = merge(heterozygosity, het, by = "ID")
 comp_het <- comp_het[, c("ID", "hetero", "O(HET_REF)")]
 comp_het$`O(HET_REF)` = round(comp_het$`O(HET_REF)`, 4)
-
 ggplot(comp_het, aes(x = hetero, y = `O(HET_REF)`)) +
   geom_point() +  # This adds the scatter plot points
   labs(title = "Scatter Plot of heterozygosity rate comparision",
