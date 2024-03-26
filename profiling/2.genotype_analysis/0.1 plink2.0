@@ -1,0 +1,39 @@
+#scripts for calculating the basic stats from rawvcf file and filtering vcf file
+ml bcftools
+ml vcftools
+ml plink2
+
+#counting the number of variants from raw vcf file
+bcftools view -H SAP.vcf.gz | wc -l
+
+#changing ID to chrom_pos to compare manual and plink2.0 calculation
+bcftools annotate --set-id +'%CHROM\_%POS' SAP.vcf.gz -Ov -o SAPo.vcf.gz
+
+#making bed file from vcf (format of plink2.0)
+plink2 --vcf SAPo.vcf.gz --make-bed --out /work/jyanglab/subhash/snp_sorghum/1.sap_genotype_files/2.plink2.0_bed/SAPo
+
+#calculating basic statistics
+#--freq to calculate allele freequency
+#--missing to calculate missing rate
+#--hardy to calculate heterozygosity rate 
+
+plink2 --bfile SAPo --freq alt1bins=0.01,0.02,0.03,0.04,0.05,0.1,0.2,0.3,0.4  --missing --hardy  --out /work/jyanglab/subhash/snp_sorghum/1.sap_genotype_files/3.basic_statistics_calculat
+
+#filtering of vcf files using maf and missing rate from plink2.0
+#--maf to filter minor allele freequency
+#--geno to filter missing rate from vcf file
+
+plink2 --bfile SAP --maf 0.05 --geno 0.3 --make-bed --out /work/jyanglab/subhash/snp_sorghum/1.sap_genotype_files/4.filtered_SAP/filtered
+
+
+#for filtering heterozygosity there is no direct function in plink2.0
+# so I have obtained seperate file of observed heterozygosity from --hardy fy=unction using following code
+#calculated heterozygosity using plink2.0 function -hardy which gives observed heterozygosity in column 8.
+
+awk '$8 < 0.1 {print $2}' SAP.hardy > low_het_snps.txt
+#now this low_het_snps.txt contains ID with <0.1 heterozygosity.
+#here SAP filtered is  maf >0.05 and geno <30%
+
+plink2 -bfile filtered -extract low_het_snps.txt -make-bed -out your_final_filtered_data
+
+#this final filtered data contains variants with maf >/=0.05 and missing rate of <30% and heterozygosity with <0.1
