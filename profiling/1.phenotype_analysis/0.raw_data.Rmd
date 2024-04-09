@@ -96,7 +96,7 @@ p1
 
 
 ```{r}
-data = read.table("phenotype.txt")
+data = read.table("DW.txt")
 data = na.omit(data)
 mean_HN = mean(data$HN)
 mean_LN = mean(data$LN)
