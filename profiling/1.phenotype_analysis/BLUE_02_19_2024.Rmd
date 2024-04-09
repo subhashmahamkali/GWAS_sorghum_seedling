@@ -39,9 +39,14 @@ data$plant_height_rep_2<- as.numeric(data$plant_height_rep_2)
 data$plant_height_rep_3<- as.numeric(data$plant_height_rep_3)
 data <- pivot_longer(data, cols = starts_with("plant_height_r"), names_to = "replicate", values_to = "height")
 
-
 data1 <- filter(data, Treatment == "HN")
 data2 <- filter(data, Treatment == "LN")
+
+names(data1) [names(data1) == "height"] = "hn_height"
+names(data2) [names(data2) == "height"] = "ln_height"
+
+#phenotype = merge(data1, data2, by = "Pedigree")
+phe = rbind(data1, data2)
 ```
 
 ### model for blup calculation
@@ -53,11 +58,22 @@ data$Row = factor(data$Row)
 data$Column = factor(data$Column)
 data$Pot_id = factor(data$Pot_id)
 data$Pedigree = factor(data$Pedigree)
-
 #mod = lm(height ~ Treatment + Pedigree + Treatment*Pedigree, data = data)
-mod = lm(height ~ Pedigree + Row + Column + Pot_id, data = data1)
-
-mod = lmer(height ~ Pedigree + (1|Row) + (1|Column) + (1|Pot_id), data = data1)
+#mod = lm(height ~ Pedigree + Row + Column + Pot_id, data = data1)
+mod = lmer(height ~ Pedigree + (1|Row) + (1|Column) + (1|Pot_id), data = data2)
 x = summary(mod)
 anova = anova(mod)
+BLUE <- as.data.frame(fixef(mod))
+rownames(BLUE)=gsub("Pedigree","",rownames(BLUE))
+BLUE$Pedigree = rownames(BLUE)
+BLUE$Pedigree[1] = "PI152651"
+HN=data.frame(id=rownames(BLUE),Phe=c(BLUE[1,1],(BLUE[-1,1]+BLUE[1,1])))
+HN$id[1] = "PI152651"
+write.table(b, file = "data_frame_b.txt", sep = "\t", row.names = TRUE, col.names = TRUE)
+
+
+LN=data.frame(id=rownames(BLUE),Phe=c(BLUE[1,1],(BLUE[-1,1]+BLUE[1,1])))
+LN$id[1] = "PI152651"
+write.table(b, file = "data_frame_b.txt", sep = "\t", row.names = TRUE, col.names = TRUE)
+
 ```
