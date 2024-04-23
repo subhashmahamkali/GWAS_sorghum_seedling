@@ -17,7 +17,8 @@ knitr::opts_knit$set(root.dir=normalizePath('..//'))
 library(readxl)
 library(dplyr)
 library(ggplot2)
-
+library(patchwork)
+install.packages("patchwork")
 # Read the Excel file
 # Replace 'path_to_your_excel_file.xlsx' with the actual path to your Excel file
 df <- read.csv("data/Revised_exp_data/PH_Revised.csv")
@@ -97,19 +98,32 @@ p1
 
 ```{r}
 data = read.table("DW.txt")
+
+data1 = read.table("DW.txt")
+data2 = read.table("FW.txt")
+data3 = read.table("LC.txt")
+data4 = read.table("PH.txt")
+
 data = na.omit(data)
+
+
+data1 = na.omit(data1)
+data2 = na.omit(data2)
+data3 = na.omit(data3)
+data4 = na.omit(data4)
+
 mean_HN = mean(data$HN)
 mean_LN = mean(data$LN)
 t_test = t.test(data$HN, data$LN, paired = TRUE)
 
-p <- ggplot(data) +
+dw <- ggplot(data) +
   geom_density(aes(x = HN, fill = "HN"), alpha = 0.5) + 
   geom_density(aes(x = LN, fill = "LN"), alpha = 0.5) +
   geom_vline(aes(xintercept = mean_HN), linetype = "dashed", color = "red") +
   geom_vline(aes(xintercept = mean_LN), linetype = "dashed", color = "green") +
   scale_fill_manual(values = c("HN" = "red", "LN" = "green")) +
   theme_minimal()+
-  labs(title = "PH", x = "cm", y = "Density") +
+  labs(title = "Seedling Dry Weight", x = "gm", y = "Density") +
   theme(plot.title = element_text(face = "bold", size = 16), axis.title.x = element_text(face = "bold", size = 14),
     axis.title.y = element_text(face = "bold", size = 14), axis.text.x = element_text(face = "bold", size = 12), axis.text.y = element_text(face = "bold", size = 12), legend.text = element_text(face = "bold", size = 10), legend.title = element_blank())
 
@@ -122,10 +136,73 @@ x_position <- mean(c(mean_HN, mean_LN))
 y_position <- max(c(density(data$HN)$y, density(data$LN)$y))
 
 # Add the significance label to the plot
-p <- p + annotate("text", x = x_position, y = y_position, label = sig_label, size = 6, color ="blue")
+dw <- dw + annotate("text", x = x_position, y = y_position, label = sig_label, size = 6, color ="blue")
 
 # Display the plot
-print(p)
+print(dw)
 ```
 
+
+```{r}
+# Combine the plots
+final_plot <- H + l + f + p +
+              plot_layout(ncol = 2)  # Arrange in 2 columns
+
+# Print the combined plot
+print(final_plot)
+
+```
+
+```{r}
+create_density_plot <- function(data, main_title, x_label, y_label) {
+  # Data preparation and analysis
+  data <- na.omit(data)
+  mean_HN <- mean(data$HN)
+  mean_LN <- mean(data$LN)
+  t_test <- t.test(data$HN, data$LN, paired = TRUE)
+  
+  # Determine significance label
+  sig_label <- ifelse(t_test$p.value < 0.001, '***',
+                      ifelse(t_test$p.value < 0.01, '**',
+                             ifelse(t_test$p.value < 0.05, '*', 'ns')))
+  
+  # Calculate positions for annotation
+  x_position <- mean(c(mean_HN, mean_LN))
+  y_position <- max(c(density(data$HN)$y, density(data$LN)$y))
+  
+  # Create the plot
+  p <- ggplot(data) +
+    geom_density(aes(x = HN, fill = "HN"), alpha = 0.5) + 
+    geom_density(aes(x = LN, fill = "LN"), alpha = 0.5) +
+    geom_vline(aes(xintercept = mean_HN), linetype = "dashed", color = "red") +
+    geom_vline(aes(xintercept = mean_LN), linetype = "dashed", color = "green") +
+    scale_fill_manual(values = c("HN" = "red", "LN" = "green")) +
+    theme_minimal() +
+    labs(title = main_title, x = x_label, y = y_label) +
+    theme(plot.title = element_text(face = "bold", size = 16),
+          axis.title.x = element_text(face = "bold", size = 14),
+          axis.title.y = element_text(face = "bold", size = 14))  # Corrected the syntax here
+  
+  return(p)
+}
+
+data1 = read.table("DW.txt")
+data2 = read.table("FW.txt")
+data3 = read.table("LC.txt")
+data4 = read.table("PH.txt")
+
+plot1 <- create_density_plot(data1, "Seedling Dry Weight", "gm", "Density",TRUE)
+plot2 <- create_density_plot(data2, "Seedling Fresh Weight", "gm", "Density", FALSE)
+plot3 <- create_density_plot(data3, "Leaf Count", "#number", "Density", FALSE)
+plot4 <- create_density_plot(data4, "Plant Height", "cm", "Density", FALSE)
+
+
+# Combine the plots
+final_plot <- plot4 + plot3 + plot2 + plot1 +
+              plot_layout(ncol = 2)  # Arrange in 2 columns
+
+# Print the combined plot
+print(final_plot)
+
+```
 
