@@ -205,4 +205,31 @@ final_plot <- plot4 + plot3 + plot2 + plot1 +
 print(final_plot)
 
 ```
+```{r}
+data1 = read.table("DW.txt")
+data2 = read.table("FW.txt")
+data3 = read.table("LC.txt")
+data4 = read.table("PH.txt")
+
+colnames(data1)
+colnames(data1) <- c('Taxa', 'DW.HN', 'DW.LN')
+colnames(data2) <- c('Taxa', 'FW.HN', 'FW.LN')
+colnames(data3) <- c('Taxa', 'LC.HN', 'LC.LN')
+colnames(data4) <- c('Taxa', 'PH.HN', 'PH.LN')
+
+
+data1$DW.NR <- (data1$DW.HN - data1$DW.LN) / data1$DW.LN
+data2$FW.NR <- (data2$FW.HN - data2$FW.LN) / data2$FW.LN
+data3$LC.NR <- (data3$LC.HN - data3$LC.LN) / data3$LC.LN
+data4$PH.NR <- (data4$PH.HN - data4$PH.LN) / data4$PH.LN
+
+
+merge1 <- merge(data1, data2, by = "Taxa")
+merge2 <- merge(merge1, data3, by = "Taxa")
+merged_phenotype_data <- merge(merge2, data4, by = "Taxa")
+
+colnames(merged_phenotype_data)[7] <- "SFW.NR"
+write.table(merged_phenotype_data, "merged_phenotype_data.txt", sep = "\t", quote = FALSE, row.names = FALSE)
+
+```
 
