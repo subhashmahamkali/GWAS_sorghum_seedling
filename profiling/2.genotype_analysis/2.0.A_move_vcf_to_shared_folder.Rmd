@@ -1,0 +1,51 @@
+---
+title: "Move VCF file to a shared lab folder"
+author: "Jinliang Yang"
+date: "-05-07-2024"
+output: NULL
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE) 
+knitr::opts_knit$set(root.dir=normalizePath('..//')) 
+```
+
+
+### move data on HCC
+
+- raw data obtained from [Boatwright et al., 2022]()
+- Hongyu corrected the header or the label using a SNP matching approach!
+
+```{bash, eval=FALSE}
+mkdir /common/jyanglab/shared/dbcenter/SAP
+cp /common/jyanglab/subhash/SNPallchrs/1.raw_data__corrected/* /common/jyanglab/shared/dbcenter/SAP
+```
+
+Some further steps needed to double-check the genotype labels
+1. do plant height GWAS (see if the well known dwarf genes will show up)
+2. do IBS analysis with tGBS data by [Miao et al., 2020]()
+
+### Download the sorghum reference genome
+
+SorghumV3.fa (BTx623) V3
+Move to the newest version V5
+
+possibly from this websites:
+1. https://plants.ensembl.org/Sorghum_bicolor/Info/Index
+2. https://phytozome-next.jgi.doe.gov/info/Sbicolor_v3_1_1
+3. https://ensembl.sorghumbase.org/Sorghum_tx430nano/Info/Index
+
+
+#### Calculate some basic stat
+
+```{bash, eval=FALSE}
+module load bcftools
+#changing ID to chrom_pos to compare manual and plink2.0 calculation
+bcftools annotate --set-id +'%CHROM\_%POS' SAP.vcf.gz -Ov -o SAP_addid.vcf.gz
+
+#making bed file from vcf (format of plink2.0)
+plink2 --vcf SAPo.vcf.gz --make-bed --out /work/jyanglab/subhash/snp_sorghum/1.sap_genotype_files/2.plink2.0_bed/SAPo
+
+```
+
+
