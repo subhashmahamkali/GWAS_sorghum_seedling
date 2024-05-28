@@ -1,0 +1,89 @@
+---
+title: "variant calling"
+author: "SUBHASH MAHAMKALI"
+date: "05/19/2024"
+output: NULL
+DATA : "Raw unmapped fastq reads ( paired end) WGS of SAP"
+---
+
+#Run the below pipeline for the subset of the data
+#below three samples belong to PI564163 from SAP
+
+```{bash}
+ml SRAtoolkit
+fastq-dump --split-files --gzip ERR8093223
+fastq-dump --split-files --gzip ERR8092974
+fastq-dump --split-files --gzip ERR8093245
+```
+
+#align all the files with accesion PI nummber and have 2 files farward and reverse fastq files.
+
+```{bash}
+cat ERR8092974_1.fastq.gz ERR8093223_1.fastq.gz ERR8093245_1.fastq.gz > PI_564163_1.fastq.gz
+cat ERR8092974_2.fastq.gz ERR8093223_2.fastq.gz ERR8093245_2.fastq.gz > PI_564163_2.fastq.gz
+```
+
+#quality control 
+
+```{bash}
+#used fastqc to generate quality report
+ml fastqc
+fastqc *.fastq.gz
+
+#used fastp to filter the low quality reads and adapter sequences 
+ml fastp
+fastp -i PI_564163_1.fastq.gz -I PI_564163_2.fastq.gz  -o PI_564163_1_trim.fastq.gz -O PI_564163_2_trim.fastq.gz -c --thread=4 -Q > fastp.log
+
+```
+
+#alignment 
+
+```{bash}
+ml bowtie/2.5
+#building index file from the refrence genome
+bowtie2-build Sbicolor_730_v5.0.fa.gz sorghum 
+
+#aligning read files (Farward and Reverse) with refrence genome
+#later used samtools for filtering low quality mapped reads and converting sam to bam format and sorting based on chromosome and position
+#sorting the 
+bowtie2 -p 8 -x /work/jyanglab/subhash/variant_calling/0.test/1.Raw_reads/4.refrence/Phytozome/PhytozomeV13/Sbicolor/v5.1/assembly/sorghum -1 /work/jyanglab/subhash/variant_calling/0.test/1.Raw_reads/3.fastp_filtering/PI_564163_1_trim.fastq.gz -2 /work/jyanglab/subhash/variant_calling/0.test/1.Raw_reads/3.fastp_filtering/PI_564163_2_trim.fastq.gz --rg-id PI_564163 --rg "PL:ILLUMINA" --rg "SM:PI_564163"|samtools view --threads 8 -bS -f 2 -q 30 -h - | samtools sort -m 32G --threads 8 -o PI_564163.srt.bam - 
+
+```
+
+#mark duplicates
+
+```{bash}
+#used picard to flag duplicates
+ml picard/3.0
+picard  MarkDuplicates \
+INPUT=/work/jyanglab/subhash/variant_calling/0.test/1.Raw_reads/5.alignment/PI_564163.srt.bam \
+OUTPUT=/work/jyanglab/subhash/variant_calling/0.test/1.Raw_reads/6.picard/PI_564163_dup.bam \
+METRICS_FILE=/work/jyanglab/subhash/variant_calling/0.test/1.Raw_reads/6.picard/marked_dup_metrics.txt \
+CREATE_INDEX=true \
+REMOVE_DUPLICATES=true  
+
+```
+
+###skipped base recalibration score step 
+#proceded to call variants using gatk - HaplotypeCaller
+#obtaining gvcf file for the entire genome and then merge all the variant sites to obtain vcf file for all the samples.
+
+```{bash}
+ml gatk4/4.4
+gatk HaplotypeCaller \
+    -R /work/jyanglab/subhash/variant_calling/0.test/1.Raw_reads/4.refrence/Phytozome/PhytozomeV13/Sbicolor/v5.1/assembly/Sbicolor_730_v5.0.fa \
+    -I /work/jyanglab/subhash/variant_calling/0.test/1.Raw_reads/6.picard/PI_564163_dup.bam \
+    -O /work/jyanglab/subhash/variant_calling/0.test/1.Raw_reads/7.GATK_gvcf_variant_calling/PI_564163_dedup.g.vcf \
+    -ERC GVCF \
+    --native-pair-hmm-threads 8
+    
+```
+
+#consolidate and joint call variant for all the samples
+
+```{bash}
+ml gatk4/4.4
+gatk SelectVariants -R /work/jyanglab/subhash/variant_calling/0.test/1.Raw_reads/4.refrence/Phytozome/PhytozomeV13/Sbicolor/v5.1/assembly/Sbicolor_730_v5.0.fa -V /work/jyanglab/subhash/variant_calling/0.test/1.Raw_reads/7.GATK_gvcf_variant_calling/PI_564163_dedup.g.vcf --select-type SNP -O /work/jyanglab/subhash/variant_calling/0.test/1.Raw_reads/7.GATK_gvcf_variant_calling/SNPS.vcf
+
+```
+
