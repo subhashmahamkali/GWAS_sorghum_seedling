@@ -7,7 +7,7 @@ DATA : "Raw unmapped fastq reads ( paired end) WGS of SAP"
 ---
 
 #Run the below pipeline for the subset of the data
-#below three samples belong to PI564163 from SAP
+#below three samples belong to PI564163 (BTX623) from SAP
 
 ```{bash}
 ml SRAtoolkit
