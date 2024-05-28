@@ -97,7 +97,7 @@ p1
 
 
 ```{r}
-data = read.table("DW.txt")
+data = read.table("PH")
 
 data1 = read.table("DW.txt")
 data2 = read.table("FW.txt")
@@ -123,7 +123,7 @@ dw <- ggplot(data) +
   geom_vline(aes(xintercept = mean_LN), linetype = "dashed", color = "green") +
   scale_fill_manual(values = c("HN" = "red", "LN" = "green")) +
   theme_minimal()+
-  labs(title = "Seedling Dry Weight", x = "gm", y = "Density") +
+  labs(title = "plant height 2021 sap data", x = "cm", y = "Density") +
   theme(plot.title = element_text(face = "bold", size = 16), axis.title.x = element_text(face = "bold", size = 14),
     axis.title.y = element_text(face = "bold", size = 14), axis.text.x = element_text(face = "bold", size = 12), axis.text.y = element_text(face = "bold", size = 12), legend.text = element_text(face = "bold", size = 10), legend.title = element_blank())
 

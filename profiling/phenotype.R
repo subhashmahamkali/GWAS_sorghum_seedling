@@ -12,7 +12,19 @@ library(data.table)
 #install.packages("tidyr")
 #install.packages("Matrix")
 
-data <- read.csv("DW_Revised.csv")
+data <- read.csv("pheno_height.csv")
+split_parts <- strsplit(data$morris, "_", fixed = TRUE)
+PI_parts <- sapply(split_parts, `[`, 2)
+number_parts <- sub("PI([0-9]+).*", "\\1", PI_parts)
+number_parts = paste0("PI", number_parts)
+data$PI <- PI_parts
+data$number <- number_parts
+
+data_filt = data[, c("number", "DAP_76")]
+names(data_filt)[names(data_filt) == "number"] <- "id"
+
+
+
 data$Pedigree <- gsub("PI ", "PI", data$Pedigree)
 data$plant_height_rep_1<- as.numeric(data$plant_height_rep_1)
 data$plant_height_rep_2<- as.numeric(data$plant_height_rep_2)
@@ -49,12 +61,14 @@ names(HN)[names(HN) == "Phe"] = "HN"
 names(LN)[names(LN) == "Phe"] = "LN"
 #write.table(b, file = "data_frame_b.txt", sep = "\t", row.names = TRUE, col.names = TRUE)
 #map <- read.table("mvp.geno.map" , head = TRUE)
-Phenotype = fread("snp_maf.fam")
+Phenotype = fread("snps.fam")
 
-phenotype1=merge(Phenotype, HN, by.x="V1", by.y="id", all.x=T)
+phenotype1=merge(Phenotype, data_filt, by.x="V1", by.y="id", all.x=T)
 num_na_values <- sum(is.na(HN$Phe))
 phenotype2=merge(phenotype1, LN, by.x="V1", by.y="id", all.x=T)
-phenotypee=phenotype2[,c(1,7,8)]
+phenotypee=phenotype1[,c(1,7)]
 names(phenotypee)[names(phenotypee) == "V1"] = "Taxa"
-write.table(phenotypee, file = "DW.txt", sep = "\t", row.names = TRUE, col.names = TRUE)
+write.table(phenotypee, file = "pheno_height.txt", sep = "\t", row.names = TRUE, col.names = TRUE)
 f = read.table("DW.txt")
+
+
