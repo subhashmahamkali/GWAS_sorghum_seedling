@@ -66,7 +66,7 @@ Phenotype = fread("snps.fam")
 phenotype1=merge(Phenotype, data_filt, by.x="V1", by.y="id", all.x=T)
 num_na_values <- sum(is.na(HN$Phe))
 phenotype2=merge(phenotype1, LN, by.x="V1", by.y="id", all.x=T)
-phenotypee=phenotype1[,c(1,7)]
+phenotypee=phenotype1[,c(1,7,8,9)]
 names(phenotypee)[names(phenotypee) == "V1"] = "Taxa"
 write.table(phenotypee, file = "pheno_height.txt", sep = "\t", row.names = TRUE, col.names = TRUE)
 f = read.table("DW.txt")
