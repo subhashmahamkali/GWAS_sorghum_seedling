@@ -1,3 +1,20 @@
+
+
+# SNP Calling 
+
+### V5:
+
+
+### old version RAW variants:-43811787
+compared plink2.0 by calculating these basic stats manually result was corelated.
+now filtering these vcf with maf=0.05 and missing rate=0.7 using plink2.0
+
+
+
+# Phenotype
+
+### Seedling phenotypes
+
 we have collected sorghum seedling data from UNL greenhouse grown under both high and low nitrogen conditions.
 we have grown 346 genotupes from SAP(sorghum association panel with 1 check).
 The data collected are plant height, leaf count, shoot dry weight and shoot fresh weight and stored under DATA folder 
@@ -13,6 +30,5 @@ update 03.20.2024
 curently working on genotype data collected from WGS of SAP
 
 using plink2.0 to estimate basic stats (minor allele freequecny and misssing rate) from vcf file (RAW) 
-#RAW variants:-43811787
-compared plink2.0 by calculating these basic stats manually result was corelated.
-now filtering these vcf with maf=0.05 and missing rate=0.7 using plink2.0
+
+
