@@ -77,6 +77,14 @@ gatk HaplotypeCaller \
     -ERC GVCF \
     --native-pair-hmm-threads 8
     
+# for this sample I have called variants in vcf 
+    
+    ml gatk4/4.4
+gatk HaplotypeCaller \
+    -R /work/jyanglab/subhash/variant_calling/0.test/1.Raw_reads/4.refrence/Phytozome/PhytozomeV13/Sbicolor/v5.1/assembly/Sbicolor_730_v5.0.fa \
+    -I /work/jyanglab/subhash/variant_calling/0.test/1.Raw_reads/6.picard/PI_564163_dup.bam \
+    -O /work/jyanglab/subhash/variant_calling/0.test/1.Raw_reads/8.vcf/PI_564163_dedup.vcf
+    
 ```
 
 #consolidate and joint call variant for all the samples
@@ -84,6 +92,16 @@ gatk HaplotypeCaller \
 ```{bash}
 ml gatk4/4.4
 gatk SelectVariants -R /work/jyanglab/subhash/variant_calling/0.test/1.Raw_reads/4.refrence/Phytozome/PhytozomeV13/Sbicolor/v5.1/assembly/Sbicolor_730_v5.0.fa -V /work/jyanglab/subhash/variant_calling/0.test/1.Raw_reads/7.GATK_gvcf_variant_calling/PI_564163_dedup.g.vcf --select-type SNP -O /work/jyanglab/subhash/variant_calling/0.test/1.Raw_reads/7.GATK_gvcf_variant_calling/SNPS.vcf
+
+```
+
+#called the raw snps and indels from genrated vcf file 
+
+```{bash}
+ml gatk4/4.4
+#extracting snps and indels from vcf
+gatk SelectVariants -R /work/jyanglab/subhash/variant_calling/0.test/1.Raw_reads/4.refrence/Phytozome/PhytozomeV13/Sbicolor/v5.1/assembly/Sbicolor_730_v5.0.fa.gz -V /work/jyanglab/subhash/variant_calling/0.test/1.Raw_reads/8.vcf/PI_564163_dedup.vcf --select-type SNP -O /work/jyanglab/subhash/variant_calling/0.test/1.Raw_reads/9.snps_indels/raw_snps.vcf
+gatk SelectVariants -R /work/jyanglab/subhash/variant_calling/0.test/1.Raw_reads/4.refrence/Phytozome/PhytozomeV13/Sbicolor/v5.1/assembly/Sbicolor_730_v5.0.fa.gz -V /work/jyanglab/subhash/variant_calling/0.test/1.Raw_reads/8.vcf/PI_564163_dedup.vcf --select-type INDEL -O /work/jyanglab/subhash/variant_calling/0.test/1.Raw_reads/9.snps_indels/raw_indel.vcf
 
 ```
 
