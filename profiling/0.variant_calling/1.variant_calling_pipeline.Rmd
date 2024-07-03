@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_knit$set(root.dir = "/work/jyanglab/subhash/variant_calling")
 ```
 
-
+#defining the genotype_ID with PI numbers for the 400 indivudals....
 
 ```{r}
 PI <- read.table("accession_ID.txt", sep = "\t", header = TRUE)
