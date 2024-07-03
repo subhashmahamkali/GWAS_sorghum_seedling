@@ -15,12 +15,9 @@ In this study, we are leveraging existing datasets in sorghum to investigate phe
 
 
 
-# Phenotype
+#### Phenotype
 
-
-# Quantgen analysis
-
-### Seedling phenotypes
+##### Seedling phenotypes
 
 we have collected sorghum seedling data from UNL greenhouse grown under both high and low nitrogen conditions.
 we have grown 346 genotupes from SAP(sorghum association panel with 1 check).
@@ -31,6 +28,10 @@ Here entire main data and sub-data sets are in the data folder.
 Blup_out files are saved under the output folder.
 all the code is in the profiling folder.
 after creating the histograms and density plots they are saved under the graphs folder.
+
+
+#### Quantgen analysis
+
 
 
 ### old version RAW variants:-43811787
