@@ -52,6 +52,8 @@ using plink2.0 to estimate basic stats (minor allele freequecny and misssing rat
 
 - The guideline for the collaborative [workflow](https://jyanglab.github.io/2017-01-10-project-using-github/).
 
+- Throw ideas and check out progress and things [to-do](TODO.md). 
+
 ## License
 This is an ongoing research project. It was intended for internal lab usage. It has not been extensively tested. Use at your own risk.
 It is a free and open source software, licensed under [GPLv3](LICENSE).
