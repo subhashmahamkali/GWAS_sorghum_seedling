@@ -11,8 +11,8 @@ In this study, we are leveraging existing datasets in sorghum to investigate phe
 
 #### Sorghum SNP Calling on V5:
 
-
-
+- Data: HCC:`/work/jyanglab/subhash/variant_calling`
+- Code: `1.variant_calling/`
 
 
 #### Phenotype
