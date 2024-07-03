@@ -1,8 +1,14 @@
 
+# Sorghum plasicity: trade-off between growth and reproduction under temperature and N stressors
 
-# SNP Calling 
+Plant plasticity or resilience requires the efficient use of available resources to fuel growth while maintaining function. 
+Environmental stressors, such as high temperatures and nitrogen limitation, can challenge the balance between growth and reproduction. 
+In this study, we are leveraging existing datasets in sorghum to investigate phenotypic plasticity under temperature and nitrogen stresses.
 
-### V5:
+
+## Genomics analysis of Sorghum Assocation Panel (SAP) 
+
+#### Sorghum SNP Calling on V5:
 
 
 ### old version RAW variants:-43811787
@@ -12,6 +18,9 @@ now filtering these vcf with maf=0.05 and missing rate=0.7 using plink2.0
 
 
 # Phenotype
+
+
+# Quantgen analysis
 
 ### Seedling phenotypes
 
