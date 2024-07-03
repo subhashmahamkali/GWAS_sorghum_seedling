@@ -14,6 +14,7 @@ In this study, we are leveraging existing datasets in sorghum to investigate phe
 - Data: HCC:`/work/jyanglab/subhash/variant_calling`
 - Code: `1.variant_calling/`
 
+[Subhash: add a paragraph to briefly describe the methods]
 
 #### Phenotype
 
