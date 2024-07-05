@@ -1,0 +1,723 @@
+---
+title: "scripts for variant calling"
+author: "subhash"
+date: "2024-06-04"
+data: "whole genome sequencing of sorghum association panel - trimmed reads from #400 individuals"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "/work/jyanglab/subhash/variant_calling")
+```
+
+# defining the genotype_ID with PI numbers for the 400 indivudals....
+
+```{r}
+PI <- read.table("accession_ID.txt", sep = "\t", header = TRUE)
+PI_numbers = PI[, 1]
+PI_numbers
+```
+
+### using  fastqc to generate quality report for all the individuals for both farward and revere end files
+
+```{r}
+template <-
+'#!/bin/sh
+#SBATCH --ntasks-per-node=8
+#SBATCH --nodes=1
+#SBATCH --mem=1G
+#SBATCH --time=24:00:00
+#SBATCH --job-name=fastqc_{PI}
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+#SBATCH --mail-type=ALL
+#SBATCH --error=/work/jyanglab/subhash/variant_calling/1.trimmed_data/0.1_fastqc_report/0.scripts/{PI}_fastqc.err
+#SBATCH --output=/work/jyanglab/subhash/variant_calling/1.trimmed_data/0.1_fastqc_report/0.scripts/{PI}_fastqc.out
+
+ml fastqc
+fastqc -o /work/jyanglab/subhash/variant_calling/1.trimmed_data/0.1_fastqc_report/ /work/jyanglab/subhash/variant_calling/1.trimmed_data/{PI}_1.fastq.gz
+
+fastqc -o /work/jyanglab/subhash/variant_calling/1.trimmed_data/0.1_fastqc_report/ /work/jyanglab/subhash/variant_calling/1.trimmed_data/{PI}_2.fastq.gz
+'
+# Initialize an empty vector to store template commands
+fastq <- c()
+# Function to generate SLURM script for each PI number
+generate_script <- function(PI) {
+  script <- gsub("\\{PI\\}", PI, template)
+  file_name <- paste0("fastqc_", PI, ".sh")
+  writeLines(script, con = file_name)
+  # Add sbatch command to the vector
+  fastq  <<- c(fastq, paste0("sbatch -p guest ", file_name))
+}
+# Generate scripts for each PI number
+sapply(PI_numbers, generate_script)
+# Write sbatch commands to a txt file - sh .txt
+writeLines(fastq, con = "fastqc.txt")
+```
+
+
+
+
+### step - 1
+#R code to generate multiple slurm files to submit multiple jobs for each sample to align trimmed read files with refrence genome using bwa aligner....
+
+```{r}
+setwd("/work/jyanglab/subhash/variant_calling/3.alignment/0.scripts")
+# Define the template for the SLURM script
+template <-
+'#!/bin/sh
+#SBATCH --ntasks-per-node=8
+#SBATCH --nodes=1
+#SBATCH --mem=32G
+#SBATCH --time=40:00:00
+#SBATCH --job-name=alignment_{PI}
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+#SBATCH --mail-type=ALL
+#SBATCH --error=/work/jyanglab/subhash/variant_calling/3.alignment/0.1.log_files/{PI}_bwa.err
+#SBATCH --output=/work/jyanglab/subhash/variant_calling/3.alignment/0.1.log_files/{PI}_bwa.out
+
+ml bwa
+ml samtools
+ref="/work/jyanglab/subhash/variant_calling/2.refrence/Phytozome/PhytozomeV13/Sbicolor/v5.1/assembly/Sbicolor_730_v5.0.fa"
+reads="/work/jyanglab/subhash/variant_calling/1.trimmed_data"
+out="/work/jyanglab/subhash/variant_calling/3.alignment"
+bwa mem -t 8 -R "@RG\\tID:{PI}\\tPL:ILLUMINA\\tSM:{PI}" ${ref} ${reads}/{PI}_1.fastq.gz ${reads}/{PI}_2.fastq.gz|samtools view --threads 8 -bS -f 2 -q 30 -h - | samtools sort --threads 8 -o ${out}/{PI}.srt.bam -'
+# Initialize an empty vector to store sbatch commands
+alignment <- c()
+# Function to generate SLURM script for each PI number
+generate_script <- function(PI) {
+  script <- gsub("\\{PI\\}", PI, template)
+  file_name <- paste0("bwa_", PI, ".sh")
+  writeLines(script, con = file_name)
+  # Add sbatch command to the vector
+  alignment <<- c(alignment, paste0("sbatch -p guest ", file_name))
+}
+# Generate scripts for each PI number
+sapply(PI_numbers, generate_script)
+# Write sbatch commands to a txt file
+writeLines(alignment, con = "alignment.txt")
+```
+
+### step - 2
+#marking the duplicates using picard tool....
+
+```{r}
+setwd("/work/jyanglab/subhash/variant_calling/4.picard/0.scripts")
+# Define the template for the SLURM script
+template <-
+'#!/bin/sh
+#SBATCH --ntasks-per-node=8
+#SBATCH --nodes=1
+#SBATCH --mem=10G
+#SBATCH --time=24:00:00
+#SBATCH --job-name=picard_{PI}
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+#SBATCH --mail-type=ALL
+#SBATCH --error=/work/jyanglab/subhash/variant_calling/4.picard/0.log_files/{PI}_picard.err
+#SBATCH --output=/work/jyanglab/subhash/variant_calling/4.picard/0.log_files/{PI}_picard.out
+
+ml picard/3.0
+picard  MarkDuplicates \\
+INPUT=/work/jyanglab/subhash/variant_calling/3.alignment/{PI}.srt.bam \\
+OUTPUT=/work/jyanglab/subhash/variant_calling/4.picard/{PI}_picard_dedup.bam \\
+METRICS_FILE=/work/jyanglab/subhash/variant_calling/4.picard/{PI}_picard_metrics.txt \\
+CREATE_INDEX=true \\
+REMOVE_DUPLICATES=true
+'
+# Initialize an empty vector to store sbatch commands
+picard <- c()
+# Function to generate SLURM script for each PI number
+generate_script <- function(PI) {
+  script <- gsub("\\{PI\\}", PI, template)
+  file_name <- paste0("picard_", PI, ".sh")
+  writeLines(script, con = file_name)
+  # Add sbatch command to the vector
+  picard <<- c(picard, paste0("sbatch -p guest ", file_name))
+}
+# Generate scripts for each PI number
+sapply(PI_numbers, generate_script)
+# Write sbatch commands to a txt file
+writeLines(picard, con = "picard.txt")
+```
+
+#step - 3
+#skipped the base recalibration quality score step since we dont have previous called variants...
+### calling variants for the entire genome using GATK haplotype caller...
+
+```{r}
+#setwd("/work/jyanglab/subhash/variant_calling/5.gvcf/0.scripts")
+#Define the template for the SLURM script
+#10 GB is enough to do work increase the time....
+template <-
+'#!/bin/sh
+#SBATCH --ntasks-per-node=8
+#SBATCH --nodes=1
+#SBATCH --mem=10G  
+#SBATCH --time=50:00:00
+#SBATCH --job-name=gvcf_{PI}
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+#SBATCH --mail-type=ALL
+#SBATCH --error=/work/jyanglab/subhash/variant_calling/5.gvcf/log_files/{PI}_gvcf.err
+#SBATCH --output=/work/jyanglab/subhash/variant_calling/5.gvcf/log_files/{PI}_gvcf.out
+
+ml gatk4/4.4
+gatk HaplotypeCaller \\
+    -R /work/jyanglab/subhash/variant_calling/2.refrence/Phytozome/PhytozomeV13/Sbicolor/v5.1/assembly/Sbicolor_730_v5.0.fa \\
+    -I /work/jyanglab/subhash/variant_calling/4.picard/{PI}_picard_dedup.bam \\
+    -O /work/jyanglab/subhash/variant_calling/5.gvcf/{PI}.g.vcf \\
+    -ERC GVCF \\
+    --native-pair-hmm-threads 8
+'
+# Initialize an empty vector to store sbatch commands
+gvcf <- c()
+# Function to generate SLURM script for each PI number
+generate_script <- function(PI) {
+  script <- gsub("\\{PI\\}", PI, template)
+  file_name <- paste0("gvcf_", PI, ".sh")
+  writeLines(script, con = file_name)
+  # Add sbatch command to the vector
+  gvcf <<- c(gvcf, paste0("sbatch -p guest ", file_name))
+}
+# Generate scripts for each PI number
+sapply(PI_numbers, generate_script)
+# Write sbatch commands to a txt file
+writeLines(gvcf, con = "gvcf.txt")
+
+```
+
+### creating a genome database for every 5MB window for the entire genome 
+
+```{r}
+# Define the chromosome lengths - from the refrence file these are the lengths of each chromosome.
+chromosome_lengths <- list(
+  Chr01 = 85112863,
+  Chr02 = 79114963,
+  Chr03 = 80873341,
+  Chr04 = 71215609,
+  Chr05 = 77058072,
+  Chr06 = 62713908,
+  Chr07 = 68911884,
+  Chr08 = 65779274,
+  Chr09 = 63277606,
+  Chr10 = 62870657
+)
+interval_size <- 5000000  # 5 MB intervals
+# PI numbers
+#PI_numbers <- c("PI152651", "PI17548", "PI24969", "PI276837", "PI564163")
+# Initialize a vector to store the names of the generated .sh files
+sh_file_names <- c()
+# Function to generate SLURM and GATK commands for each interval
+generate_script <- function(chrom, start, end, PI_numbers) {
+  start_formatted <- format(start, scientific = FALSE)
+  end_formatted <- format(end, scientific = FALSE)
+  interval <- paste0(chrom, ":", start_formatted, "-", end_formatted)
+  db_path <- paste0(chrom, "_", start_formatted, "_", end_formatted, ".database")
+  output_vcf <- paste0(chrom, "_", start_formatted, "_", end_formatted, ".vcf")
+  job_name <- paste0("db_", chrom, "_", start_formatted, "_", end_formatted)
+  err_file <- paste0("/work/jyanglab/subhash/variant_calling/6.converting_to_vcf/1.database_5mb/0.log_files/", chrom, "_", start_formatted, "_", end_formatted, "_db_vcf.err")
+  out_file <- paste0("/work/jyanglab/subhash/variant_calling/6.converting_to_vcf/1.database_5mb/0.log_files/", chrom, "_", start_formatted, "_", end_formatted, "_db_vcf.out")
+  # Generate the -V arguments
+  v_arguments <- paste0("-V ${gvcf_path}/", PI_numbers, ".g.vcf", collapse = " \\\n  ")
+  script_content <- paste(
+    "#!/bin/sh",
+    "#SBATCH --ntasks-per-node=8",
+    "#SBATCH --nodes=1",
+    "#SBATCH --mem=150G",
+    "#SBATCH --time=80:00:00",
+    paste0("#SBATCH --job-name=", job_name),
+    "#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu",
+    "#SBATCH --mail-type=ALL",
+    paste0("#SBATCH --error=", err_file),
+    paste0("#SBATCH --output=", out_file),
+    "",
+    "gvcf_path=\"/work/jyanglab/subhash/variant_calling/5.gvcf\"",
+    #"out=\"/work/jyanglab/subhash/variant_calling/6.converting_to_vcf/2.vcf_files\"",
+    "db=\"/work/jyanglab/subhash/variant_calling/6.converting_to_vcf/1.database_5mb\"",
+    "",
+    "ml gatk4/4.4",
+    "",
+    paste0("gatk --java-options '-Xms10g -Xmx120g' GenomicsDBImport \\"),
+    paste0("  ", v_arguments, " \\"),
+    paste0("  --genomicsdb-workspace-path ", "${db}/", db_path, " \\"),
+    paste0("  --intervals ", interval),
+    sep = "\n")
+  
+  file_name <- paste0(chrom, "_", start_formatted, "_", end_formatted, "db.sh")
+  writeLines(script_content, file_name)
+  
+  # Adding the sbatch command with file name to the vector
+  sh_file_names <<- c(sh_file_names, paste0("sbatch -p guest ", file_name))
+}
+
+# Generate scripts for each chromosome
+for (chrom in names(chromosome_lengths)) {
+  length <- chromosome_lengths[[chrom]]
+  for (start in seq(1, length, by = interval_size)) {
+    end <- min(start + interval_size - 1, length)
+    generate_script(chrom, start, end, PI_numbers)
+  }
+}
+# Write the names of the generated .sh files to a .txt file
+writeLines(sh_file_names, "db_vcf_sh_files.txt")
+
+```
+
+### from the created database I have called variants for every 5Mb interval....
+
+```{r}
+# Define the chromosome lengths
+chromosome_lengths <- list(
+  Chr01 = 85112863,
+  Chr02 = 79114963,
+  Chr03 = 80873341,
+  Chr04 = 71215609,
+  Chr05 = 77058072,
+  Chr06 = 62713908,
+  Chr07 = 68911884,
+  Chr08 = 65779274,
+  Chr09 = 63277606,
+  Chr10 = 62870657
+)
+interval_size <- 5000000  # 5 MB intervals
+# Initialize a vector to store the names of the generated .sh files
+sh_file_names <- c()
+# Function to generate SLURM and GATK commands for each interval
+generate_script <- function(chrom, start, end, PI_numbers) {
+  start_formatted <- format(start, scientific = FALSE)
+  end_formatted <- format(end, scientific = FALSE)
+  interval <- paste0(chrom, ":", start_formatted, "-", end_formatted)
+  db_path <- paste0(chrom, "_", start_formatted, "_", end_formatted, ".database")
+  output_vcf <- paste0(chrom, "_", start_formatted, "_", end_formatted, ".vcf.gz")
+  job_name <- paste0("vcf_", chrom, "_", start_formatted, "_", end_formatted)
+  err_file <- paste0("/work/jyanglab/subhash/variant_calling/6.converting_to_vcf/2.vcf_files/0.log_files/", chrom, "_", start_formatted, "_", end_formatted, "_vcf_gz.err")
+  out_file <- paste0("/work/jyanglab/subhash/variant_calling/6.converting_to_vcf/2.vcf_files/0.log_files/", chrom, "_", start_formatted, "_", end_formatted, "_vcf_gz.out")
+  # Generate the -V arguments
+  v_arguments <- paste0("-V ${gvcf_path}/", PI_numbers, ".g.vcf", collapse = " \\\n  ")
+  script_content <- paste(
+    "#!/bin/sh",
+    "#SBATCH --ntasks-per-node=8",
+    "#SBATCH --nodes=1",
+    "#SBATCH --mem=16G",
+    "#SBATCH --time=80:00:00",
+    paste0("#SBATCH --job-name=", job_name),
+    "#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu",
+    "#SBATCH --mail-type=ALL",
+    paste0("#SBATCH --error=", err_file),
+    paste0("#SBATCH --output=", out_file),
+    "",
+    #"gvcf_path=\"/work/jyanglab/subhash/variant_calling/5.gvcf\"",
+    "out=\"/work/jyanglab/subhash/variant_calling/6.converting_to_vcf/2.vcf_files\"",
+    "db=\"/work/jyanglab/subhash/variant_calling/6.converting_to_vcf/1.database_5mb\"",
+    "",
+    "ml gatk4/4.4",
+    "",
+    paste0("gatk --java-options '-Xms4g -Xmx10g' GenotypeGVCFs \\"),
+    paste0("  -R /work/jyanglab/subhash/variant_calling/2.refrence/Phytozome/PhytozomeV13/Sbicolor/v5.1/assembly/Sbicolor_730_v5.0.fa\\"),
+    paste0("  -V gendb://", "${db}/", db_path, " \\"),
+    paste0("  -O ", "${out}/", output_vcf),
+    sep = "\n")
+  file_name <- paste0(chrom, "_", start_formatted, "_", end_formatted, "vcf.sh")
+  writeLines(script_content, file_name)
+  # Adding the sbatch command with file name to the vector
+  sh_file_names <<- c(sh_file_names, paste0("sbatch -p guest ", file_name))
+}
+# Generate scripts for each chromosome
+for (chrom in names(chromosome_lengths)) {
+  length <- chromosome_lengths[[chrom]]
+  for (start in seq(1, length, by = interval_size)) {
+    end <- min(start + interval_size - 1, length)
+    generate_script(chrom, start, end, PI_numbers)
+  }
+}
+# Write the names of the generated .sh files to a .txt file
+writeLines(sh_file_names, "vcf_sh_files.txt")
+```
+
+### creating RAW vcf file from each g.vcf file.
+
+```{bash}
+find $(pwd) -type f -name '*.vcf.gz' | sort -V > vcf_list.txt #creating a .txt fike with the path and names of all the vcf files
+#using the .txt file
+gatk --java-options "-Xmx10g" GatherVcfs \
+     -I vcf_list.txt \
+     -O /work/jyanglab/subhash/variant_calling/6.converting_to_vcf/3.merged_vcf/RAW_SAP.vcf.gz
+
+```
+
+##BQSR - Base Quality Score Recalibration creating g.vcf file
+
+```{r}
+
+setwd("/work/jyanglab/subhash/variant_calling/3.alignment/0.scripts")
+# Define the template for the SLURM script
+template <-
+'#!/bin/sh
+#SBATCH --ntasks-per-node=8
+#SBATCH --nodes=1
+#SBATCH --mem=16G
+#SBATCH --time=80:00:00
+#SBATCH --job-name=BQSR
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+#SBATCH --mail-type=ALL
+#SBATCH --error=/work/jyanglab/subhash/variant_calling/8.BQSR/0.log_files/{PI}_BQSR.err
+#SBATCH --output=/work/jyanglab/subhash/variant_calling/8.BQSR/0.log_files/{PI}_BQSR.out
+ml gatk4/4.1
+ref="/work/jyanglab/subhash/variant_calling/2.refrence/Phytozome/PhytozomeV13/Sbicolor/v5.1/assembly/Sbicolor_730_v5.0.fa"
+KS="/work/jyanglab/subhash/variant_calling/6.converting_to_vcf/3.merged_vcf/RAW_SAP.vcf.gz"
+IN="/work/jyanglab/subhash/variant_calling/4.picard/"
+OUT1="/work/jyanglab/subhash/variant_calling/8.BQSR/1.data_table/"
+OUT2="/work/jyanglab/subhash/variant_calling/8.BQSR/2.BQSR_bam/"
+OUT3="/work/jyanglab/subhash/variant_calling/8.BQSR/3.g.vcf/"
+
+gatk BaseRecalibrator -R ${ref} -I ${IN}{PI}_picard_dedup.bam -O ${OU1}{PI}_DT.recal_data.table --known-sites ${KS}
+gatk ApplyBQSR -R ${ref} -I ${IN}{PI}_picard_dedup.bam --bqsr-recal-file ${OU1}{PI}_DT.recal_data.table -O ${OUT2}{PI}.BQSR.bam --create-output-bam-index true
+gatk HaplotypeCaller -R ${ref} -I ${OUT2}{PI}.BQSR.bam -ERC GVCF -O ${OUT3}{PI}.g.vcf
+'
+
+# Initialize an empty vector to store sbatch commands
+BQSR <- c()
+# Function to generate SLURM script for each PI number
+generate_script <- function(PI) {
+  script <- gsub("\\{PI\\}", PI, template)
+  file_name <- paste0("BQSR_", PI, ".sh")
+  writeLines(script, con = file_name)
+  # Add sbatch command to the vector
+  BQSR <<- c(BQSR, paste0("sbatch -p guest ", file_name))
+}
+# Generate scripts for each PI number
+sapply(PI_numbers, generate_script)
+# Write sbatch commands to a txt file
+writeLines(BQSR, con = "BQSR.txt")
+
+```
+
+### creating a genome database
+
+
+```{r}
+# Define the chromosome lengths
+chromosome_lengths <- list(
+  Chr01 = 85112863,
+  Chr02 = 79114963,
+  Chr03 = 80873341,
+  Chr04 = 71215609,
+  Chr05 = 77058072,
+  Chr06 = 62713908,
+  Chr07 = 68911884,
+  Chr08 = 65779274,
+  Chr09 = 63277606,
+  Chr10 = 62870657
+)
+interval_size <- 5000000  # 5 MB intervals
+# Initialize a vector to store the names of the generated .sh files
+sh_file_names <- c()
+# Function to generate SLURM and GATK commands for each interval
+generate_script <- function(chrom, start, end, PI_numbers) {
+  start_formatted <- format(start, scientific = FALSE)
+  end_formatted <- format(end, scientific = FALSE)
+  interval <- paste0(chrom, ":", start_formatted, "-", end_formatted)
+  db_path <- paste0(chrom, "_", start_formatted, "_", end_formatted, ".database")
+  output_vcf <- paste0(chrom, "_", start_formatted, "_", end_formatted, ".vcf")
+  job_name <- paste0("dbBQSR_", chrom, "_", start_formatted, "_", end_formatted)
+  err_file <- paste0("/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/2.database/0.log_files/", chrom, "_", start_formatted, "_", end_formatted, "_dbBQ_vcf.err")
+  out_file <- paste0("/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/2.database/0.log_files/", chrom, "_", start_formatted, "_", end_formatted, "_dbBQ_vcf.out")
+  # Generate the -V arguments
+  v_arguments <- paste0("-V ${gvcf_path}/", PI_numbers, ".g.vcf", collapse = " \\\n  ")
+  script_content <- paste(
+    "#!/bin/sh",
+    "#SBATCH --ntasks-per-node=8",
+    "#SBATCH --nodes=1",
+    "#SBATCH --mem=150G",
+    "#SBATCH --time=80:00:00",
+    paste0("#SBATCH --job-name=", job_name),
+    "#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu",
+    "#SBATCH --mail-type=ALL",
+    paste0("#SBATCH --error=", err_file),
+    paste0("#SBATCH --output=", out_file),
+    "",
+    "gvcf_path=\"/work/jyanglab/subhash/variant_calling/8.BQSR/3.g.vcf\"",
+    #"out=\"/work/jyanglab/subhash/variant_calling/6.converting_to_vcf/2.vcf_files\"",
+    "db=\"/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/2.database\"",
+    "",
+    "ml gatk4/4.4",
+    "",
+    paste0("gatk --java-options '-Xms10g -Xmx120g' GenomicsDBImport \\"),
+    paste0("  ", v_arguments, " \\"),
+    paste0("  --genomicsdb-workspace-path ", "${db}/", db_path, " \\"),
+    paste0("  --intervals ", interval),
+    
+    #paste0("gatk --java-options '-Xms10g' GenotypeGVCFs \\"),
+    #paste0("  -R /work/jyanglab/subhash/variant_calling/2.refrence/Phytozome/PhytozomeV13/Sbicolor/v5.1/assembly/Sbicolor_730_v5.0.f#\\"),
+    #paste0("  -V gendb://", "${db}/", db_path, " \\"),
+    #paste0("  -O ", "${out}/", output_vcf),
+    sep = "\n")
+  
+  file_name <- paste0(chrom, "_", start_formatted, "_", end_formatted, "BQSRdb.sh")
+  writeLines(script_content, file_name)
+  
+  # Append the sbatch command with file name to the vector
+  sh_file_names <<- c(sh_file_names, paste0("sbatch -p guest ", file_name))
+}
+
+# Generate scripts for each chromosome
+for (chrom in names(chromosome_lengths)) {
+  length <- chromosome_lengths[[chrom]]
+  for (start in seq(1, length, by = interval_size)) {
+    end <- min(start + interval_size - 1, length)
+    generate_script(chrom, start, end, PI_numbers)
+  }
+}
+# Write the names of the generated .sh files to a .txt file
+writeLines(sh_file_names, "db_BQSR_sh_files.txt")
+```
+
+### calling vcf from database
+
+```{r}
+# Define the chromosome lengths
+chromosome_lengths <- list(
+  Chr01 = 85112863,
+  Chr02 = 79114963,
+  Chr03 = 80873341,
+  Chr04 = 71215609,
+  Chr05 = 77058072,
+  Chr06 = 62713908,
+  Chr07 = 68911884,
+  Chr08 = 65779274,
+  Chr09 = 63277606,
+  Chr10 = 62870657
+)
+interval_size <- 5000000  # 5 MB intervals
+# Initialize a vector to store the names of the generated .sh files
+sh_file_names <- c()
+# Function to generate SLURM and GATK commands for each interval
+generate_script <- function(chrom, start, end, PI_numbers) {
+  start_formatted <- format(start, scientific = FALSE)
+  end_formatted <- format(end, scientific = FALSE)
+  interval <- paste0(chrom, ":", start_formatted, "-", end_formatted)
+  db_path <- paste0(chrom, "_", start_formatted, "_", end_formatted, ".database")
+  output_vcf <- paste0(chrom, "_", start_formatted, "_", end_formatted, ".vcf.gz")
+  job_name <- paste0("vcf_", chrom, "_", start_formatted, "_", end_formatted)
+  err_file <- paste0("/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/2.vcf_files/0.log_files/", chrom, "_", start_formatted, "_", end_formatted, "_vcf_gz.err")
+  out_file <- paste0("/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/2.vcf_files/0.log_files/", chrom, "_", start_formatted, "_", end_formatted, "_vcf_gz.out")
+  # Generate the -V arguments
+  v_arguments <- paste0("-V ${gvcf_path}/", PI_numbers, ".g.vcf", collapse = " \\\n  ")
+  script_content <- paste(
+    "#!/bin/sh",
+    "#SBATCH --ntasks-per-node=8",
+    "#SBATCH --nodes=1",
+    "#SBATCH --mem=16G",
+    "#SBATCH --time=80:00:00",
+    paste0("#SBATCH --job-name=", job_name),
+    "#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu",
+    "#SBATCH --mail-type=ALL",
+    paste0("#SBATCH --error=", err_file),
+    paste0("#SBATCH --output=", out_file),
+    "",
+    #"gvcf_path=\"/work/jyanglab/subhash/variant_calling/5.gvcf\"",
+    "out=\"/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/2.vcf_files\"",
+    "db=\"/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/2.database\"",
+    "",
+    "ml gatk4/4.4",
+    "",
+    #paste0("gatk --java-options '-Xms10g -Xmx120g' GenomicsDBImport \\"),
+    #paste0("  ", v_arguments, " \\"),
+    #paste0("  --genomicsdb-workspace-path ", "${db}/", db_path, " \\"),
+    #paste0("  --intervals ", interval),
+    
+    paste0("gatk --java-options '-Xms4g -Xmx10g' GenotypeGVCFs \\"),
+    paste0("  -R /work/jyanglab/subhash/variant_calling/2.refrence/Phytozome/PhytozomeV13/Sbicolor/v5.1/assembly/Sbicolor_730_v5.0.fa\\"),
+    paste0("  -V gendb://", "${db}/", db_path, " \\"),
+    paste0("  -O ", "${out}/", output_vcf),
+    sep = "\n")
+  
+  file_name <- paste0(chrom, "_", start_formatted, "_", end_formatted, "vcf.sh")
+  writeLines(script_content, file_name)
+  
+  # Append the sbatch command with file name to the vector
+  sh_file_names <<- c(sh_file_names, paste0("sbatch -p guest ", file_name))
+}
+
+# Generate scripts for each chromosome
+for (chrom in names(chromosome_lengths)) {
+  length <- chromosome_lengths[[chrom]]
+  for (start in seq(1, length, by = interval_size)) {
+    end <- min(start + interval_size - 1, length)
+    generate_script(chrom, start, end, PI_numbers)
+  }
+}
+# Write the names of the generated .sh files to a .txt file
+writeLines(sh_file_names, "vcf_sh_files.txt")
+```
+
+
+### creating RAW vcf file from each g.vcf file.
+
+```{bash}
+find $(pwd) -type f -name '*.vcf.gz' | sort -V > vcf_list.txt #creating a .txt fike with the path and names of all the vcf files
+#using the .txt file
+gatk --java-options "-Xmx10g" GatherVcfs \
+     -I vcf_list.txt \
+     -O /work/jyanglab/subhash/variant_calling/6.converting_to_vcf/3.merged_vcf/RAW_SAP.vcf.gz
+
+```
+
+
+
+```{bash}
+ml bcftools
+ml vcftools
+ml plink2
+
+#counting the number of variants from raw vcf file
+bcftools view -H SAP.vcf.gz | wc -l
+
+#changing ID to chrom_pos to compare manual and plink2.0 calculation
+bcftools annotate --set-id +'%CHROM\_%POS' SAP.vcf.gz -Ov -o SAP_v5.vcf.gz
+
+#calculating basic statistics
+#--freq to calculate allele freequency
+#--missing to calculate missing rate
+#--hardy to calculate heterozygosity rate 
+
+plink2 --bfile SAPo --freq alt1bins=0.01,0.02,0.03,0.04,0.05,0.1,0.2,0.3,0.4  --missing --hardy  --out /work/jyanglab/subhash/snp_sorghum/1.sap_genotype_files/3.basic_statistics_calculat
+
+#filtering of vcf files using maf and missing rate from plink2.0
+#--maf to filter minor allele freequency
+#--geno to filter missing rate from bed- vcf file
+
+plink2 --bfile SAP --maf 0.05 --geno 0.3 --make-bed --out /work/jyanglab/subhash/snp_sorghum/1.sap_genotype_files/4.filtered_SAP/filtered
+
+#for filtering heterozygosity there is no direct function in plink2.0
+# so I have obtained seperate file of observed heterozygosity from --hardy function using following code
+#calculated heterozygosity using plink2.0 function -hardy which gives observed heterozygosity in column 8.
+
+awk '$8 < 0.1 {print $2}' SAP.hardy > low_het_snps.txt
+
+#now this low_het_snps.txt contains ID with <0.1 heterozygosity.
+#here SAP filtered is  maf >0.05 and geno <30%
+
+plink2 -bfile filtered -extract low_het_snps.txt -make-bed -out your_final_filtered_data
+
+#this final filtered data contains variants with maf >/=0.05 and missing rate of <30% and heterozygosity with <0.1
+```
+
+### generating the graphs from basic statistics.
+
+```{r}
+#install.packages("tidyverse")
+#install.packages("ggplot2")
+#install.packages("data.table")
+library(tidyverse)
+library(ggplot2)
+library(data.table)
+
+#all the output files are otained from plink2.0    allele frequency = --freq , missing rate = --misssing  
+#from PLINK2.0
+#reading the data frame
+var_freq <- read_delim("filt_stat.afreq", delim = "\t") 
+#data
+head(var_freq)
+#calculating refrence allele frreequency since plink2.0 has calcuated only alternative allele
+var_freq$REF_FREQS <- 1 - var_freq$ALT_FREQS
+#minimum freequency of alt or ref
+var_freq$maf <- pmin(var_freq$ALT_FREQS, var_freq$REF_FREQS)
+#looking at the data frame
+head(var_freq) 
+# Confirming the minimum and maximum values of maf
+min_maf <- min(var_freq$maf)
+max_maf <- max(var_freq$maf)
+print(paste("Minimum MAF:", min_maf))
+print(paste("Maximum MAF:", max_maf))
+
+# Using ggplot to create a histogram of minor allele frequency
+maf <- ggplot(var_freq, aes(x = maf)) + 
+  geom_histogram(fill = "brown3", color = "black") +
+  labs(title = "Minor Allele Frequency_SAP_v5", x = "MAF", y = "Count") + 
+  scale_x_continuous(limits = c(0.05, max_maf), breaks = seq(min_maf, by = 0.05)) +
+  theme(axis.text.x = element_text(size = 14, face = "bold"),
+        axis.text.y = element_text(size = 14, face = "bold"),
+        axis.title.x = element_text(size = 14, face = "bold"),
+        axis.title.y = element_text(size = 14, face = "bold"),
+        plot.title = element_text(size = 20, face = "bold"))
+maf
+ggsave("maf_bqsr_filt.png", plot = maf, width = 10, height = 8, dpi = 600)
+#plotting the graph of missing rate from plink2.0
+var_miss <- read_delim("filt_stat.vmiss", delim = "\t") #reading the data frame
+head(var_miss)
+#hist(var_miss$F_MISS,breaks = 50) #basic R plotting
+vm <- ggplot(var_miss, aes(x = F_MISS)) + 
+  geom_histogram(fill = "brown3", color = "black") +
+  labs(title = "variant missing rate SAP_V5", x = "missing rate", y = "Count (Variants)") +
+  theme(axis.text.x = element_text(size = 14, face = "bold"),
+        axis.text.y = element_text(size = 14, face = "bold"),
+        axis.title.x = element_text(size = 14, face = "bold"),
+        axis.title.y = element_text(size = 14, face = "bold"),
+        plot.title = element_text(size = 20, face = "bold"))
+
+vm
+ggsave("vm_bqsr_filt.png", plot = vm, width = 10, height = 8, dpi = 600)
+
+#plotting observed heterozygosity using plink2.0
+het = fread("0.1_het.hardy")
+het <- ggplot(het, aes(x = `O(HET_REF)`)) + 
+  geom_histogram(fill = "brown3", color = "black") +
+  labs(title = "Heterozygosity rate SAP_V5", x = "Heterozygosity rate", y = "Count (Variants)") +
+  theme(axis.text.x = element_text(size = 14, face = "bold"),
+        axis.text.y = element_text(size = 14, face = "bold"),
+        axis.title.x = element_text(size = 14, face = "bold"),
+        axis.title.y = element_text(size = 14, face = "bold"),
+        plot.title = element_text(size = 20, face = "bold"))
+het
+ggsave("het_bqsr_filt.png", plot = het, width = 10, height = 8, dpi = 600)
+```
+
+
+
+#### misc!
+
+### to submit the jobs at a specified time
+
+```{r}
+# Define the job names
+jobs <- c(
+  "Chr01_1_5000000vcf.sh",
+  "Chr01_5000001_10000000vcf.sh",
+  "Chr01_10000001_15000000vcf.sh",
+  "Chr01_15000001_20000000vcf.sh",
+  "Chr01_20000001_25000000vcf.sh",
+  "Chr01_25000001_30000000vcf.sh",
+  "Chr01_30000001_35000000vcf.sh",
+  "Chr01_35000001_40000000vcf.sh",
+  "Chr01_40000001_45000000vcf.sh",
+  "Chr01_45000001_50000000vcf.sh",
+  "Chr01_50000001_55000000vcf.sh",
+  "Chr01_55000001_60000000vcf.sh",
+  "Chr01_60000001_65000000vcf.sh",
+  "Chr01_65000001_70000000vcf.sh",
+  "Chr01_70000001_75000000vcf.sh",
+  "Chr01_75000001_80000000vcf.sh",
+  "Chr01_80000001_85000000vcf.sh",
+  "Chr01_85000001_85112863vcf.sh"
+)
+
+# Define the output file
+output_file <- "chr01_vcf.txt"
+
+# Open the file for writing
+file_conn <- file(output_file, "w")
+
+# Write the commands to the file
+for (job in jobs) {
+  command <- paste("sbatch -p guest --begin=2024-06-29T09:00:00", job)
+  writeLines(command, file_conn)
+}
+
+# Close the file connection
+close(file_conn)
+
+# Print a message indicating the file has been created
+cat("Commands have been written to", output_file, "\n")
+
+```
+
