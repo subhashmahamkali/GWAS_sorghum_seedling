@@ -15,9 +15,9 @@ In this study, we are leveraging existing datasets in sorghum to investigate phe
 - Code: `1.variant_calling/`
 
 - important files: 
-  - Deduplicated BAM files: `` (xG)
+  - Deduplicated BAM files: `/work/jyanglab/subhash/variant_calling/4.picard/` (n: 400 bam files)
   - Raw VCF file: `/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/3.merged_vcf/RAW_SAP_BQSR.vcf.gz` (116G)
-  - A filtered VCF file: `` ()
+  - A filtered VCF file: `/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/SAP_V5_annotate.vcf` (289G)
   
 
 [Subhash: add a paragraph to briefly describe the methods]
