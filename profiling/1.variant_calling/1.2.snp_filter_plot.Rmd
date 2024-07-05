@@ -1,9 +1,9 @@
 ---
-title: "scripts for variant calling"
-author: "subhash"
-date: "2024-06-04"
+title: "scripts for variant summary and plotting"
+author: "subhash and Jinliang"
+date: "2024-07-05"
 data: "whole genome sequencing of sorghum association panel - trimmed reads from #400 individuals"
-output: html_document
+output: NULL
 ---
 
 ```{r setup, include=FALSE}

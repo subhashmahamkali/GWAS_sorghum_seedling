@@ -14,6 +14,12 @@ In this study, we are leveraging existing datasets in sorghum to investigate phe
 - Data: HCC:`/work/jyanglab/subhash/variant_calling`
 - Code: `1.variant_calling/`
 
+- important files: 
+  - Deduplicated BAM files: `` (xG)
+  - Raw VCF file: `/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/3.merged_vcf/RAW_SAP_BQSR.vcf.gz` (116G)
+  - A filtered VCF file: `` ()
+  
+
 [Subhash: add a paragraph to briefly describe the methods]
 
 #### Phenotype
