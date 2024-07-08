@@ -15,6 +15,7 @@ In this study, we are leveraging existing datasets in sorghum to investigate phe
 - Code: `1.variant_calling/`
 
 - important files: 
+  - reference genome: `/work/jyanglab/subhash/variant_calling/2.refrence/Phytozome/PhytozomeV13/Sbicolor/v5.1/assembly/Sbicolor_730_v5.0.fa`
   - Deduplicated BAM files: `/work/jyanglab/subhash/variant_calling/4.picard/` (n: 400 bam files)
   - Raw VCF file: `/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/3.merged_vcf/RAW_SAP_BQSR.vcf.gz` (116G)
   - A filtered VCF file: `/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/SAP_V5_annotate.vcf` (289G)

@@ -1,0 +1,22 @@
+====================== Welcome to MVP ======================
+      A Memory-efficient, Visualization-enhanced, and       
+             Parallel-accelerated Tool For GWAS             
+                    __  __  __   __  ___                    
+                   |  \/  | \ \ / / | _ \                   
+                   | |\/| |  \ V /  |  _/                   
+                   |_|  |_|   \_/   |_|     Version: 1.0.8  
+  Designed and Maintained by Lilin Yin, Haohao Zhang, and   
+  Xiaolei Liu                                               
+  Contributors: Zhenshuang Tang, Jingya Xu, Dong Yin,       
+  Zhiwu Zhang, Xiaohui Yuan, Mengjin Zhu, Shuhong Zhao,     
+  Xinyun Li                                                 
+  Contact: xiaoleiliu@mail.hzau.edu.cn                      
+============================================================
+Start: 2024-07-07 00:08:17.852391 
+The log has been output to the file: /Users/subhashmahamkali/Documents/gwas_sap/data/3.data_curation/1.phenotype_data/2021/MVP.20240707_000817.log 
+Input data has 400 individuals, 4800746 markers 
+Analyzed trait: StemDiameterUpper_HN 
+Number of threads used: 11 
+Total 70 individuals removed due to missings 
+Eigen Decomposition on GRM 
+Deriving PCs successfully 
