@@ -1,8 +1,7 @@
 ---
-title: "scripts for variant summary and plotting"
+title: "Comparison between RNA-seq and genomics SNP sets"
 author: "subhash and Jinliang"
-date: "2024-07-05"
-data: "whole genome sequencing of sorghum association panel - trimmed reads from #400 individuals"
+date: "2024-07-09"
 output: NULL
 ---
 
@@ -29,6 +28,8 @@ bcftools annotate --set-id +'%CHROM\_%POS' RAW_SAP_BQSR.vcf.gz -Ov -o /work/jyan
 #--freq to calculate allele freequency
 #--missing to calculate missing rate
 #--hardy to calculate heterozygosity rate 
+
+plink2 --bfile SAPo --freq alt1bins=0.01,0.02,0.03,0.04,0.05,0.1,0.2,0.3,0.4  --missing --hardy  --out /work/jyanglab/subhash/snp_sorghum/1.sap_genotype_files/3.basic_statistics_calculat
 
 plink2 --bfile SAPo --freq alt1bins=0.01,0.02,0.03,0.04,0.05,0.1,0.2,0.3,0.4  --missing --hardy  --out /work/jyanglab/subhash/snp_sorghum/1.sap_genotype_files/3.basic_statistics_calculat
 
