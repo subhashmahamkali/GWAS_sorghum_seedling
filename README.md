@@ -23,10 +23,21 @@ In this study, we are leveraging existing datasets in sorghum to investigate phe
   
 #### Overall pipeline for varinat calling 
 
-##### Step 1: trimming the raw reads
+##### Step 1: fastqc and trimming the raw reads
 
 Here I have used fastp to trim the low quality reads and adapter sequences from RAW unmapped reads
 file path - 
+
+```
+# quality check
+fastqc -o /work/jyanglab/subhash/variant_calling/1.trimmed_data/0.1_fastqc_report/ /work/jyanglab/subhash/variant_calling/1.trimmed_data/{PI}_2.fastq.gz
+
+# trim the low quality reads
+ref="/work/jyanglab/subhash/variant_calling/2.refrence/Phytozome/PhytozomeV13/Sbicolor/v5.1/assembly/Sbicolor_730_v5.0.fa"
+reads="/work/jyanglab/subhash/variant_calling/1.trimmed_data"
+out="/work/jyanglab/subhash/variant_calling/3.alignment"
+bwa mem -t 8 -R "@RG\\tID:{PI}\\tPL:ILLUMINA\\tSM:{PI}" ${ref} ${reads}/{PI}_1.fastq.gz ${reads}/{PI}_2.fastq.gz|samtools view --threads 8 -bS -f 2 -q 30 -h - | samtools sort --threads 8 -o ${out}/{PI}.srt.bam -'
+```
 
 
 ##### Step 2: Aligning to reference genome
