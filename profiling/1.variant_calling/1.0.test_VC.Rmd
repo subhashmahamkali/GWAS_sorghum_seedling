@@ -1,5 +1,5 @@
 ---
-title: "variant calling"
+title: "Variant calling pipeline"
 author: "SUBHASH MAHAMKALI"
 date: "05/19/2024"
 output: NULL
