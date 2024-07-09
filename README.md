@@ -11,6 +11,7 @@ In this study, we are leveraging existing datasets in sorghum to investigate phe
 
 #### Sorghum SNP Calling on V5:
 
+- Raw input data (`trimmed fastq`) were copied from Hongyu: `/work/jyanglab/subhash/variant_calling/1.trimmed_data/`
 - Data: HCC:`/work/jyanglab/subhash/variant_calling`
 - Code: `1.variant_calling/`
 

@@ -9,6 +9,8 @@ DATA : "Raw unmapped fastq reads ( paired end) WGS of SAP"
 #Run the below pipeline for the subset of the data
 #below three samples belong to PI564163 (BTX623) from SAP
 
+download the data from NCBI for test only. The actually data used for SNP calling were actually from hongyu!
+
 ```{bash}
 ml SRAtoolkit
 fastq-dump --split-files --gzip ERR8093223
