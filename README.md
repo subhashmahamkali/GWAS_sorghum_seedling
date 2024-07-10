@@ -7,7 +7,7 @@ Environmental stressors, such as high temperatures and nitrogen limitation, can 
 In this study, we are leveraging existing datasets in sorghum to investigate phenotypic plasticity under temperature and nitrogen stresses.
 
 
-## Genomics and phenomics analyses of Sorghum Assocation Panel (SAP) 
+## Genomics and phenomics analyses of Sorghum Association Panel (SAP) 
 
 #### Sorghum SNP Calling on V5:
 

@@ -1,6 +1,6 @@
 ---
 title: "Comparison between RNA-seq and genomics SNP sets"
-author: "subhash and Jinliang"
+author: "Jinliang"
 date: "2024-07-09"
 output: NULL
 ---
@@ -11,164 +11,202 @@ knitr::opts_knit$set(root.dir = "/work/jyanglab/subhash/variant_calling")
 ```
 
 
+/work/jyanglab/subhash/1.RNA_Seq/SbDiv_imputed_Filter2.recode.vcf.gz
+
+# 1. convert vcf to plink2 bed format 
 
 ```{bash}
 ml bcftools
 ml vcftools
 ml plink2
 
-#counting the number of variants from raw vcf file
-bcftools view -H RAW_SAP_BQSR.vcf.gz | wc -l
+# RNA-seq SNPs
+plink2 -vcf /work/jyanglab/subhash/1.RNA_Seq/SbDiv_imputed_Filter2.recode.vcf.gz --set-all-var-ids @_#_\$1_\$2 --make-bed --out /work/jyanglab/jyang21/sbhmp/SbDiv_imputed_Filter2.recode
 
-#changing ID to chrom_pos to compare manual and plink2.0 calculation
-bcftools annotate --set-id +'%CHROM\_%POS' RAW_SAP_BQSR.vcf.gz -Ov -o RAW_SAP_BQSR.vcf_v5_060924.gz
-bcftools annotate --set-id +'%CHROM\_%POS' RAW_SAP_BQSR.vcf.gz -Ov -o /work/jyanglab/jyang21/RAW_SAP_BQSR.vcf_v5_060924.gz
+# SAP SNPs
+plink2 -vcf /work/jyanglab/jyang21/sbhmp/RAW_SAP_BQSR.vcf_v5_060924.gz --set-all-var-ids @_#_\$1_\$2 --make-bed --out /work/jyanglab/jyang21/sbhmp/RAW_SAP_BQSR.vcf_v5_060924
 
-#calculating basic statistics
-#--freq to calculate allele freequency
-#--missing to calculate missing rate
-#--hardy to calculate heterozygosity rate 
+# --vcf: 35935778 variants scanned.
+# Warning: 3,969,709 multiallelic variants skipped (not yet supported).
 
-plink2 --bfile SAPo --freq alt1bins=0.01,0.02,0.03,0.04,0.05,0.1,0.2,0.3,0.4  --missing --hardy  --out /work/jyanglab/subhash/snp_sorghum/1.sap_genotype_files/3.basic_statistics_calculat
 
-plink2 --bfile SAPo --freq alt1bins=0.01,0.02,0.03,0.04,0.05,0.1,0.2,0.3,0.4  --missing --hardy  --out /work/jyanglab/subhash/snp_sorghum/1.sap_genotype_files/3.basic_statistics_calculat
-
-#filtering of vcf files using maf and missing rate from plink2.0
-#--maf to filter minor allele freequency
-#--geno to filter missing rate from bed- vcf file
-
-plink2 --bfile SAP --maf 0.05 --geno 0.3 --make-bed --out /work/jyanglab/subhash/snp_sorghum/1.sap_genotype_files/4.filtered_SAP/filtered
-
-#for filtering heterozygosity there is no direct function in plink2.0
-# so I have obtained seperate file of observed heterozygosity from --hardy function using following code
-#calculated heterozygosity using plink2.0 function -hardy which gives observed heterozygosity in column 8.
-
-awk '$8 < 0.1 {print $2}' SAP.hardy > low_het_snps.txt
-
-#now this low_het_snps.txt contains ID with <0.1 heterozygosity.
-#here SAP filtered is  maf >0.05 and geno <30%
-
-plink2 -bfile filtered -extract low_het_snps.txt -make-bed -out your_final_filtered_data
-
-#this final filtered data contains variants with maf >/=0.05 and missing rate of <30% and heterozygosity with <0.1
 ```
 
-### generating the graphs from basic statistics.
+### 2. Get SNP stat
+
+```{bash}
+plink2 -bfile /work/jyanglab/jyang21/sbhmp/SbDiv_imputed_Filter2.recode --freq --missing --pca --out /work/jyanglab/jyang21/sbhmp/SbDiv_imputed_Filter2  
+
+# --ibc (ported from GCTA) calculates three inbreeding coefficients for each sample
+
+plink2 -bfile /work/jyanglab/jyang21/sbhmp/RAW_SAP_BQSR.vcf_v5_060924 --freq --missing --pca --out /work/jyanglab/jyang21/sbhmp/RAW_SAP_BQSR.vcf_v5_060924 
+```
+
+--freq: Allele frequencies (founders only) written to
+/work/jyanglab/jyang21/sbhmp/RAW_SAP_BQSR.vcf_v5_060924.afreq .
+--missing: Sample missing data report written to
+/work/jyanglab/jyang21/sbhmp/RAW_SAP_BQSR.vcf_v5_060924.smiss .
+--missing: Variant missing data report written to
+/work/jyanglab/jyang21/sbhmp/RAW_SAP_BQSR.vcf_v5_060924.vmiss .
+
+
+
+# RNA-seq SNPs
 
 ```{r}
-#install.packages("tidyverse")
-#install.packages("ggplot2")
-#install.packages("data.table")
-library(tidyverse)
-library(ggplot2)
 library(data.table)
 
-#all the output files are otained from plink2.0    allele frequency = --freq , missing rate = --misssing  
-#from PLINK2.0
-#reading the data frame
-var_freq <- read_delim("filt_stat.afreq", delim = "\t") 
-#data
-head(var_freq)
-#calculating refrence allele frreequency since plink2.0 has calcuated only alternative allele
-var_freq$REF_FREQS <- 1 - var_freq$ALT_FREQS
-#minimum freequency of alt or ref
-var_freq$maf <- pmin(var_freq$ALT_FREQS, var_freq$REF_FREQS)
-#looking at the data frame
-head(var_freq) 
-# Confirming the minimum and maximum values of maf
-min_maf <- min(var_freq$maf)
-max_maf <- max(var_freq$maf)
-print(paste("Minimum MAF:", min_maf))
-print(paste("Maximum MAF:", max_maf))
+df1 <- fread("/work/jyanglab/jyang21/sbhmp/SbDiv_imputed_Filter2.afreq", data.table=FALSE, header=T)
+# 170608
+range(df1$ALT_FREQS)
+# 0.0504909 0.9495090; 
 
-# Using ggplot to create a histogram of minor allele frequency
-maf <- ggplot(var_freq, aes(x = maf)) + 
-  geom_histogram(fill = "brown3", color = "black") +
-  labs(title = "Minor Allele Frequency_SAP_v5", x = "MAF", y = "Count") + 
-  scale_x_continuous(limits = c(0.05, max_maf), breaks = seq(min_maf, by = 0.05)) +
-  theme(axis.text.x = element_text(size = 14, face = "bold"),
-        axis.text.y = element_text(size = 14, face = "bold"),
-        axis.title.x = element_text(size = 14, face = "bold"),
-        axis.title.y = element_text(size = 14, face = "bold"),
-        plot.title = element_text(size = 20, face = "bold"))
-maf
-ggsave("maf_bqsr_filt.png", plot = maf, width = 10, height = 8, dpi = 600)
-#plotting the graph of missing rate from plink2.0
-var_miss <- read_delim("filt_stat.vmiss", delim = "\t") #reading the data frame
-head(var_miss)
-#hist(var_miss$F_MISS,breaks = 50) #basic R plotting
-vm <- ggplot(var_miss, aes(x = F_MISS)) + 
-  geom_histogram(fill = "brown3", color = "black") +
-  labs(title = "variant missing rate SAP_V5", x = "missing rate", y = "Count (Variants)") +
-  theme(axis.text.x = element_text(size = 14, face = "bold"),
-        axis.text.y = element_text(size = 14, face = "bold"),
-        axis.title.x = element_text(size = 14, face = "bold"),
-        axis.title.y = element_text(size = 14, face = "bold"),
-        plot.title = element_text(size = 20, face = "bold"))
+df2 <- fread("/work/jyanglab/jyang21/sbhmp/SbDiv_imputed_Filter2.vmiss", data.table=FALSE, header=T)
+mean(df2$F_MISS)
+# 0: imputed no missing data
 
-vm
-ggsave("vm_bqsr_filt.png", plot = vm, width = 10, height = 8, dpi = 600)
+df3 <- fread("/work/jyanglab/jyang21/sbhmp/SbDiv_imputed_Filter2.smiss", data.table=FALSE, header=T)
+# 713 samples!
 
-#plotting observed heterozygosity using plink2.0
-het = fread("0.1_het.hardy")
-het <- ggplot(het, aes(x = `O(HET_REF)`)) + 
-  geom_histogram(fill = "brown3", color = "black") +
-  labs(title = "Heterozygosity rate SAP_V5", x = "Heterozygosity rate", y = "Count (Variants)") +
-  theme(axis.text.x = element_text(size = 14, face = "bold"),
-        axis.text.y = element_text(size = 14, face = "bold"),
-        axis.title.x = element_text(size = 14, face = "bold"),
-        axis.title.y = element_text(size = 14, face = "bold"),
-        plot.title = element_text(size = 20, face = "bold"))
-het
-ggsave("het_bqsr_filt.png", plot = het, width = 10, height = 8, dpi = 600)
+
+pdf("graphs/RNA-seq_frq.pdf", width=6, height=5)
+hist(df1$ALT_FREQS, main="Alt Allele Freq", xlab="Allele Freq", breaks = 100, col="lightblue")
+abline(v=0.05, col="red", lty=2, lwd=3)
+abline(v=0.95, col="red", lty=2, lwd=3)
+hist(df3$F_MISS, main="Count by locus", xlab="Variant missingness", breaks = 100, col="lightgreen")
+abline(v=0.1, col="red", lty=2, lwd=3)
+dev.off()
+
 ```
 
-
-
-#### misc!
-
-### to submit the jobs at a specified time
+# Genomics SNPs
 
 ```{r}
-# Define the job names
-jobs <- c(
-  "Chr01_1_5000000vcf.sh",
-  "Chr01_5000001_10000000vcf.sh",
-  "Chr01_10000001_15000000vcf.sh",
-  "Chr01_15000001_20000000vcf.sh",
-  "Chr01_20000001_25000000vcf.sh",
-  "Chr01_25000001_30000000vcf.sh",
-  "Chr01_30000001_35000000vcf.sh",
-  "Chr01_35000001_40000000vcf.sh",
-  "Chr01_40000001_45000000vcf.sh",
-  "Chr01_45000001_50000000vcf.sh",
-  "Chr01_50000001_55000000vcf.sh",
-  "Chr01_55000001_60000000vcf.sh",
-  "Chr01_60000001_65000000vcf.sh",
-  "Chr01_65000001_70000000vcf.sh",
-  "Chr01_70000001_75000000vcf.sh",
-  "Chr01_75000001_80000000vcf.sh",
-  "Chr01_80000001_85000000vcf.sh",
-  "Chr01_85000001_85112863vcf.sh"
-)
+library(data.table)
 
-# Define the output file
-output_file <- "chr01_vcf.txt"
+df1 <- fread("/work/jyanglab/jyang21/sbhmp/RAW_SAP_BQSR.vcf_v5_060924.afreq", data.table=FALSE, header=T)
+# 35935778
+range(df1$ALT_FREQS)
+# 0.00125 1.00000 
+nrow(subset(df1, ALT_FREQS > 0.05 & ALT_FREQS < 0.95))
+# 7889507
 
-# Open the file for writing
-file_conn <- file(output_file, "w")
 
-# Write the commands to the file
-for (job in jobs) {
-  command <- paste("sbatch -p guest --begin=2024-06-29T09:00:00", job)
-  writeLines(command, file_conn)
-}
+df2 <- fread("/work/jyanglab/jyang21/sbhmp/RAW_SAP_BQSR.vcf_v5_060924.smiss", data.table=FALSE, header=T)
+mean(df2$F_MISS)
+# 7.735799e-05: very low individual missing rate
+# 400 samples
 
-# Close the file connection
-close(file_conn)
+df3 <- fread("/work/jyanglab/jyang21/sbhmp/RAW_SAP_BQSR.vcf_v5_060924.vmiss", data.table=FALSE, header=T)
+# 713 samples!
 
-# Print a message indicating the file has been created
-cat("Commands have been written to", output_file, "\n")
+nrow(subset(df3, F_MISS < 0.1))
+
+
+pdf("graphs/SAP_raw_frq.pdf", width=12, height=4)
+par(mfrow = c(1, 3))  ## set the layout
+hist(df1$ALT_FREQS, main="Alt Allele Freq", xlab="Allele Freq", breaks = 100, col="lightblue")
+abline(v=0.05, col="red", lty=2, lwd=3)
+abline(v=0.95, col="red", lty=2, lwd=3)
+hist(df2$F_MISS, main="Count by sample", xlab="Sample missingness", breaks = 100, col="purple")
+hist(df3$F_MISS, main="Count by locus", xlab="Variant missingness", breaks = 100, col="lightgreen")
+abline(v=0.1, col="red", lty=2, lwd=3)
+dev.off()
+```
+
+
+# Merge the two datasets together
+
+filtered genomics variants:
+/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/
+
+```{bash}
+plink2 --bfile RAW_SAP_BQSR.vcf_v5_060924 --maf 0.05 --geno 0.1 --make-bed --out /work/jyanglab/jyang21/sbhmp/filtered_RAW_SAP_BQSR.vcf_v5_060924
+
+plink2 -bfile /work/jyanglab/jyang21/sbhmp/filtered_RAW_SAP_BQSR.vcf_v5_060924 --freq --missing --pca --out /work/jyanglab/jyang21/sbhmp/filtered_RAW_SAP_BQSR.vcf_v5_060924
+```
+
+--geno: 2188 variants removed due to missing genotype data.
+27949948 variants removed due to minor allele threshold(s)
+(--maf/--max-maf/--mac/--max-mac).
+7983642 variants remaining after main filters.
+
+### change RNA-seq .fam file to indicate its source
+
+```{r}
+fam <- read.delim(file="/work/jyanglab/jyang21/sbhmp/SbDiv_imputed_Filter2.recode.fam", header=FALSE)
+fam$V1 <- paste0(fam$V1, "_R")
+fam$V2 <- paste0(fam$V2, "_R")
+write.table(fam, "/work/jyanglab/jyang21/SbDiv_imputed_Filter2.recode.fam", sep="\t", row.names = FALSE, col.names = FALSE, quote=FALSE)
+```
+
+### Keep only shared SNPs
+
+```{r}
+library(data.table)
+
+df1 <- fread("/work/jyanglab/jyang21/sbhmp/SbDiv_imputed_Filter2.afreq", data.table=FALSE, header=T)
+
+df2 <- fread("/work/jyanglab/jyang21/sbhmp/filtered_RAW_SAP_BQSR.vcf_v5_060924.afreq", data.table=FALSE, header=T)
+
+df2a <- subset(df2, ID %in% df1$ID)
+# 152512      6
+
+df1a <- subset(df1, ID %in% df2$ID)
+
+df1a <- subset(df1a, !(ID %in% c("Chr02_78582483", "Chr07_64458720", "Chr09_47854574")) )
+
+write.table(df1a[,2], "/work/jyanglab/jyang21/sbhmp/shared_snpid.txt", sep="\t", col.names = F, row.names = F, quote=F)
+```
+
+# remove these three SNPs due to multi-allele after merging that cause error!
+
+Chr02_78582483
+Chr07_64458720
+Chr09_47854574
+
+
+### start to merge the data
+
+filtered_RAW_SAP_BQSR.vcf_v5_06092
+SbDiv_imputed_Filter2.recode
+
+```{bash}
+ml plink
+cd /work/jyanglab/jyang21/sbhmp/
+
+plink --bfile SbDiv_imputed_Filter2.recode --extract shared_snpid.txt --make-bed --out shared/RNA_seq
+# 152509 variants and 713 people pass filters and QC.
+plink --bfile filtered_RAW_SAP_BQSR.vcf_v5_060924 --extract shared_snpid.txt --make-bed --out shared/genomic
+# 152509 variants and 400 people pass filters and QC.
+
+plink --bfile shared/genomic --bmerge shared/RNA_seq --make-bed --out shared/merged 
+```
+
+152509 variants loaded from .bim file.
+1113 people (0 males, 0 females, 1113 ambiguous) loaded from .fam.
+
+```{bash}
+plink -bfile shared/merged --genome 'full' --ppc-gap 10000 --out shared/dist
+```
+
+
+```{r}
+library(data.table)
+d <- fread("/work/jyanglab/jyang21/sbhmp/shared/dist.genome", header=T)
+# keep only comparison between RNA-seq and genomic
+
+d$s1 <- gsub(".*_", "", d$FID1)
+d$s2 <- gsub(".*_", "", d$FID2)
+
+d <- subset(d, s1 != s2)
+d <- subset(d, s2 == "R")
+d$IID2 <- gsub("_R", "", d$IID2)
+
+d <- d[order(d$FID1, d$DST, decreasing = T), ]
+
+write.table(d, "largedata/dist.txt", sep="\t", row.names = F, quote=FALSE)
 
 ```
+
 

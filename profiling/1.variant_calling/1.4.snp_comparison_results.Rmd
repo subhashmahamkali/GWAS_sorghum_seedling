@@ -1,0 +1,80 @@
+---
+title: "Comparison results"
+author: "Jinliang"
+date: "2024-07-10"
+output: NULL
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir=normalizePath('..//..//')) 
+```
+
+
+Move `largedata/dist.txt` from HCC to local computer
+
+
+```{r}
+library("data.table")
+d <- fread("largedata/dist.txt")
+
+d0 <- subset(d, IID1 != IID2)
+hist(d0$DST, main="distance using IBS", xlab="IBS distance", breaks = 100, col="lightblue")
+```
+
+First of all, for the label matched samples, let's take a look at their stats
+
+```{r}
+# only 295, all the others are different genotypes!
+d1 <- subset(d, IID1 == IID2)
+
+hist(d1$DST, main="distance using IBS", xlab="IBS distance", breaks = 100, col="lightblue")
+nrow(subset(d1, DST > 0.9)) # 246
+nrow(subset(d1, DST > 0.95)) # 225
+nrow(subset(d1, DST > 0.85)) # 225
+
+pdf("graphs/ibs_res.pdf", width = 5, height=5)
+hist(d1$DST, main="distance using IBS", xlab="IBS distance", breaks = 100, col="lightblue")
+abline(v=0.95, col="red", lty=2, lwd=3)
+abline(v=0.9, col="blue", lty=2, lwd=3)
+dev.off()
+```
+
+# how many of these matched labels showed the highest IBS
+
+```{r}
+# select the top IBS
+d <- d[order(d$FID1, d$DST, decreasing = T),]
+d2 <- d[!(duplicated(d$FID1)), ]
+
+d3 <- merge(d2, d1[, c("FID1", "DST")], by="FID1")
+d3$diff <- d3$DST.x - d3$DST.y
+
+nrow(subset(d3, diff < 0.01))
+a <- subset(d3, diff > 0.01)
+
+a <- subset(d3, diff > 0.01 & DST.x > 0.8 & DST.y < 0.85)
+
+plot(d3$DST.y, d3$DST.x, xlab="Matched", ylab = "Highest IBS Score", ylim=c(0.6, 1))
+
+```
+
+
+
+```{r}
+length(unique(d$FID1))
+# select the top matching id
+d1 <- d[!(duplicated(d$FID1)), ]
+
+pdf("graphs/distance.pdf", width=6, height=5)
+hist(d1$DST, main="distance using IBS", xlab="IBS distance", breaks = 100, col="lightblue")
+dev.off()
+```
+
+
+```{r}
+s1 <- subset(d1, DST > 0.90)
+```
+
+
+
