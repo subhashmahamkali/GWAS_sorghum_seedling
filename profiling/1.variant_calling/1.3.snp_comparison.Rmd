@@ -28,9 +28,10 @@ plink2 -vcf /work/jyanglab/jyang21/sbhmp/RAW_SAP_BQSR.vcf_v5_060924.gz --set-all
 
 # --vcf: 35935778 variants scanned.
 # Warning: 3,969,709 multiallelic variants skipped (not yet supported).
-
-
 ```
+
+713 samples 
+170608 variants
 
 ### 2. Get SNP stat
 
@@ -69,7 +70,7 @@ df3 <- fread("/work/jyanglab/jyang21/sbhmp/SbDiv_imputed_Filter2.smiss", data.ta
 # 713 samples!
 
 
-pdf("graphs/RNA-seq_frq.pdf", width=6, height=5)
+pdf("graphs/RNA-seq_frq_tem.pdf", width=6, height=5)
 hist(df1$ALT_FREQS, main="Alt Allele Freq", xlab="Allele Freq", breaks = 100, col="lightblue")
 abline(v=0.05, col="red", lty=2, lwd=3)
 abline(v=0.95, col="red", lty=2, lwd=3)
