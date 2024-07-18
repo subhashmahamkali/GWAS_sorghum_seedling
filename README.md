@@ -9,10 +9,24 @@ In this study, we are leveraging existing datasets in sorghum to investigate phe
 
 ## Genomics and phenomics analyses of Sorghum Association Panel (SAP) 
 
-See SNP calling pipeline [here](pipeline4snp.md)
+#### Sorghum SNP Calling on V5:
 
+- Raw input data (`trimmed fastq`) were copied from Hongyu: `/work/jyanglab/subhash/variant_calling/1.trimmed_data/`
+- Data folders: `/work/jyanglab/subhash/variant_calling`
+- Code: `profiling/1.variant_calling/`
 
-#### Phenotype
+- Important files: 
+  - reference genome: `/work/jyanglab/subhash/variant_calling/2.refrence/Phytozome/PhytozomeV13/Sbicolor/v5.1/assembly/Sbicolor_730_v5.0.fa`
+  - Deduplicated BAM files: `/work/jyanglab/subhash/variant_calling/4.picard/` (n: 400 bam files)
+  - gVCF file: `/work/jyanglab/subhash/variant_calling/5.gvcf/*.g.vcf`
+  - Raw VCF file: `/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/3.merged_vcf/RAW_SAP_BQSR.vcf.gz` (116G)
+  - A filtered VCF file: `/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/SAP_V5_annotate.vcf` (289G)
+  
+- See SNP calling pipeline in details [here](pipeline4snp.md)
+
+#### Variant annotation
+
+#### Phenotypes
 
 ##### Seedling phenotypes
 
@@ -29,6 +43,10 @@ after creating the histograms and density plots they are saved under the graphs 
 
 #### Quantgen analysis
 
+- GWAS results
+  - `/work/jyanglab/subhash/variant_calling/10.GWAS/`
+
+- Positive, negative, and balancing selection scans
 
 
 ### old version RAW variants:-43811787
