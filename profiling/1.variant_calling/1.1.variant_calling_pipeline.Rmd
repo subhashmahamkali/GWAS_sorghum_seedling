@@ -674,7 +674,35 @@ ggsave("het_bqsr_filt.png", plot = het, width = 10, height = 8, dpi = 600)
 
 
 
+
 #### misc!
+
+
+### ID change using bcf tools on .vcf file
+
+```{bash}
+
+#!/bin/sh
+#SBATCH --ntasks-per-node=8
+#SBATCH --nodes=1
+#SBATCH --mem=32G
+#SBATCH --time=80:00:00
+#SBATCH --job-name=ID_change
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+#SBATCH --mail-type=ALL
+#SBATCH --error=/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/ID_change.err
+#SBATCH --output=/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/ID_change.out
+
+
+ml bcftools
+bcftools reheader -s /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/1.plink/1.stat_filter/1.het_filter/0.ID_correction/labels_corrected.txt SAP_V5_annotate.vcf -o updated_vcf.vcf
+
+
+```
+
+
+
+
 
 ### to submit the jobs at a specified time
 
