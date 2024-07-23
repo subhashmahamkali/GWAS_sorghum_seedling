@@ -16,6 +16,24 @@ knitr::opts_knit$set(root.dir=normalizePath('..//..//'))
 
 ### setting input files
 
+Hi Lucas,
+ 
+I am attaching the name conversion I did as we discussed in the morning. In the file SAP.crazynames2.csv, the first column is the original name from the vcf file downloaded from the EVA, and the second column is the new name I assign. The file SAP.matchdiy.xlsx is the is the spreadsheet being screenshot in the slides.
+ 
+Thanks,
+Hongyu
+
+- the first column is the original name from the vcf file downloaded from the EVA
+- the second column is the new name I assign
+
+```{r}
+l <- read.table("data/SAP.crazynames2.csv")
+l$diff <- 0
+l[l$V1 != l$V2, ]$diff <- 1
+```
+
+
+
 ```{r}
 library(data.table)
 d1=fread("output/blup_HN_dry.txt",head=T,data.table=F)
