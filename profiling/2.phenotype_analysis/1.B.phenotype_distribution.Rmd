@@ -11,7 +11,7 @@ Phenotypic Traits : "plant seedling height, leaf count, shoot dry weight, shoot 
 
 ```{r setup}
 knitr::opts_chunk$set(echo = TRUE) 
-knitr::opts_knit$set(root.dir=normalizePath('..//')) 
+knitr::opts_knit$set(root.dir=normalizePath('..//..//')) 
 ```
 
 ### setting input files

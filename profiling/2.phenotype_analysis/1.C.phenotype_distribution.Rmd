@@ -1,0 +1,110 @@
+---
+title: "Phenotype distribution"
+author: "Jinliang Yang"
+date: "07-23-2024"
+output: NULL
+DATA : "sorghum_seedling"
+Phenotypic Traits : "plant seedling height, leaf count, shoot dry weight, shoot fresh weight"
+---
+
+### path normalization
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE) 
+knitr::opts_knit$set(root.dir=normalizePath('..//..//')) 
+```
+
+### setting input files
+
+```{r}
+library(data.table)
+d1=fread("output/blup_HN_dry.txt",head=T,data.table=F)
+names(d1)[2] <- "value"
+d1$trait <- "Dry Weight"
+d1$treatment <- "high N"
+
+d2=fread("output/blup_HN_fresh.txt",head=T,data.table=F)
+names(d2)[2] <- "value"
+d2$trait <- "Fresh Weight"
+d2$treatment <- "high N"
+
+d3=fread("output/blup_HN_leaf.txt",head=T,data.table=F)
+names(d3)[2] <- "value"
+d3$trait <- "Leaf Number"
+d3$treatment <- "high N"
+
+d4=fread("output/blup_HN_PH.txt",head=T,data.table=F)
+names(d4)[2] <- "value"
+d4$trait <- "Seedling Height"
+d4$treatment <- "high N"
+
+
+d5=fread("output/blup_LN_dry.txt",head=T,data.table=F)
+names(d5)[2] <- "value"
+d5$trait <- "Dry Weight"
+d5$treatment <- "low N"
+
+d6=fread("output/blup_LN_fresh.txt",head=T,data.table=F)
+names(d6)[2] <- "value"
+d6$trait <- "Fresh Weight"
+d6$treatment <- "low N"
+
+d7=fread("output/blup_LN_leaf.txt",head=T,data.table=F)
+names(d7)[2] <- "value"
+d7$trait <- "Leaf Number"
+d7$treatment <- "low N"
+
+d8=fread("output/blup_LN_PH.txt",head=T,data.table=F)
+names(d8)[2] <- "value"
+d8$trait <- "Seedling Height"
+d8$treatment <- "low N"
+
+d <- rbind(d1, d2, d3, d4, d5, d6, d7, d8)
+```
+
+### creating the histogram and density plot and saving it as png
+
+
+```{r}
+library(ggplot2)
+library(tidyr)
+library(plyr)
+
+dt <- gather(p, key=trait, value=value, 3:10)
+dt <- dt[!is.na(dt$value),]
+
+
+mu <- ddply(d, .(trait, treatment), summarise,
+            grp.mean=mean(value, na.rm=T))
+
+# Change line colors by groups
+p1 <- ggplot(d, aes(x=value, color=trait, fill=treatment)) +
+  facet_wrap(vars(trait), scales = "free") +
+  #geom_histogram(aes(y=..density..), position="identity", alpha=0.3, bins=30)+
+  geom_density(alpha=0.3)+
+  geom_vline(data=mu, aes(xintercept=grp.mean, color=trait, fill=treatment),
+             linetype="dashed")+
+  #scale_color_manual(values=c("#E69F00", "#56B4E9", "#fe6f5e"))+
+  #scale_fill_manual(values=c("#E69F00", "#56B4E9", "#fe6f5e"), labels=c("HE", "HO", "Nip"))+
+  labs(title="", x="Trait value", y = "Density")+
+  guides(color="none", fill=guide_legend(title="")) +
+  theme_classic() +
+  #scale_y_continuous(limits = c(-0.01, 1)) +
+    theme(plot.title = element_text(size=20, face = "bold"), 
+          axis.text=element_text(size=16, face="bold"),
+          strip.text.y = element_text(size = 16, face = "bold"),
+          axis.title=element_text(size=18, face="bold"),
+          strip.text.x = element_text(size = 16, face="bold"),
+          #axis.text.x = element_text(angle = 15, hjust=0.8),
+          legend.position = c(0.85, 0.15), 
+          legend.title = element_text(size=18, face="bold"),
+          legend.text = element_text(size=18))
+
+p1
+
+pdf("graphs/pheno_stat.pdf", width=14, height=8)
+p1
+dev.off()
+
+```
+
