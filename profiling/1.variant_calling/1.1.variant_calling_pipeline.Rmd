@@ -393,7 +393,6 @@ writeLines(BQSR, con = "BQSR.txt")
 
 ### creating a genome database
 
-
 ```{r}
 # Define the chromosome lengths
 chromosome_lengths <- list(
@@ -558,46 +557,117 @@ find $(pwd) -type f -name '*.vcf.gz' | sort -V > vcf_list.txt #creating a .txt f
 #using the .txt file
 gatk --java-options "-Xmx10g" GatherVcfs \
      -I vcf_list.txt \
-     -O /work/jyanglab/subhash/variant_calling/6.converting_to_vcf/3.merged_vcf/RAW_SAP.vcf.gz
+     -O /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/3.merged_vcf/RAW_SAP_BQSR.vcf.gz
 
 ```
 
-
+### filtering vcf based on GATK hard filtering 
 
 ```{bash}
+
+#!/bin/sh
+#SBATCH --ntasks-per-node=8
+#SBATCH --nodes=1
+#SBATCH --mem=16G
+#SBATCH --time=150:00:00
+#SBATCH --job-name=filtering
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+#SBATCH --mail-type=ALL
+#SBATCH --error=/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/0.log_file/filter.err
+#SBATCH --output=/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/0.log_file/filter.out
+
+
+perl GATK_vcf_filter.pl  /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/3.merged_vcf/RAW_SAP_BQSR.vcf.gz  /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/SAP_BQSR5_filtered.vcf
+
+
+GATK_vcf_filter.pl-script: Gen Xu
+
+#!/usr/usr/perl 
+$inputfile="$ARGV[0]";
+$genotype="$ARGV[1]";
+#$outfile2="Depth";
+open(T,"gzip -dc $inputfile |")||die "Can't open $filename\n";
+open(R,">$genotype");
+#open(E,">$outfile2");
+while(<T>)
+{
+	chomp ;
+	if(/^\#/) 
+   { print  R "$_\n";}
+   ($chr, $pos, $id, $ref, $alt, $qual, $filter, $info, $fomat, $other) = split (/\s+/, $_, 10);
+	 $MQ=$1 if (/;MQ=(.+?);/);$QD = $1 if (/;QD\=(.+?);/);$FS = $1 if (/;FS\=(.+?);/);
+	 $MQRankSum = $1 if (/;MQRankSum\=(.+?);/);$SOR=$1 if (/;SOR=(.+?)	GT/);
+	 $ReadPosRankSum = $1 if (/;ReadPosRankSum\=(.+?);/);
+	if ($MQ < 20 or $qual<30 or $QD < 2.0 or $FS >60.0 
+	 or $MQRankSum< -12.5 or $ReadPosRankSum < -8){next;}
+	 if(length($ref)>1 or length($alt)>1){next;} ###only keep SNPs
+	@aa=split /\t/,$other; #GT:AD:DP:GQ:PL	0/0:10,0:10:3:0,3,25
+	@GT=();
+    @DP=();
+	foreach (@aa)
+	{if($_=~/\:/)
+		{@bb=split /\:/,$_;
+		 $dp=$bb[2];push(@DP,$dp);
+		if($dp<=2){$_='./.';}
+		}
+	push(@GT,$_);
+		}
+ $gt=join "\t",@GT;  $dpp=join "\t",@DP; 
+		print R "$chr\t$pos\t$id\t$ref\t$alt\t$qual\t$filter\t$info\t$fomat\t$gt\n";
+#		print E "$chr\t$pos\t$id\t$ref\t$alt\t$qual\t$filter\t$info\t$fomat\t$dpp\n";
+	}   
+
+close(T,R);
+
+
+```
+
+### annotating the vcf ID with Chromosome number and position and counting number of snps
+
+```{bash}
+
+#scripts for calculating the basic stats from raw vcf file and filtering vcf file
 ml bcftools
 ml vcftools
-ml plink2
-
-#counting the number of variants from raw vcf file
-bcftools view -H SAP.vcf.gz | wc -l
 
 #changing ID to chrom_pos to compare manual and plink2.0 calculation
-bcftools annotate --set-id +'%CHROM\_%POS' SAP.vcf.gz -Ov -o SAP_v5.vcf.gz
+bcftools annotate --set-id +'%CHROM\_%POS' /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/SAP_BQSR5_filtered.vcf -Ov -o /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/SAP_V5_annotate.vcf
 
+#counting the number of variants from raw vcf file
+bcftools view -H /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/SAP_V5_annotate.vcf | wc -l
+```
+
+### basic statistics
+
+```{bash}
 #calculating basic statistics
 #--freq to calculate allele freequency
 #--missing to calculate missing rate
 #--hardy to calculate heterozygosity rate 
 
-plink2 --bfile SAPo --freq alt1bins=0.01,0.02,0.03,0.04,0.05,0.1,0.2,0.3,0.4  --missing --hardy  --out /work/jyanglab/subhash/snp_sorghum/1.sap_genotype_files/3.basic_statistics_calculat
+ml plink2
+#creating bed file from vcf
+plink2 --vcf /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/SAP_V5_annotate.vcf --make-bed --out /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/1.plink/SAP_v5
+
+plink2 --bfile /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/1.plink/SAP_v5 --freq alt1bins=0.01,0.02,0.03,0.04,0.05,0.1,0.2,0.3,0.4  --missing --hardy  --out /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/1.plink/1.basic_stat
 
 #filtering of vcf files using maf and missing rate from plink2.0
 #--maf to filter minor allele freequency
-#--geno to filter missing rate from bed- vcf file
+#--geno to filter missing rate from vcf file
 
-plink2 --bfile SAP --maf 0.05 --geno 0.3 --make-bed --out /work/jyanglab/subhash/snp_sorghum/1.sap_genotype_files/4.filtered_SAP/filtered
+plink2 --bfile /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/1.plink/SAP_v5 --maf 0.05 --geno 0.3 --make-bed --out /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/1.plink/1.stat_filter/SAP_V5_filtered
+
 
 #for filtering heterozygosity there is no direct function in plink2.0
 # so I have obtained seperate file of observed heterozygosity from --hardy function using following code
 #calculated heterozygosity using plink2.0 function -hardy which gives observed heterozygosity in column 8.
 
-awk '$8 < 0.1 {print $2}' SAP.hardy > low_het_snps.txt
+awk '$8 < 0.1 {print $2}'  /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/1.plink/1.basic_stat/1.basic_stat.hardy > /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/1.plink/0.1_het.txt
 
-#now this low_het_snps.txt contains ID with <0.1 heterozygosity.
+#now this 0.1_het.txt contains ID with <0.1 heterozygosity.
 #here SAP filtered is  maf >0.05 and geno <30%
 
-plink2 -bfile filtered -extract low_het_snps.txt -make-bed -out your_final_filtered_data
+plink2 -bfile /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/1.plink/1.stat_filter/SAP_V5_filtered -extract /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/1.plink/0.1_het.txt -make-bed -out /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/1.plink/1.stat_filter/1.het_filter/het_0.1_SAP
 
 #this final filtered data contains variants with maf >/=0.05 and missing rate of <30% and heterozygosity with <0.1
 ```
@@ -615,7 +685,7 @@ library(data.table)
 #all the output files are otained from plink2.0    allele frequency = --freq , missing rate = --misssing  
 #from PLINK2.0
 #reading the data frame
-var_freq <- read_delim("filt_stat.afreq", delim = "\t") 
+var_freq <- read_delim("/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/1.plink/1.basic_stat/1.basic_stat.afreq", delim = "\t") 
 #data
 head(var_freq)
 #calculating refrence allele frreequency since plink2.0 has calcuated only alternative allele
@@ -643,7 +713,7 @@ maf <- ggplot(var_freq, aes(x = maf)) +
 maf
 ggsave("maf_bqsr_filt.png", plot = maf, width = 10, height = 8, dpi = 600)
 #plotting the graph of missing rate from plink2.0
-var_miss <- read_delim("filt_stat.vmiss", delim = "\t") #reading the data frame
+var_miss <- read_delim("/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/1.plink/1.basic_stat/1.basic_stat.vmiss", delim = "\t") #reading the data frame
 head(var_miss)
 #hist(var_miss$F_MISS,breaks = 50) #basic R plotting
 vm <- ggplot(var_miss, aes(x = F_MISS)) + 
@@ -659,7 +729,7 @@ vm
 ggsave("vm_bqsr_filt.png", plot = vm, width = 10, height = 8, dpi = 600)
 
 #plotting observed heterozygosity using plink2.0
-het = fread("0.1_het.hardy")
+het = fread("/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/1.plink/1.basic_stat/1.basic_stat.hardy")
 het <- ggplot(het, aes(x = `O(HET_REF)`)) + 
   geom_histogram(fill = "brown3", color = "black") +
   labs(title = "Heterozygosity rate SAP_V5", x = "Heterozygosity rate", y = "Count (Variants)") +
@@ -672,11 +742,7 @@ het
 ggsave("het_bqsr_filt.png", plot = het, width = 10, height = 8, dpi = 600)
 ```
 
-
-
-
-#### misc!
-
+#### MISC!
 
 ### ID change using bcf tools on .vcf file
 
@@ -699,10 +765,6 @@ bcftools reheader -s /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filt
 
 
 ```
-
-
-
-
 
 ### to submit the jobs at a specified time
 
