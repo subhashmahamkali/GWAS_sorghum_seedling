@@ -80,17 +80,45 @@ dev.off()
 
 ```
 
+
+```{r}
+library(data.table)
+
+df1 <- fread("SbDiv_imputed_Filter2.afreq", data.table=FALSE, header=T)
+# 170608
+range(df1$ALT_FREQS)
+# 0.0504909 0.9495090; 
+
+df2 <- fread("SbDiv_imputed_Filter2.vmiss", data.table=FALSE, header=T)
+mean(df2$F_MISS)
+# 0: imputed no missing data
+
+df3 <- fread("SbDiv_imputed_Filter2.smiss", data.table=FALSE, header=T)
+# 713 samples!
+
+
+pdf("RNA-seq_frq_tem.pdf", width=6, height=5)
+hist(df1$ALT_FREQS, main="Alt Allele Freq", xlab="Allele Freq", breaks = 100, col="lightblue")
+abline(v=0.05, col="red", lty=2, lwd=3)
+abline(v=0.95, col="red", lty=2, lwd=3)
+hist(df3$F_MISS, main="Count by locus", xlab="Variant missingness", breaks = 100, col="lightgreen")
+abline(v=0.1, col="red", lty=2, lwd=3)
+dev.off()
+```
+
+
+
 # Genomics SNPs
 
 ```{r}
 library(data.table)
 
 df1 <- fread("/work/jyanglab/jyang21/sbhmp/RAW_SAP_BQSR.vcf_v5_060924.afreq", data.table=FALSE, header=T)
-# 35935778
+# 35,935,778
 range(df1$ALT_FREQS)
 # 0.00125 1.00000 
 nrow(subset(df1, ALT_FREQS > 0.05 & ALT_FREQS < 0.95))
-# 7889507
+# 7,889,507
 
 
 df2 <- fread("/work/jyanglab/jyang21/sbhmp/RAW_SAP_BQSR.vcf_v5_060924.smiss", data.table=FALSE, header=T)
@@ -101,10 +129,57 @@ mean(df2$F_MISS)
 df3 <- fread("/work/jyanglab/jyang21/sbhmp/RAW_SAP_BQSR.vcf_v5_060924.vmiss", data.table=FALSE, header=T)
 # 713 samples!
 
-nrow(subset(df3, F_MISS < 0.1))
-
+nrow(subset(df3, df3$F_MISS < 0.3))
+# 35,933,485
 
 pdf("graphs/SAP_raw_frq.pdf", width=12, height=4)
+par(mfrow = c(1, 3))  ## set the layout
+hist(df1$ALT_FREQS, main="Alt Allele Freq", xlab="Allele Freq", breaks = 100, col="lightblue")
+abline(v=0.05, col="red", lty=2, lwd=3)
+abline(v=0.95, col="red", lty=2, lwd=3)
+hist(df2$F_MISS, main="Count by sample", xlab="Sample missingness", breaks = 100, col="purple")
+hist(df3$F_MISS, main="Count by locus", xlab="Variant missingness", breaks = 100, col="lightgreen")
+abline(v=0.1, col="red", lty=2, lwd=3)
+dev.off()
+```
+
+
+
+```{r}
+library(data.table)
+
+df1 <- fread("RAW_SAP_BQSR.vcf_v5_060924.afreq", data.table=FALSE, header=T)
+# 28,461,719
+str(df1)
+sum(is.na(df1$ALT_FREQS))
+#  10114
+df1$ALT_FREQS <- as.numeric(df1$ALT_FREQS)
+
+# Remove rows with NA in ALT_FREQS into df1_clean
+df1_clean <- df1[!is.na(df1$ALT_FREQS), ]
+range(df1_clean$ALT_FREQS)
+# 0.00125 1.00000 
+# 0 1
+
+nrow(subset(df1, ALT_FREQS > 0.05 & ALT_FREQS < 0.95))
+# 7,889,507
+# 6,968,602
+
+df2 <- fread("RAW_SAP_BQSR.vcf_v5_060924.smiss", data.table=FALSE, header=T)
+mean(df2$F_MISS)
+# 7.735799e-05: very low individual missing rate
+# 0.1083693: 0.1 missing rate
+# 400 samples
+
+df3 <- fread("RAW_SAP_BQSR.vcf_v5_060924.vmiss", data.table=FALSE, header=T)
+# 713 samples!
+mean(df3$F_MISS)
+# 0.1083693
+nrow(subset(df3, df3$F_MISS < 0.3))
+# 35,933,485
+# 24,567,887
+
+pdf("SAP_raw_frq.pdf", width=12, height=4)
 par(mfrow = c(1, 3))  ## set the layout
 hist(df1$ALT_FREQS, main="Alt Allele Freq", xlab="Allele Freq", breaks = 100, col="lightblue")
 abline(v=0.05, col="red", lty=2, lwd=3)
@@ -132,6 +207,13 @@ plink2 -bfile /work/jyanglab/jyang21/sbhmp/filtered_RAW_SAP_BQSR.vcf_v5_060924 -
 (--maf/--max-maf/--mac/--max-mac).
 7983642 variants remaining after main filters.
 
+# subhash
+--geno: 7802008 variants removed due to missing genotype data.
+15087546 variants removed due to minor allele threshold(s)
+(--maf/--max-maf/--mac/--max-mac).
+5572165 variants remaining after main filters.
+
+
 ### change RNA-seq .fam file to indicate its source
 
 ```{r}
@@ -152,12 +234,13 @@ df2 <- fread("/work/jyanglab/jyang21/sbhmp/filtered_RAW_SAP_BQSR.vcf_v5_060924.a
 
 df2a <- subset(df2, ID %in% df1$ID)
 # 152512      6
+# 149895      6
 
 df1a <- subset(df1, ID %in% df2$ID)
 
 df1a <- subset(df1a, !(ID %in% c("Chr02_78582483", "Chr07_64458720", "Chr09_47854574")) )
 
-write.table(df1a[,2], "/work/jyanglab/jyang21/sbhmp/shared_snpid.txt", sep="\t", col.names = F, row.names = F, quote=F)
+write.table(df1a[,2], "/Users/subhashmahamkali/Downloads/variant_calling/0.0.test/shared_snpid.txt", sep="\t", col.names = F, row.names = F, quote=F)
 ```
 
 # remove these three SNPs due to multi-allele after merging that cause error!
@@ -206,8 +289,7 @@ d$IID2 <- gsub("_R", "", d$IID2)
 
 d <- d[order(d$FID1, d$DST, decreasing = T), ]
 
-write.table(d, "largedata/dist.txt", sep="\t", row.names = F, quote=FALSE)
-
+write.table(d, "/Users/subhashmahamkali/Downloads/variant_calling/0.0.test/dist.txt", sep="\t", row.names = F, quote=FALSE)
 ```
 
 
