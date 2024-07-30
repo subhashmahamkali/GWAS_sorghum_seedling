@@ -1,0 +1,318 @@
+---
+title: "Comparison between RNA-seq and genomics SNP sets"
+author: "Jinliang"
+date: "2024-07-30"
+output: NULL
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "/work/jyanglab/subhash/variant_calling")
+```
+
+
+/work/jyanglab/subhash/1.RNA_Seq/SbDiv_imputed_Filter2.recode.vcf.gz
+
+# 1. convert vcf to plink2 bed format 
+
+```{bash}
+ml bcftools
+ml vcftools
+ml plink2
+
+#RNA seq SNPs
+plink2 -vcf /work/jyanglab/subhash/1.RNA_Seq/SbDiv_imputed_Filter2.recode.vcf.gz --set-all-var-ids @_#_\$1_\$2 --make-bed --out /work/jyanglab/subhash/1.RNA_Seq/SbDiv_imputed_Filter2.recode
+# WGS SNPs
+plink2 -vcf /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/SAP_V5_annotate.vcf --set-all-var-ids @_#_\$1_\$2 --make-bed --out /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/RAW_SAP_BQSR.vcf_v5_060924
+
+# --vcf: 35935778 variants scanned.
+
+```
+
+713 samples 
+170608 variants
+
+### 2. Get SNP stat
+
+```{bash}
+#RNA_SEQ
+plink2 -bfile /work/jyanglab/subhash/1.RNA_Seq/SbDiv_imputed_Filter2.recode --freq --missing --pca --out /work/jyanglab/subhash/1.RNA_Seq/1.test/SbDiv_imputed_Filter2  
+
+# --ibc (ported from GCTA) calculates three inbreeding coefficients for each sample
+#WGS
+plink2 -bfile /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/RAW_SAP_BQSR.vcf_v5_060924 --freq --missing --pca --out /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/3.test/RAW_SAP_BQSR.vcf_v5_060924 
+```
+
+--freq: Allele frequencies (founders only) written to
+/work/jyanglab/jyang21/sbhmp/RAW_SAP_BQSR.vcf_v5_060924.afreq .
+--missing: Sample missing data report written to
+/work/jyanglab/jyang21/sbhmp/RAW_SAP_BQSR.vcf_v5_060924.smiss .
+--missing: Variant missing data report written to
+/work/jyanglab/jyang21/sbhmp/RAW_SAP_BQSR.vcf_v5_060924.vmiss .
+
+
+
+# RNA-seq SNPs
+
+```{r}
+library(data.table)
+
+df1 <- fread("SbDiv_imputed_Filter2.afreq", data.table=FALSE, header=T)
+# 170608
+range(df1$ALT_FREQS)
+# 0.0504909 0.9495090; 
+
+df2 <- fread("SbDiv_imputed_Filter2.vmiss", data.table=FALSE, header=T)
+mean(df2$F_MISS)
+# 0: imputed no missing data
+
+df3 <- fread("SbDiv_imputed_Filter2.smiss", data.table=FALSE, header=T)
+# 713 samples!
+
+
+pdf("profiling/1.variant_calling/RNA-seq_frq_tem.pdf", width=6, height=5)
+hist(df1$ALT_FREQS, main="Alt Allele Freq", xlab="Allele Freq", breaks = 100, col="lightblue")
+abline(v=0.05, col="red", lty=2, lwd=3)
+abline(v=0.95, col="red", lty=2, lwd=3)
+hist(df3$F_MISS, main="Count by locus", xlab="Variant missingness", breaks = 100, col="lightgreen")
+abline(v=0.1, col="red", lty=2, lwd=3)
+dev.off()
+```
+
+
+
+# Genomics SNPs
+
+```{r}
+library(data.table)
+
+df1 <- fread("RAW_SAP_BQSR.vcf_v5_060924.afreq", data.table=FALSE, header=T)
+# 28,461,719
+str(df1)
+sum(is.na(df1$ALT_FREQS))
+#  10114
+df1$ALT_FREQS <- as.numeric(df1$ALT_FREQS)
+
+# Remove rows with NA in ALT_FREQS into df1_clean
+df1_clean <- df1[!is.na(df1$ALT_FREQS), ]
+range(df1_clean$ALT_FREQS)
+# 0.00125 1.00000 
+# 0 1
+
+nrow(subset(df1, ALT_FREQS > 0.05 & ALT_FREQS < 0.95))
+# 7,889,507
+# 6,968,602
+
+df2 <- fread("RAW_SAP_BQSR.vcf_v5_060924.smiss", data.table=FALSE, header=T)
+mean(df2$F_MISS)
+# 7.735799e-05: very low individual missing rate
+# 0.1083693: 0.1 missing rate
+# 400 samples
+
+df3 <- fread("RAW_SAP_BQSR.vcf_v5_060924.vmiss", data.table=FALSE, header=T)
+# 713 samples!
+mean(df3$F_MISS)
+# 0.1083693
+nrow(subset(df3, df3$F_MISS < 0.3))
+# 35,933,485
+# 24,567,887
+
+pdf("profiling/1.variant_calling/SAP_raw_frq.pdf", width=12, height=4)
+par(mfrow = c(1, 3))  ## set the layout
+hist(df1$ALT_FREQS, main="Alt Allele Freq", xlab="Allele Freq", breaks = 100, col="lightblue")
+abline(v=0.05, col="red", lty=2, lwd=3)
+abline(v=0.95, col="red", lty=2, lwd=3)
+hist(df2$F_MISS, main="Count by sample", xlab="Sample missingness", breaks = 100, col="purple")
+hist(df3$F_MISS, main="Count by locus", xlab="Variant missingness", breaks = 100, col="lightgreen")
+abline(v=0.1, col="red", lty=2, lwd=3)
+dev.off()
+```
+
+
+# Merge the two datasets together
+
+filtered genomics variants:
+/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/
+
+```{bash}
+plink2 --bfile /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/RAW_SAP_BQSR.vcf_v5_060924 --maf 0.05 --geno 0.1 --make-bed --out /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/3.test/1.filter/filtered_RAW_SAP_BQSR.vcf_v5_060924
+
+plink2 -bfile /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/3.test/1.filter/filtered_RAW_SAP_BQSR.vcf_v5_060924 --freq --missing --pca --out //work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/3.test/1.filter/filtered_RAW_SAP_BQSR.vcf_v5_060924
+```
+
+# subhash
+--geno: 7802008 variants removed due to missing genotype data.
+15087546 variants removed due to minor allele threshold(s)
+(--maf/--max-maf/--mac/--max-mac).
+5572165 variants remaining after main filters.
+
+
+### change RNA-seq .fam file to indicate its source
+
+```{r}
+fam <- read.delim(file="/work/jyanglab/subhash/1.RNA_Seq/SbDiv_imputed_Filter2.recode.fam", header=FALSE)
+fam$V1 <- paste0(fam$V1, "_R")
+fam$V2 <- paste0(fam$V2, "_R")
+write.table(fam, "/work/jyanglab/subhash/1.RNA_Seq/SbDiv_imputed_Filter2.recode.fam", sep="\t", row.names = FALSE, col.names = FALSE, quote=FALSE)
+```
+
+### Keep only shared SNPs
+
+```{r}
+library(data.table)
+
+df1 <- fread("/work/jyanglab/subhash/1.RNA_Seq/1.test/SbDiv_imputed_Filter2.afreq", data.table=FALSE, header=T)
+
+df2 <- fread("/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/3.test/filtered_RAW_SAP_BQSR.vcf_v5_060924.afreq", data.table=FALSE, header=T)
+
+df2a <- subset(df2, ID %in% df1$ID)
+# 149,895      6
+
+df1a <- subset(df1, ID %in% df2$ID)
+
+df1a <- subset(df1a, !(ID %in% c("Chr02_78582483", "Chr07_64458720", "Chr09_47854574")) )
+
+write.table(df1a[,2], "/work/jyanglab/subhash/1.RNA_Seq/shared_snpid.txt", sep="\t", col.names = F, row.names = F, quote=F)
+```
+
+# remove these three SNPs due to multi-allele after merging that cause error!
+
+Chr02_78582483
+Chr07_64458720
+Chr09_47854574
+
+
+### start to merge the data
+
+filtered_RAW_SAP_BQSR.vcf_v5_06092
+SbDiv_imputed_Filter2.recode
+
+```{bash}
+ml plink
+
+plink --bfile /work/jyanglab/subhash/1.RNA_Seq/SbDiv_imputed_Filter2.recode --extract /work/jyanglab/subhash/1.RNA_Seq/shared_snpid.txt --make-bed --out /work/jyanglab/subhash/1.RNA_Seq/shared/RNA_seq
+# 149895 variants and 713 people pass filters and QC.
+
+plink --bfile /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/3.test/1.filter/filtered_RAW_SAP_BQSR.vcf_v5_060924 --extract /work/jyanglab/subhash/1.RNA_Seq/shared_snpid.txt --make-bed --out /work/jyanglab/subhash/1.RNA_Seq/shared/genomic
+# 149895 variants and 400 people pass filters and QC.
+
+plink --bfile /work/jyanglab/subhash/1.RNA_Seq/shared/genomic --bmerge /work/jyanglab/subhash/1.RNA_Seq/shared/RNA_seq --make-bed --out /work/jyanglab/subhash/1.RNA_Seq/shared/merged
+# 149895 variants and 1113 people pass filters and QC.
+```
+
+149895 variants loaded from .bim file.
+1113 people (0 males, 0 females, 1113 ambiguous) loaded from .fam.
+
+```{bash}
+plink -bfile /work/jyanglab/subhash/1.RNA_Seq/shared/merged --genome 'full' --ppc-gap 10000 --out /work/jyanglab/subhash/1.RNA_Seq/shared/dist
+```
+
+
+```{r}
+library(data.table)
+d <- fread("/work/jyanglab/subhash/1.RNA_Seq/shared/dist.genome", header=T)
+# keep only comparison between RNA-seq and genomic
+
+d$s1 <- gsub(".*_", "", d$FID1)
+d$s2 <- gsub(".*_", "", d$FID2)
+
+d <- subset(d, s1 != s2)
+d <- subset(d, s2 == "R")
+d$IID2 <- gsub("_R", "", d$IID2)
+
+d <- d[order(d$FID1, d$DST, decreasing = T), ]
+
+write.table(d, "/work/jyanglab/subhash/1.RNA_Seq/shared/dist.txt", sep="\t", row.names = F, quote=FALSE)
+```
+
+
+
+### 1.4 update 
+
+Move `largedata/dist.txt` from HCC to local computer
+
+
+```{r}
+library("data.table")
+d <- fread("largedata/dist.txt")
+
+d0 <- subset(d, IID1 != IID2)
+hist(d0$DST, main="distance using IBS", xlab="IBS distance", breaks = 100, col="lightblue")
+```
+
+First of all, for the label matched samples, let's take a look at their stats
+
+```{r}
+# only 295, all the others are different genotypes!
+d1 <- subset(d, IID1 == IID2)
+
+hist(d1$DST, main="distance using IBS", xlab="IBS distance", breaks = 100, col="lightblue")
+nrow(subset(d1, DST > 0.9)) # 246
+nrow(subset(d1, DST > 0.95)) # 225
+nrow(subset(d1, DST > 0.85)) # 225
+
+pdf("graphs/ibs_res.pdf", width = 5, height=5)
+hist(d1$DST, main="distance using IBS", xlab="IBS distance", breaks = 100, col="lightblue")
+abline(v=0.95, col="red", lty=2, lwd=3)
+abline(v=0.9, col="blue", lty=2, lwd=3)
+dev.off()
+```
+
+# how many of these matched labels showed the highest IBS
+
+```{r}
+# select the top IBS
+d <- d[order(d$FID1, d$DST, decreasing = T),]
+d2 <- d[!(duplicated(d$FID1)), ]
+
+d3 <- merge(d2, d1[, c("FID1", "DST")], by="FID1")
+d3$diff <- d3$DST.x - d3$DST.y
+
+nrow(subset(d3, diff < 0.05)) #273
+a <- subset(d3, diff > 0.05)
+fwrite(a, "data/xlabels.csv", sep=",", row.names = FALSE, quote=FALSE)
+#a <- subset(d3, diff > 0.01 & DST.x > 0.8 & DST.y < 0.85)
+
+plot(d3$DST.y, d3$DST.x, xlab="Matched", ylab = "Highest IBS Score", ylim=c(0.6, 1))
+abline(coef = c(0,1), lty=2)
+points(a$DST.y, a$DST.x, pch=4, col="red")
+```
+
+
+
+```{r}
+length(unique(d$FID1))
+# select the top matching id
+d1 <- d[!(duplicated(d$FID1)), ]
+
+pdf("graphs/distance.pdf", width=6, height=5)
+hist(d1$DST, main="distance using IBS", xlab="IBS distance", breaks = 100, col="lightblue")
+dev.off()
+```
+
+
+```{r}
+s1 <- subset(d1, DST > 0.90)
+```
+
+
+-------------
+
+# Double-checking Hongyu's correction
+
+I am attaching the name conversion I did as we discussed in the morning. In the file SAP.crazynames2.csv, the first column is the original name from the vcf file downloaded from the EVA, and the second column is the new name I assign. The file SAP.matchdiy.xlsx is the is the spreadsheet being screenshot in the slides.
+
+```{r}
+x <- read.delim("data/SAP.crazynames2.csv", sep=" ", header=FALSE)
+```
+
+
+let's see if any of the labels appear twice.
+```{r}
+b <- c(a$IID1, a$IID2)
+b <- as.data.frame(table(b))
+b <- b[order(b$Freq, decreasing=T),]
+```
+
+
+
