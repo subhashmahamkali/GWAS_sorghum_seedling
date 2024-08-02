@@ -811,3 +811,77 @@ cat("Commands have been written to", output_file, "\n")
 
 ```
 
+### indels
+
+Indel_file_location: /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/2.indel_filtering/filtered_indel.vcf
+
+
+```{bash}
+#!/bin/sh
+#SBATCH --ntasks-per-node=8
+#SBATCH --nodes=1
+#SBATCH --mem=16G
+#SBATCH --time=150:00:00
+#SBATCH --job-name=indel
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+#SBATCH --mail-type=ALL
+#SBATCH --error=/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/2.indel_filtering/indel.err
+#SBATCH --output=/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/2.indel_filtering/indel.out
+
+
+perl indel.pl  /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/3.merged_vcf/RAW_SAP_BQSR.vcf.gz  /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/2.indel_filtering/filtered_indel.vcf
+
+
+
+Perl Script I have used to filter Indels based GATK Hard filtering: 
+#!/usr/bin/perl
+$inputfile="$ARGV[0]";
+$genotype="$ARGV[1]";
+#$outfile2="Depth";
+open(T,"gzip -dc $inputfile |")||die "Can't open $filename\n";
+open(R,">$genotype");
+#open(E,">$outfile2");
+while(<T>)
+{
+    chomp;
+    if(/^\#/) 
+    { 
+        print R "$_\n"; 
+        next;
+    }
+    ($chr, $pos, $id, $ref, $alt, $qual, $filter, $info, $fomat, $other) = split (/\s+/, $_, 10);
+    $QD = $1 if (/;QD\=(.+?);/);
+    $FS = $1 if (/;FS\=(.+?);/);
+    
+    # Updated quality filters without SOR
+    if ($qual < 30 or $QD < 2.0 or $FS > 200.0) { next; }
+        
+    # Only keep indels: either ref or alt has length > 1
+    if (length($ref) <= 1 and length($alt) <= 1) { next; } 
+    
+    @aa = split /\t/, $other; # GT:AD:DP:GQ:PL    0/0:10,0:10:3:0,3,25
+    @GT = ();
+    @DP = ();
+    foreach (@aa)
+    {
+        if($_ =~ /\:/)
+        {
+            @bb = split /\:/, $_;
+            $dp = $bb[2];
+            push(@DP, $dp);
+            if($dp <= 2){ $_ = './.'; }
+        }
+        push(@GT, $_);
+    }
+    $gt = join "\t", @GT;  
+    $dpp = join "\t", @DP; 
+    print R "$chr\t$pos\t$id\t$ref\t$alt\t$qual\t$filter\t$info\t$fomat\t$gt\n";
+#    print E "$chr\t$pos\t$id\t$ref\t$alt\t$qual\t$filter\t$info\t$fomat\t$dpp\n";
+}   
+
+close(T);
+close(R);
+
+```
+
+
