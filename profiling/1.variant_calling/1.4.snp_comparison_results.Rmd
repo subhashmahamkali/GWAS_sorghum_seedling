@@ -29,9 +29,10 @@ First of all, for the label matched samples, let's take a look at their stats
 d1 <- subset(d, IID1 == IID2)
 
 hist(d1$DST, main="distance using IBS", xlab="IBS distance", breaks = 100, col="lightblue")
+nrow(subset(d1, DST > 0.85)) # 262
 nrow(subset(d1, DST > 0.9)) # 246
 nrow(subset(d1, DST > 0.95)) # 225
-nrow(subset(d1, DST > 0.85)) # 225
+
 
 pdf("graphs/ibs_res.pdf", width = 5, height=5)
 hist(d1$DST, main="distance using IBS", xlab="IBS distance", breaks = 100, col="lightblue")
