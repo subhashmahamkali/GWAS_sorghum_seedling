@@ -8,7 +8,7 @@ date: 02-05-2024
 
 ```{r setup}
 knitr::opts_chunk$set(echo = TRUE) 
-knitr::opts_knit$set(root.dir=normalizePath('..//')) 
+knitr::opts_knit$set(root.dir=normalizePath('/Users/subhashmahamkali/Documents/gwas_sap/data')) 
 ```
 
 
@@ -18,7 +18,7 @@ library(readxl)
 library(dplyr)
 library(ggplot2)
 library(patchwork)
-install.packages("patchwork")
+#install.packages("patchwork")
 # Read the Excel file
 # Replace 'path_to_your_excel_file.xlsx' with the actual path to your Excel file
 df <- read.csv("data/Revised_exp_data/PH_Revised.csv")
@@ -182,7 +182,9 @@ create_density_plot <- function(data, main_title, x_label, y_label) {
     theme(plot.title = element_text(face = "bold", size = 16),
           axis.title.x = element_text(face = "bold", size = 14),
           axis.title.y = element_text(face = "bold", size = 14))  # Corrected the syntax here
-  
+    # Add significance label
+  p <- p + annotate("text", x = x_position, y = y_position, label = sig_label, size = 5, color = "black")
+
   return(p)
 }
 
@@ -191,7 +193,7 @@ data2 = read.table("FW.txt")
 data3 = read.table("LC.txt")
 data4 = read.table("PH.txt")
 
-plot1 <- create_density_plot(data1, "Seedling Dry Weight", "gm", "Density",TRUE)
+plot1 <- create_density_plot(data1, "Seedling Dry Weight", "gm", "Density", TRUE)
 plot2 <- create_density_plot(data2, "Seedling Fresh Weight", "gm", "Density", FALSE)
 plot3 <- create_density_plot(data3, "Leaf Count", "#number", "Density", FALSE)
 plot4 <- create_density_plot(data4, "Plant Height", "cm", "Density", FALSE)
@@ -205,6 +207,9 @@ final_plot <- plot4 + plot3 + plot2 + plot1 +
 print(final_plot)
 
 ```
+
+
+
 ```{r}
 data1 = read.table("DW.txt")
 data2 = read.table("FW.txt")
@@ -230,6 +235,69 @@ merged_phenotype_data <- merge(merge2, data4, by = "Taxa")
 
 colnames(merged_phenotype_data)[7] <- "SFW.NR"
 write.table(merged_phenotype_data, "merged_phenotype_data.txt", sep = "\t", quote = FALSE, row.names = FALSE)
+
+```
+
+```{r}
+# Load necessary libraries
+library(ggplot2)
+library(patchwork)  # For combining multiple plots
+
+# Function to create density plot
+create_density_plot <- function(data, main_title, x_label, y_label) {
+  # Data preparation and analysis
+  data <- na.omit(data)
+  mean_HN <- mean(data$HN)
+  mean_LN <- mean(data$LN)
+  t_test <- t.test(data$HN, data$LN, paired = TRUE)
+
+  # Determine significance label
+  sig_label <- ifelse(t_test$p.value < 0.001, '***',
+                      ifelse(t_test$p.value < 0.01, '**',
+                             ifelse(t_test$p.value < 0.05, '*', 'ns')))
+
+  # Calculate positions for annotation
+  x_position <- mean(c(mean_HN, mean_LN))
+  y_position <- max(c(density(data$HN)$y, density(data$LN)$y))
+
+  # Create the plot
+  p <- ggplot(data) +
+    geom_density(aes(x = HN, fill = "HN"), alpha = 0.5) + 
+    geom_density(aes(x = LN, fill = "LN"), alpha = 0.5) +
+    geom_vline(aes(xintercept = mean_HN), linetype = "dashed", color = "red") +
+    geom_vline(aes(xintercept = mean_LN), linetype = "dashed", color = "green") +
+    scale_fill_manual(values = c("HN" = "red", "LN" = "green")) +
+    theme_minimal() +
+    labs(title = main_title, x = x_label, y = y_label) +
+    theme(
+      plot.title = element_text(face = "bold", size = 16),
+      axis.title.x = element_text(face = "bold", size = 14),
+      axis.title.y = element_text(face = "bold", size = 14)
+    ) +
+    annotate("text", x = x_position, y = y_position, label = sig_label, size = 5, color = "blue")
+
+  return(p)
+}
+
+# Load your data
+data1 <- read.table("DW.txt", header = TRUE)
+data2 <- read.table("FW.txt", header = TRUE)
+data3 <- read.table("LC.txt", header = TRUE)
+data4 <- read.table("PH.txt", header = TRUE)
+
+# Create individual plots
+plot1 <- create_density_plot(data1, "Seedling Dry Weight", "gm", "Density")
+plot2 <- create_density_plot(data2, "Seedling Fresh Weight", "gm", "Density")
+plot3 <- create_density_plot(data3, "Leaf Count", "#number", "Density")
+plot4 <- create_density_plot(data4, "Plant Height", "cm", "Density")
+
+# Combine the plots using patchwork
+final_plot <- (plot4 | plot3) / (plot2 | plot1) + 
+              plot_layout(guides = "collect")
+
+# Print the combined plot
+print(final_plot)
+
 
 ```
 
