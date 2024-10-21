@@ -106,7 +106,6 @@ data4 = read.table("PH.txt")
 
 data = na.omit(data)
 
-
 data1 = na.omit(data1)
 data2 = na.omit(data2)
 data3 = na.omit(data3)
@@ -270,9 +269,11 @@ create_density_plot <- function(data, main_title, x_label, y_label) {
     theme_minimal() +
     labs(title = main_title, x = x_label, y = y_label) +
     theme(
-      plot.title = element_text(face = "bold", size = 16),
-      axis.title.x = element_text(face = "bold", size = 14),
-      axis.title.y = element_text(face = "bold", size = 14)
+      plot.title = element_text(face = "bold", size = 32),
+      axis.title.x = element_text(face = "bold", size = 28),
+      axis.title.y = element_text(face = "bold", size = 28),  # Increased axis title size
+      axis.text.x = element_text(face = "bold", size = 18),   # Bold x-axis tick labels
+      axis.text.y = element_text(face = "bold", size = 18) 
     ) +
     annotate("text", x = x_position, y = y_position, label = sig_label, size = 5, color = "blue")
 
@@ -297,7 +298,49 @@ final_plot <- (plot4 | plot3) / (plot2 | plot1) +
 
 # Print the combined plot
 print(final_plot)
+#2021
+data1 <- read.table("plant_height.txt", header = TRUE)
+data2 <- read.table("DaysToFlower.txt", header = TRUE)
 
+colnames(data1)[colnames(data1) == "PlantHeight_LN"] <- "LN"
+colnames(data1)[colnames(data1) == "PlantHeight_HN"] <- "HN"
+colnames(data1)[colnames(data1) == "PINumber"] <- "Taxa"
+data1 = data1[,c (1:3)]
+
+data1$HN = data1$HN*100
+data1$LN = data1$LN*100
+data1 <- data1[data1$Taxa != "PI 534063", ]
+
+colnames(data2)[colnames(data2) == "DaysToFlower_LN"] <- "LN"
+colnames(data2)[colnames(data2) == "DaysToFlower_HN"] <- "HN"
+colnames(data2)[colnames(data2) == "PINumber"] <- "Taxa"
+data2 = data2[,c (1:3)]
+
+
+plot1 <- create_density_plot(data1, "Plant height", "cm", "Density")
+plot2 <- create_density_plot(data2, "Days to flower", "#Days", "Density")
+
+#2020
+data3 <- read.table("plantHeight.txt", header = TRUE)
+data4 <- read.table("PanicleGrainWeight.txt", header = TRUE)
+
+colnames(data3)[colnames(data3) == "PlantHeight_LN"] <- "LN"
+colnames(data3)[colnames(data3) == "PlantHeight_HN"] <- "HN"
+colnames(data3)[colnames(data3) == "SorghumAccessionYellow"] <- "Taxa"
+data3 = data3[,c (1:3)]
+
+data3$HN = data3$HN/100
+data3$LN = data3$LN/100
+data3 <- data3[data1$Taxa != "PI 534063", ]
+
+colnames(data4)[colnames(data4) == "PanicleGrainWeight_LN"] <- "LN"
+colnames(data4)[colnames(data4) == "PanicleGrainWeight_HN"] <- "HN"
+colnames(data4)[colnames(data4) == "SorghumAccessionYellow"] <- "Taxa"
+data4 = data4[,c (1:3)]
+
+
+plot3 <- create_density_plot(data3, "Plant height", "cm", "Density")
+plot4 <- create_density_plot(data4, "Panicle grain weight", "gm", "Density")
 
 ```
 
