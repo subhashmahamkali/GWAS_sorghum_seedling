@@ -317,9 +317,12 @@ colnames(data2)[colnames(data2) == "PINumber"] <- "Taxa"
 data2 = data2[,c (1:3)]
 
 
-plot1 <- create_density_plot(data1, "Plant height", "cm", "Density")
-plot2 <- create_density_plot(data2, "Days to flower", "#Days", "Density")
+plot1 <- create_density_plot(data1, "Plant height_2021", "cm", "Density") +
+  theme(legend.position = "none")
+plot2 <- create_density_plot(data2, "Days to flower_2021", "#Days", "Density")
 
+final_plot <- plot1 + plot2 +
+              plot_layout(ncol = 2)  # Arrange in 2 columns
 #2020
 data3 <- read.table("plantHeight.txt", header = TRUE)
 data4 <- read.table("PanicleGrainWeight.txt", header = TRUE)
@@ -339,8 +342,12 @@ colnames(data4)[colnames(data4) == "SorghumAccessionYellow"] <- "Taxa"
 data4 = data4[,c (1:3)]
 
 
-plot3 <- create_density_plot(data3, "Plant height", "cm", "Density")
-plot4 <- create_density_plot(data4, "Panicle grain weight", "gm", "Density")
+plot3 <- create_density_plot(data3, "Plant height_2020", "cm", "Density")+
+  theme(legend.position = "none")
+plot4 <- create_density_plot(data4, "Panicle grain weight_2020", "gm", "Density")
+final_plo1 <- plot3 + plot4 +
+              plot_layout(ncol = 2)  # Arrange in 2 columns
+
 
 ```
 
