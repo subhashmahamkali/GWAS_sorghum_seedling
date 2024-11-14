@@ -273,7 +273,12 @@ create_density_plot <- function(data, main_title, x_label, y_label) {
       axis.title.x = element_text(face = "bold", size = 28),
       axis.title.y = element_text(face = "bold", size = 28),  # Increased axis title size
       axis.text.x = element_text(face = "bold", size = 18),   # Bold x-axis tick labels
-      axis.text.y = element_text(face = "bold", size = 18) 
+      axis.text.y = element_text(face = "bold", size = 18),
+    
+    # Legend size adjustments
+    legend.title = element_text(size = 24),  # Increase legend title size
+    legend.text = element_text(size = 20),   # Increase legend text size
+    legend.key.size = unit(1.5, "cm")        
     ) +
     annotate("text", x = x_position, y = y_position, label = sig_label, size = 5, color = "blue")
 
@@ -301,6 +306,9 @@ print(final_plot)
 #2021
 data1 <- read.table("plant_height.txt", header = TRUE)
 data2 <- read.table("DaysToFlower.txt", header = TRUE)
+data3 <- read.table("StemDiameterLower.txt", header = TRUE)
+data4 <- read.table("StemDiameterUpper.txt", header = TRUE)
+data5 <- read.table("TillersPerPlant.txt", header = TRUE)
 
 colnames(data1)[colnames(data1) == "PlantHeight_LN"] <- "LN"
 colnames(data1)[colnames(data1) == "PlantHeight_HN"] <- "HN"
@@ -316,37 +324,175 @@ colnames(data2)[colnames(data2) == "DaysToFlower_HN"] <- "HN"
 colnames(data2)[colnames(data2) == "PINumber"] <- "Taxa"
 data2 = data2[,c (1:3)]
 
-
-plot1 <- create_density_plot(data1, "Plant height_2021", "cm", "Density") +
-  theme(legend.position = "none")
-plot2 <- create_density_plot(data2, "Days to flower_2021", "#Days", "Density")
-
-final_plot <- plot1 + plot2 +
-              plot_layout(ncol = 2)  # Arrange in 2 columns
-#2020
-data3 <- read.table("plantHeight.txt", header = TRUE)
-data4 <- read.table("PanicleGrainWeight.txt", header = TRUE)
-
-colnames(data3)[colnames(data3) == "PlantHeight_LN"] <- "LN"
-colnames(data3)[colnames(data3) == "PlantHeight_HN"] <- "HN"
-colnames(data3)[colnames(data3) == "SorghumAccessionYellow"] <- "Taxa"
+colnames(data3)[colnames(data3) == "StemDiameterLower_LN"] <- "LN"
+colnames(data3)[colnames(data3) == "StemDiameterLower_HN"] <- "HN"
+colnames(data3)[colnames(data3) == "PINumber"] <- "Taxa"
 data3 = data3[,c (1:3)]
+              
+colnames(data4)[colnames(data4) == "StemDiameterUpper_LN"] <- "LN"
+colnames(data4)[colnames(data4) == "StemDiameterUpper_HN"] <- "HN"
+colnames(data4)[colnames(data4) == "PINumber"] <- "Taxa"
+data4 = data4[,c (1:3)]              
 
-data3$HN = data3$HN/100
-data3$LN = data3$LN/100
-data3 <- data3[data1$Taxa != "PI 534063", ]
+colnames(data5)[colnames(data5) == "TillersPerPlant_LN"] <- "LN"
+colnames(data5)[colnames(data5) == "TillersPerPlant_HN"] <- "HN"
+colnames(data5)[colnames(data5) == "PINumber"] <- "Taxa"
+data5 = data5[,c (1:3)] 
 
-colnames(data4)[colnames(data4) == "PanicleGrainWeight_LN"] <- "LN"
-colnames(data4)[colnames(data4) == "PanicleGrainWeight_HN"] <- "HN"
-colnames(data4)[colnames(data4) == "SorghumAccessionYellow"] <- "Taxa"
-data4 = data4[,c (1:3)]
-
-
-plot3 <- create_density_plot(data3, "Plant height_2020", "cm", "Density")+
+plot1 <- create_density_plot(data1, "Plant height", "cm", "Density") +
   theme(legend.position = "none")
-plot4 <- create_density_plot(data4, "Panicle grain weight_2020", "gm", "Density")
-final_plo1 <- plot3 + plot4 +
-              plot_layout(ncol = 2)  # Arrange in 2 columns
+plot2 <- create_density_plot(data2, "Days to flower", "#Days", "Density")+
+  theme(legend.position = "none")
+
+plot3 <- create_density_plot(data3, "StemDiameterLower", "mm", "Density")+
+  theme(legend.position = "none")
+
+plot4 <- create_density_plot(data4, "StemDiameterUpper", "mm", "Density")+
+  theme(legend.position = "none")
+
+plot5 <- create_density_plot(data5, "TillersPerPlant", "#tillers", "Density")
+                             
+final_plot <- plot1 + plot2 + plot3 + plot4 + plot5 +
+              plot_layout(ncol = 5)  # Arrange in 2 columns
+#2020
+d1 <- read.table("plantHeight.txt", header = TRUE)
+d2 <- read.table("PanicleGrainWeight.txt", header = TRUE)
+d3 <- read.table("BranchInternodeLength.txt", header = TRUE)
+d4 <- read.table("DaysToBloom.txt", header = TRUE)
+d5 <- read.table("TillersPerPlant.txt", header = TRUE)
+d6 <- read.table("StemDiameterUpper.txt", header = TRUE)
+d7 <- read.table("StemDiameterLower.txt", header = TRUE)
+d8 <- read.table("RachisLength.txt", header = TRUE)
+d9 <- read.table("PrimaryBranchNo.txt", header = TRUE)
+d10 <- read.table("RachisDiameterLower.txt", header = TRUE)
+
+
+colnames(d1)[colnames(d1) == "PlantHeight_LN"] <- "LN"
+colnames(d1)[colnames(d1) == "PlantHeight_HN"] <- "HN"
+colnames(d1)[colnames(d1) == "SorghumAccessionYellow"] <- "Taxa"
+d1 = d1[,c (1:3)]
+
+
+colnames(d2)[colnames(d2) == "PanicleGrainWeight_LN"] <- "LN"
+colnames(d2)[colnames(d2) == "PanicleGrainWeight_HN"] <- "HN"
+colnames(d2)[colnames(d2) == "SorghumAccessionYellow"] <- "Taxa"
+d2 = d2[,c (1:3)]
+
+
+colnames(d3)[colnames(d3) == "BranchInternodeLength_LN"] <- "LN"
+colnames(d3)[colnames(d3) == "BranchInternodeLength_HN"] <- "HN"
+colnames(d3)[colnames(d3) == "SorghumAccessionYellow"] <- "Taxa"
+d3 = d3[,c (1:3)]
+
+colnames(d4)[colnames(d4) == "DaysToBloom_LN"] <- "LN"
+colnames(d4)[colnames(d4) == "DaysToBloom_HN"] <- "HN"
+colnames(d4)[colnames(d4) == "SorghumAccessionYellow"] <- "Taxa"
+d4 = d4[,c (1:3)]
+
+colnames(d5)[colnames(d5) == "TillersPerPlant_LN"] <- "LN"
+colnames(d5)[colnames(d5) == "TillersPerPlant_HN"] <- "HN"
+colnames(d5)[colnames(d5) == "SorghumAccessionYellow"] <- "Taxa"
+d5 = d5[,c (1:3)]
+
+colnames(d6)[colnames(d6) == "StemDiameterUpper_LN"] <- "LN"
+colnames(d6)[colnames(d6) == "StemDiameterUpper_HN"] <- "HN"
+colnames(d6)[colnames(d6) == "SorghumAccessionYellow"] <- "Taxa"
+d6 = d6[,c (1:3)]
+
+colnames(d7)[colnames(d7) == "StemDiameterLower_LN"] <- "LN"
+colnames(d7)[colnames(d7) == "StemDiameterLower_HN"] <- "HN"
+colnames(d7)[colnames(d7) == "SorghumAccessionYellow"] <- "Taxa"
+d7 = d7[,c (1:3)]
+
+colnames(d8)[colnames(d8) == "RachisLength_LN"] <- "LN"
+colnames(d8)[colnames(d8) == "RachisLength_HN"] <- "HN"
+colnames(d8)[colnames(d8) == "SorghumAccessionYellow"] <- "Taxa"
+d8 = d8[,c (1:3)]
+
+colnames(d9)[colnames(d9) == "PrimaryBranchNo_LN"] <- "LN"
+colnames(d9)[colnames(d9) == "PrimaryBranchNo_HN"] <- "HN"
+colnames(d9)[colnames(d9) == "SorghumAccessionYellow"] <- "Taxa"
+d9 = d9[,c (1:3)]
+
+colnames(d10)[colnames(d10) == "RachisDiameterLower_LN"] <- "LN"
+colnames(d10)[colnames(d10) == "RachisDiameterLower_HN"] <- "HN"
+colnames(d10)[colnames(d10) == "SorghumAccessionYellow"] <- "Taxa"
+d10 = d10[,c (1:3)]
+
+
+d1 <- read.table("plantHeight.txt", header = TRUE)
+d2 <- read.table("DaysToBloom.txt", header = TRUE)
+d3 <- read.table("StemDiameterLower.txt", header = TRUE)
+d4 <- read.table("StemDiameterUpper.txt", header = TRUE)
+d5 <- read.table("TillersPerPlant.txt", header = TRUE)
+
+colnames(d1)[colnames(d1) == "PlantHeight_LN"] <- "LN"
+colnames(d1)[colnames(d1) == "PlantHeight_HN"] <- "HN"
+colnames(d1)[colnames(d1) == "SorghumAccessionYellow"] <- "Taxa"
+d1 = d1[,c (1:3)]
+
+colnames(d2)[colnames(d2) == "DaysToBloom_LN"] <- "LN"
+colnames(d2)[colnames(d2) == "DaysToBloom_HN"] <- "HN"
+colnames(d2)[colnames(d2) == "SorghumAccessionYellow"] <- "Taxa"
+d2 = d2[,c (1:3)]
+
+colnames(d3)[colnames(d3) == "StemDiameterLower_LN"] <- "LN"
+colnames(d3)[colnames(d3) == "StemDiameterLower_HN"] <- "HN"
+colnames(d3)[colnames(d3) == "SorghumAccessionYellow"] <- "Taxa"
+d3 = d3[,c (1:3)]
+
+colnames(d4)[colnames(d4) == "StemDiameterUpper_LN"] <- "LN"
+colnames(d4)[colnames(d4) == "StemDiameterUpper_HN"] <- "HN"
+colnames(d4)[colnames(d4) == "SorghumAccessionYellow"] <- "Taxa"
+d4 = d4[,c (1:3)]
+
+colnames(d5)[colnames(d5) == "TillersPerPlant_LN"] <- "LN"
+colnames(d5)[colnames(d5) == "TillersPerPlant_HN"] <- "HN"
+colnames(d5)[colnames(d5) == "SorghumAccessionYellow"] <- "Taxa"
+d5 = d5[,c (1:3)]
+
+
+p1 <- create_density_plot(d1, "Plant height", "cm", "Density")+
+  theme(legend.position = "none")
+p2 <- create_density_plot(d2, "DaysToBloom", "#Days", "Density")+
+  theme(legend.position = "none")
+p3 <- create_density_plot(d3, "StemDiameterLower", "mm", "Density")+
+  theme(legend.position = "none")
+p4 <- create_density_plot(d4, "StemDiameterUpper", "mm", "Density")+
+  theme(legend.position = "none")
+p5 <- create_density_plot(d5, "TillersPerPlant", "#tillers", "Density")+
+  theme(legend.position = "none")
+
+final_plo1 <- p1 + p2 + p3 + p4 + p5 +
+              plot_layout(ncol = 5)  # Arrange in 2 columns
+
+# Merge phenotype data with cluster data
+# Read the sorted cluster data without the header (skip the first row)
+sap <- read.table("sorted_cluster_data.txt", header = FALSE, skip = 1, col.names = c("Cluster", "PI_numbers"))
+
+# Check the first few rows to confirm
+head(sap)
+
+colnames(sap)[colnames(sap) == "PI_numbers"] <- "Taxa"
+
+sap$Taxa <- gsub("PI", "PI ", sap$Taxa)
+
+merged_data <- merge(d2, sap, by = "Taxa")
+# Load the necessary library
+library(ggplot2)
+library(tidyr)
+
+# Convert the data to long format for HN and LN conditions
+long_data <- merged_data %>%
+  pivot_longer(cols = c("HN", "LN"), names_to = "Condition", values_to = "DaysToBloom")
+
+# Create the density plot
+k = ggplot(long_data, aes(x = DaysToBloom, fill = Condition)) +
+  geom_density(alpha = 0.6) +
+  facet_wrap(~ Cluster, scales = "free") +  # Separate plots for each cluster
+  labs(x = "Days to Bloom", y = "Density", title = "Density Plot of Days to Bloom by Cluster") +
+  theme_minimal() +
+  theme(legend.position = "top")
 
 
 ```

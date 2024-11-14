@@ -17,7 +17,7 @@ Move `largedata/dist.txt` from HCC to local computer
 ```{r}
 library("data.table")
 d <- fread("largedata/dist.txt")
-
+#d <- fread("/Users/subhashmahamkali/Downloads/variant_calling/0.0.test/dist.txt")
 d0 <- subset(d, IID1 != IID2)
 hist(d0$DST, main="distance using IBS", xlab="IBS distance", breaks = 100, col="lightblue")
 ```
