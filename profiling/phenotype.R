@@ -61,7 +61,9 @@ names(HN)[names(HN) == "Phe"] = "HN"
 names(LN)[names(LN) == "Phe"] = "LN"
 #write.table(b, file = "data_frame_b.txt", sep = "\t", row.names = TRUE, col.names = TRUE)
 #map <- read.table("mvp.geno.map" , head = TRUE)
-Phenotype = fread("snps.fam")
+P = fread("/Users/subhashmahamkali/Downloads/0.v5_variants/het_0.1_SAP.fam")
+
+P = P[-c ,(2)]
 
 phenotype1=merge(Phenotype, data_filt, by.x="V1", by.y="id", all.x=T)
 num_na_values <- sum(is.na(HN$Phe))
