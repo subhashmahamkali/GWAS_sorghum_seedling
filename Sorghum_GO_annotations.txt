@@ -1,1 +1,0 @@
-ensembl_gene_id	external_gene_name	go_id	name_1006

@@ -1,0 +1,133 @@
+---
+title: '2024'
+author: "subhash"
+date: "2025-01-27"
+output: html_document
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE) 
+knitr::opts_knit$set(root.dir=normalizePath('/Users/subhashmahamkali/Documents/gwas_sap')) 
+```
+
+
+```{r}
+create_density_plot <- function(data, main_title, x_label, y_label) {
+  # Data preparation and analysis
+  data <- na.omit(data)
+  mean_HN <- mean(data$HN, na.rm = T)
+  mean_LN <- mean(data$LN, na.rm = T)
+  t_test <- t.test(data$HN, data$LN, paired = TRUE)
+  
+  # Determine significance label
+  sig_label <- ifelse(t_test$p.value < 0.001, '***',
+                      ifelse(t_test$p.value < 0.01, '**',
+                             ifelse(t_test$p.value < 0.05, '*', 'ns')))
+  
+  # Calculate positions for annotation
+  x_position <- mean(c(mean_HN, mean_LN))
+  y_position <- max(c(density(data$HN)$y, density(data$LN)$y))
+  
+  # Create the plot
+  p <- ggplot(data) +
+    geom_density(aes(x = HN, fill = "HN"), alpha = 0.5) + 
+    geom_density(aes(x = LN, fill = "LN"), alpha = 0.5) +
+    geom_vline(aes(xintercept = mean_HN), linetype = "dashed", color = "red") +
+    geom_vline(aes(xintercept = mean_LN), linetype = "dashed", color = "green") +
+    scale_fill_manual(values = c("HN" = "red", "LN" = "green")) +
+    theme_minimal() +
+    labs(title = main_title, x = x_label, y = y_label) +
+    theme(plot.title = element_text(face = "bold", size = 16),
+          axis.title.x = element_text(face = "bold", size = 14),
+          axis.title.y = element_text(face = "bold", size = 14))  # Corrected the syntax here
+    # Add significance label
+  p <- p + annotate("text", x = x_position, y = y_position, label = sig_label, size = 5, color = "black")
+
+  return(p)
+}
+```
+
+
+
+```{r}
+library(dplyr)
+library(tidyr)
+
+data = read.csv("data/1.Phenotype_data/2.2023_SAP/1.field__2023_SAP_pheno_raw.csv")
+d1 = data[, c (2,5,10)]
+df_avg <- d1 %>%
+  group_by(geno, Treatment_Type) %>%
+  summarize(panicle_avg = mean(as.numeric(panicle_avg), na.rm = TRUE), .groups = "drop")
+
+PW <- df_avg %>%
+  pivot_wider(names_from = Treatment_Type, values_from = panicle_avg)
+
+
+plot1 <- create_density_plot(PW, "Panicle Weight", "gm", "Density")
+plot1
+#mean_HN <- mean(PW$HN, na.rm = T)
+#mean_LN <- mean(PW$LN, na.rm = T)
+```
+
+
+```{r}
+d2 = data[, c (2,6,10)]
+df_avg <- d2 %>%
+  group_by(geno, Treatment_Type) %>%
+  summarize(rachis_len = mean(as.numeric(rachis_len), na.rm = TRUE), .groups = "drop")
+RL<- df_avg %>%
+  pivot_wider(names_from = Treatment_Type, values_from = rachis_len)
+RL <- RL %>%
+  filter(!(geno == "PI 613536" & round(LN, 5) == round(10296.33333, 5)))
+# Verify the row is removed
+RL %>% filter(geno == "PI 613536")
+plot2 <- create_density_plot(RL, "Rachis_length", "cm", "Density")
+plot2
+```
+
+```{r}
+d3 = data[, c (2,7,10)]
+colnames(d3)
+df_avg <- d3 %>%
+  group_by(geno, Treatment_Type) %>%
+  summarize(rachis_dia = mean(as.numeric(rachis_dia), na.rm = TRUE), .groups = "drop")
+RD<- df_avg %>%
+  pivot_wider(names_from = Treatment_Type, values_from = rachis_dia)
+plot3 <- create_density_plot(RD, "Rachis_diameter", "cm", "Density")
+plot3
+```
+
+
+```{r}
+d4 = data[, c (2,8,10)]
+colnames(d4)
+df_avg <- d4 %>%
+  group_by(geno, Treatment_Type) %>%
+  summarize(DaysToBloom = mean(as.numeric(DaysToBloom), na.rm = TRUE), .groups = "drop")
+DB<- df_avg %>%
+  pivot_wider(names_from = Treatment_Type, values_from = DaysToBloom)
+plot4 <- create_density_plot(DB, "DaysToBloom", "cm", "Density")
+plot4
+```
+
+```{r}
+d5 = data[, c (2,9,10)]
+colnames(d5)
+df_avg <- d5 %>%
+  group_by(geno, Treatment_Type) %>%
+  summarize(PlantHeight = mean(as.numeric(PlantHeight), na.rm = TRUE), .groups = "drop")
+PH<- df_avg %>%
+  pivot_wider(names_from = Treatment_Type, values_from = PlantHeight)
+plot5 <- create_density_plot(PH, "PlantHeight", "cm", "Density")
+plot5
+```
+```{r}
+final_plot <- plot5 + plot4 + plot3 + plot2 + plot1 +
+              plot_layout(ncol = 3)  # Arrange in 2 columns
+# Print the combined plot
+print(final_plot)
+
+ggsave(filename = "graphs/1.phenotype_distribution/2023_field/1.2023_filed_pheno_sit.pdf",plot = final_plot,width = 12, height =6)
+
+```
+
