@@ -1,0 +1,130 @@
+---
+title: "R Notebook"
+author: "subhash and jinliang"
+output: NULL
+date: 02-05-2024
+---
+
+### path normalization
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE) 
+knitr::opts_knit$set(root.dir=normalizePath('/Users/subhashmahamkali/Documents/gwas_sap')) 
+```
+
+#installing or running all libraies
+
+```{r}
+# Load necessary libraries
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+#install.packages("patchwork")
+#install.packages("dplyr")
+#install.packages("ggplot2")
+#install.packages("readxl")
+```
+
+
+
+```{r}
+data1 = read.table("data/1.Phenotype_data/2.2023_SAP/2.GH_SAP_2023/DW.txt")
+data2 = read.table("data/1.Phenotype_data/2.2023_SAP/2.GH_SAP_2023/FW.txt")
+data3 = read.table("data/1.Phenotype_data/2.2023_SAP/2.GH_SAP_2023/LC.txt")
+data4 = read.table("data/1.Phenotype_data/2.2023_SAP/2.GH_SAP_2023/PH.txt")
+
+colnames(data1)
+colnames(data1) <- c('Taxa', 'SDW.HN', 'SDW.LN')
+colnames(data2) <- c('Taxa', 'SFW.HN', 'SFW.LN')
+colnames(data3) <- c('Taxa', 'LC.HN', 'LC.LN')
+colnames(data4) <- c('Taxa', 'PH.HN', 'PH.LN')
+
+
+data1$SDW.NR <- (data1$SDW.HN - data1$SDW.LN) / data1$SDW.LN
+data2$SFW.NR <- (data2$SFW.HN - data2$SFW.LN) / data2$SFW.LN
+data3$LC.NR <- (data3$LC.HN - data3$LC.LN) / data3$LC.LN
+data4$PH.NR <- (data4$PH.HN - data4$PH.LN) / data4$PH.LN
+
+
+merge1 <- merge(data1, data2, by = "Taxa")
+merge2 <- merge(merge1, data3, by = "Taxa")
+merged_phenotype_data <- merge(merge2, data4, by = "Taxa")
+
+colnames(merged_phenotype_data)[7] <- "SFW.NR"
+write.table(merged_phenotype_data, "data/1.Phenotype_data/2.2023_SAP/2.GH_SAP_2023/2.GH_2023_SAP_pheno_B.txt", sep = "\t", quote = FALSE, row.names = FALSE)
+```
+
+
+
+
+
+
+```{r}
+# Function to create density plot
+create_density_plot <- function(data, main_title, x_label, y_label) {
+  # Data preparation and analysis
+  data <- na.omit(data)
+  mean_HN <- mean(data$HN)
+  mean_LN <- mean(data$LN)
+  t_test <- t.test(data$HN, data$LN, paired = TRUE)
+
+  # Determine significance label
+  sig_label <- ifelse(t_test$p.value < 0.001, '***',
+                      ifelse(t_test$p.value < 0.01, '**',
+                             ifelse(t_test$p.value < 0.05, '*', 'ns')))
+
+  # Calculate positions for annotation
+  x_position <- mean(c(mean_HN, mean_LN))
+  y_position <- max(c(density(data$HN)$y, density(data$LN)$y))
+
+  # Create the plot
+  p <- ggplot(data) +
+    geom_density(aes(x = HN, fill = "HN"), alpha = 0.5) + 
+    geom_density(aes(x = LN, fill = "LN"), alpha = 0.5) +
+    geom_vline(aes(xintercept = mean_HN), linetype = "dashed", color = "red") +
+    geom_vline(aes(xintercept = mean_LN), linetype = "dashed", color = "green") +
+    scale_fill_manual(values = c("HN" = "red", "LN" = "green")) +
+    theme_minimal() +
+    labs(title = main_title, x = x_label, y = y_label) +
+    theme(
+      plot.title = element_text(face = "bold", size = 32),
+      axis.title.x = element_text(face = "bold", size = 28),
+      axis.title.y = element_text(face = "bold", size = 28),  # Increased axis title size
+      axis.text.x = element_text(face = "bold", size = 18),   # Bold x-axis tick labels
+      axis.text.y = element_text(face = "bold", size = 18),
+    
+    # Legend size adjustments
+    legend.title = element_text(size = 24),  # Increase legend title size
+    legend.text = element_text(size = 20),   # Increase legend text size
+    legend.key.size = unit(1.5, "cm")        
+    ) +
+    annotate("text", x = x_position, y = y_position, label = sig_label, size = 5, color = "blue")
+
+  return(p)
+}
+```
+
+
+
+
+```{r}
+data = read.table("data/1.Phenotype_data/2.2023_SAP/2.GH_SAP_2023/2.GH_2023_SAP_pheno_B.txt", header = T)
+DW <- setNames(data[, c(1,2,3)], c(colnames(data)[1], "HN", "LN"))
+FW <- setNames(data[, c(1,5,6)], c(colnames(data)[1], "HN", "LN"))
+LC <- setNames(data[, c(1,8,9)], c(colnames(data)[1], "HN", "LN"))
+PH <- setNames(data[, c(1,11,12)], c(colnames(data)[1], "HN", "LN"))
+
+# Create individual plots
+plot1 <- create_density_plot(DW, "Seedling Dry Weight", "gm", "Density")
+plot2 <- create_density_plot(FW, "Seedling Fresh Weight", "gm", "Density")
+plot3 <- create_density_plot(LC, "Leaf Count", "#number", "Density")
+plot4 <- create_density_plot(PH, "Plant Height", "cm", "Density")
+
+# Combine the plots using patchwork
+final_plot <- (plot4 | plot3) / (plot2 | plot1) + 
+              plot_layout(guides = "collect")
+final_plot
+
+ggsave("graphs/1.phenotype_distribution/2023_GH/1.2023_GH_pheno_dist.pdf", plot = final_plot, width = 12, height = 10, dpi = 500)
+```
