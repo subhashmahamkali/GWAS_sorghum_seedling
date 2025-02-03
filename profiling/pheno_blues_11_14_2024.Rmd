@@ -24,9 +24,29 @@ library(data.table)
 cluster = read.table("/Users/subhashmahamkali/Downloads/sorted_cluster_data.txt"
                      , header = T)
 cluster <- cluster %>% rename(genotype = PI_numbers)
+cluster$Cluster <- as.numeric(cluster$Cluster)
+
+cluster <- cluster %>%
+  mutate(Cluster = case_when(
+    Cluster == 1 ~ "durra",
+    Cluster == 2 ~ "kafir",
+    Cluster == 3 ~ "caudatum",
+    Cluster == 4 ~ "guinea",
+    Cluster == 5 ~ "milo/durra-bicolor",
+    Cluster == 6 ~ "mixed/bicolor",
+    TRUE ~ as.character(Cluster)  # Keep original value for unmatched cases
+  ))
+
+write.table(cluster, "cluster.txt")
+
+k = read.table("/Users/subhashmahamkali/Downloads/cluster.txt", header = T)
 
 data = read.csv("/Users/subhashmahamkali/Downloads/subhash-blues/2.BLUEs_SAP2020_2021.csv", check.names = F)
 str(data)
+
+d2021 = data[,c (1,47:66,87:91)]
+d2020 = data[,c (1:46, 67:86)]
+d = data[,c(1,92:119)]
 
 #making seprate dataset for the 2020
 data$genotype <- gsub(" ", "", data$genotype) #2020 dataset
@@ -79,6 +99,33 @@ d2020_long <- d2020 %>%
 
 ```
 
+```{r}
+# List of traits in the desired order
+desired_traits <- c("flagLeafLength", "flagLeafWidth", "leafAngleStandardDeviation", "thirdLeafLength", "thirdLeafWidth",
+                    "extantLeafNumber","medianLeafAngle",
+                    "panicleGrainWeight","paniclesPerPlot","rachisDiameterUpper","rachisDiameterLower","rachisLength",
+                    "stemDiameterLower", "stemDiameterUpper",
+                    "daysToFlower", "plantHeight", "estimatedPlotYield", "tillersPerPlant", "primaryBranchNumber", "branchInternodeLength")
+
+# Generate the desired column order
+desired_order <- c("genotype", 
+                   unlist(lapply(desired_traits, function(trait) {
+                     c(paste0("2020:LN:", trait), paste0("2020:HN:", trait), paste0("2020:NR:", trait))
+                   })))
+
+# Rearrange the data frame to match the desired order
+d2020 <- d2020[, desired_order]
+
+# Verify the new column order
+names(d2020)
+
+# Convert the Trait column to a factor with levels in the desired order
+d2020_long <- d2020_long %>%
+  mutate(Trait = factor(Trait, levels = desired_traits)) %>%  # Arrange traits in desired order
+  arrange(Trait, Condition)  # Arrange rows by Trait and Condition
+
+
+```
 
 
 ```{r}
@@ -223,11 +270,11 @@ d2021_long <- d2021 %>%
 save_path <- "/Users/subhashmahamkali/Documents/gwas_sap/graphs/pheno_11.11.2024"
 
 # Loop through each trait, create the plot, and save it
-traits <- unique(d2020_long$Trait)
+traits <- unique(d2021_long$Trait)
 
 for (trait in traits) {
   # Filter for the current trait, exclude NR condition, and get the year for the filename
-  plot_data <- d2020_long %>% filter(Trait == trait, Condition %in% c("HN", "LN"))
+  plot_data <- d2021_long %>% filter(Trait == trait, Condition %in% c("HN", "LN"))
   year <- unique(plot_data$Year)
   # Generate the plot
 plot <- create_grouped_violin_plot(plot_data, trait)
@@ -276,7 +323,311 @@ data$genotype <- gsub(" ", "", data$genotype)
 phenotype=merge(fam, data, by.x="V1", by.y="genotype", all.x=T)
 phenotype <- phenotype[ , -c(2:6)]
 names(phenotype)[names(phenotype) == "V1"] = "Taxa"
-write.table(phenotype, file = "2.pheno_Blues.txt", sep = "\t", row.names = TRUE, col.names = TRUE)
+write.table(phenotype, file = "3.28_across.txt", sep = "\t", row.names = TRUE, col.names = TRUE)
+```
 
+
+
+
+
+```{r}
+install.packages("ggridges")
+
+
+library(ggridges)
+
+# Function to create grouped ridge plots for each trait
+create_grouped_ridge_plot <- function(data, trait) {
+  ggplot(data %>% filter(Trait == trait), aes(x = Value, y = factor(Cluster), fill = Condition)) +
+    geom_density_ridges(scale = 1, alpha = 0.6) +
+    labs(title = paste(unique(data$Year), "-", trait),
+         x = "BLUEs Value", y = "Clusters") +
+    theme_minimal() +
+    scale_fill_manual(values = c("LN" = "green", "HN" = "red")) +
+    theme(
+      plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
+      legend.position = "right",
+      legend.title = element_text(size = 18, face = "bold"),
+      legend.text = element_text(size = 14, face = "bold"),
+      axis.title.x = element_text(size = 18, face = "bold"),
+      axis.title.y = element_text(size = 18, face = "bold"),
+      axis.text.x = element_text(size = 18, face = "bold"),
+      axis.text.y = element_text(size = 18, face = "bold")
+    ) +
+    guides(fill = guide_legend(title = "Condition"))
+}
+
+
+
+
+
+
+
+# Loop through each trait, create ridge plots, and save them
+for (trait in traits) {
+  # Filter for the current trait, exclude NR condition, and get the year for the filename
+  plot_data <- d2020_long %>% filter(Trait == trait, Condition %in% c("HN", "LN"))
+  year <- unique(plot_data$Year)
+  
+  # Generate the ridge plot
+  ridge_plot <- create_grouped_ridge_plot(plot_data, trait)
+  
+  # Define the filename with the specified path
+  filename <- paste0(save_path, "/", year, "_ridge_", trait, ".png")
+  
+  # Save the ridge plot
+  ggsave(filename = filename, plot = ridge_plot, width = 10, height = 6)
+  
+  print(paste("Saved:", filename))  # Print confirmation of saved file
+}
+
+```
+```{r}
+create_grouped_ridge_plot_with_corrected_vlines <- function(data, trait) {
+  # Perform t-tests and calculate means
+  t_test_results <- data %>%
+    group_by(Cluster) %>%
+    summarise(
+      mean_HN = mean(Value[Condition == "HN"], na.rm = TRUE),
+      mean_LN = mean(Value[Condition == "LN"], na.rm = TRUE),
+      p_value = t.test(Value[Condition == "HN"], Value[Condition == "LN"])$p.value
+    )
+  
+  # Add significance stars
+  t_test_results <- t_test_results %>%
+    mutate(
+      significance = case_when(
+        p_value < 0.001 ~ "***",
+        p_value < 0.01 ~ "**",
+        p_value < 0.05 ~ "*",
+        TRUE ~ ""
+      )
+    )
+  
+  # Merge means into the original data for vline
+  data <- data %>%
+    left_join(t_test_results %>% select(Cluster, mean_HN, mean_LN), by = "Cluster")
+  
+  # Create the ridge plot
+  ggplot(data %>% filter(Trait == trait), aes(x = Value, y = factor(Cluster), fill = Condition)) +
+    geom_density_ridges(scale = 1, alpha = 0.6) +
+    # Add mean lines restricted to each ridge and correct alignment
+    geom_segment(
+      data = t_test_results,
+      aes(x = mean_HN, xend = mean_HN, y = as.numeric(factor(Cluster)) - 0.2, 
+          yend = as.numeric(factor(Cluster)) + 0.2),
+      linetype = "dotted", color = "red", size = 1, inherit.aes = FALSE
+    ) +
+    geom_segment(
+      data = t_test_results,
+      aes(x = mean_LN, xend = mean_LN, y = as.numeric(factor(Cluster)) - 0.2, 
+          yend = as.numeric(factor(Cluster)) + 0.2),
+      linetype = "dotted", color = "green", size = 1, inherit.aes = FALSE
+    ) +
+    geom_text(
+      data = t_test_results,
+      aes(x = max(data$Value, na.rm = TRUE) * 0.95, y = factor(Cluster), label = significance),
+      color = "black", size = 5, hjust = 1, inherit.aes = FALSE
+    ) +
+    labs(
+      title = paste(unique(data$Year), "-", trait),
+      x = "BLUEs Value", y = "Clusters"
+    ) +
+    theme_minimal() +
+    scale_fill_manual(values = c("LN" = "green", "HN" = "red")) +
+    theme(
+      plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
+      legend.position = "right",
+      legend.title = element_text(size = 18, face = "bold"),
+      legend.text = element_text(size = 14, face = "bold"),
+      axis.title.x = element_text(size = 18, face = "bold"),
+      axis.title.y = element_text(size = 18, face = "bold"),
+      axis.text.x = element_text(size = 18, face = "bold"),
+      axis.text.y = element_text(size = 18, face = "bold")
+    ) +
+    guides(fill = guide_legend(title = "Condition"))
+}
+```
+
+
+
+```{r}
+for (trait in traits) {
+  plot_data <- d2020_long %>% filter(Trait == trait, Condition %in% c("HN", "LN"))
+  year <- unique(plot_data$Year)
+  
+  # Generate the ridge plot with corrected vlines
+  ridge_plot <- create_grouped_ridge_plot_with_corrected_vlines(plot_data, trait)
+  
+  # Save the ridge plot
+  filename <- paste0(save_path, "/", year, "_ridgesig_", trait, ".png")
+  ggsave(filename = filename, plot = ridge_plot, width = 10, height = 6)
+  
+  print(paste("Saved:", filename))  # Print confirmation of saved file
+}
+
+
+for (trait in traits) {
+  plot_data <- d2021_long %>% filter(Trait == trait, Condition %in% c("HN", "LN"))
+  year <- unique(plot_data$Year)
+  
+  # Generate the ridge plot with corrected vlines
+  ridge_plot <- create_grouped_ridge_plot_with_corrected_vlines(plot_data, trait)
+  
+  # Save the ridge plot
+  filename <- paste0(save_path, "/", year, "_ridgesig_", trait, ".png")
+  ggsave(filename = filename, plot = ridge_plot, width = 10, height = 6)
+  
+  print(paste("Saved:", filename))  # Print confirmation of saved file
+}
+
+```
+```{r}
+create_grouped_ridge_plot_with_corrected_vlines <- function(data, trait) {
+  # Perform t-tests and calculate means
+  t_test_results <- data %>%
+    group_by(Cluster) %>%
+    summarise(
+      mean_HN = mean(Value[Condition == "HN"], na.rm = TRUE),
+      mean_LN = mean(Value[Condition == "LN"], na.rm = TRUE),
+      p_value = t.test(Value[Condition == "HN"], Value[Condition == "LN"])$p.value
+    )
+  
+  # Add significance stars
+  t_test_results <- t_test_results %>%
+    mutate(
+      significance = case_when(
+        p_value < 0.001 ~ "***",
+        p_value < 0.01 ~ "**",
+        p_value < 0.05 ~ "*",
+        TRUE ~ ""
+      )
+    )
+  
+  # Merge means into the original data for vline
+  data <- data %>%
+    left_join(t_test_results %>% select(Cluster, mean_HN, mean_LN), by = "Cluster")
+  
+  # Create the ridge plot
+  ggplot(data %>% filter(Trait == trait), aes(x = Value, y = factor(Cluster), fill = Condition)) +
+    geom_density_ridges(scale = 1, alpha = 0.6) +
+    # Add mean lines restricted to each ridge and correct alignment
+    geom_segment(
+      data = t_test_results,
+      aes(x = mean_HN, xend = mean_HN, y = as.numeric(factor(Cluster)) - 0.2, 
+          yend = as.numeric(factor(Cluster)) + 0.2),
+      linetype = "dotted", color = "red", size = 1, inherit.aes = FALSE
+    ) +
+    geom_segment(
+      data = t_test_results,
+      aes(x = mean_LN, xend = mean_LN, y = as.numeric(factor(Cluster)) - 0.2, 
+          yend = as.numeric(factor(Cluster)) + 0.2),
+      linetype = "dotted", color = "green", size = 1, inherit.aes = FALSE
+    ) +
+    geom_text(
+      data = t_test_results,
+      aes(x = max(data$Value, na.rm = TRUE) * 0.95, y = factor(Cluster), label = significance),
+      color = "black", size = 5, hjust = 1, inherit.aes = FALSE
+    ) +
+    labs(
+      title = paste(unique(data$Year), "-", trait),
+      x = "BLUEs Value", y = "Clusters"
+    ) +
+    theme_minimal() +
+    scale_fill_manual(values = c("LN" = "green", "HN" = "red")) +
+    theme(
+      plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
+      legend.position = "none",  # Remove legend from individual plots
+      axis.title.x = element_text(size = 18, face = "bold"),
+      axis.title.y = element_text(size = 18, face = "bold"),
+      axis.text.x = element_text(size = 18, face = "bold"),
+      axis.text.y = element_text(size = 18, face = "bold")
+    )
+}
+
+
+
+
+library(patchwork)
+
+# Initialize an empty list to store plots
+ridge_plots <- list()
+
+# Loop through each trait and create the ridge plot
+for (i in seq_along(traits)) {
+  trait <- traits[i]
+  plot_data <- d2020_long %>% filter(Trait == trait, Condition %in% c("HN", "LN"))
+  
+  # Generate the ridge plot with no individual legends
+  ridge_plot <- create_grouped_ridge_plot_with_corrected_vlines(plot_data, trait) +
+    theme(
+      axis.text.y = if (i %% 5 == 1) element_text(size = 10) else element_blank(), # Keep y-axis labels only for leftmost plots
+      axis.title.y = element_blank()  # Remove y-axis title from all individual plots
+    )
+  
+  # Add the plot to the list
+  ridge_plots[[i]] <- ridge_plot
+}
+
+# Extract a dummy plot with the legend
+legend_plot <- ggplot(d2020_long %>% filter(Trait == traits[1], Condition %in% c("HN", "LN")),
+                      aes(x = Value, y = factor(Cluster), fill = Condition)) +
+  geom_density_ridges(scale = 1, alpha = 0.6) +
+  scale_fill_manual(values = c("LN" = "green", "HN" = "red")) +
+  theme(legend.position = "right")
+
+# Combine all plots into a panel
+panel_plot <- wrap_plots(ridge_plots, ncol = 5) +
+  plot_layout(guides = "collect") & 
+  theme(legend.position = "right")  # Add a single legend
+
+# Save the panel as a single file
+ggsave(filename = paste0(save_path, "/ridge_panel_plot_final.png"), plot = panel_plot, width = 25, height = 15)
+
+print("Saved final panel plot: ridge_panel_plot_final.png")
+
+
+
+
+```
+
+```{r}
+library(patchwork)
+
+# Initialize an empty list to store plots
+ridge_plots <- list()
+
+# Loop through each trait and create the ridge plot
+for (i in seq_along(traits)) {
+  trait <- traits[i]
+  plot_data <- d2020_long %>% filter(Trait == trait, Condition %in% c("HN", "LN"))
+  
+  # Generate the ridge plot with corrected vlines and customize axes
+  ridge_plot <- create_grouped_ridge_plot_with_corrected_vlines(plot_data, trait) +
+    theme(
+      legend.position = "none",                 # Remove legends from individual plots
+      axis.text.y = if (i %% 5 == 1) element_text(size = 10) else element_blank(), # Keep y-axis labels only for leftmost plots
+      axis.title.y = element_blank()           # Remove y-axis title from all individual plots
+    )
+  
+  # Add the plot to the list
+  ridge_plots[[i]] <- ridge_plot
+}
+
+# Combine all plots into a panel and add a single legend
+panel_plot <- wrap_plots(ridge_plots, ncol = 5) + 
+  plot_annotation(
+    title = "Ridge Plots for All Traits",
+    theme = theme(
+      plot.title = element_text(size = 22, face = "bold", hjust = 0.5),
+      legend.position = "right"               # Single legend on the right
+    )
+  ) &
+  theme(legend.position = "right")            # Ensure single legend is displayed
+
+# Save the panel as a single file
+ggsave(filename = paste0(save_path, "/ridge_panel_plot_final.png"), plot = panel_plot, width = 20, height = 15)
+
+print("Saved final panel plot: ridge_panel_plot_final.png")
 ```
 
