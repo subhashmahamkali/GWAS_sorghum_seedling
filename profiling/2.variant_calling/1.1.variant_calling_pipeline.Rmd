@@ -662,14 +662,23 @@ plink2 --bfile /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/
 # so I have obtained seperate file of observed heterozygosity from --hardy function using following code
 #calculated heterozygosity using plink2.0 function -hardy which gives observed heterozygosity in column 8.
 
-awk '$8 < 0.1 {print $2}'  /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/4.RAW_vcf/PLINK/1.basic_stats/SAP_v5.hardy > /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/4.RAW_vcf/PLINK/1.basic_stats/0.1_het.txt
+awk '$8 < 0.1 {print $2}'  /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/2.indel_filtering/1.plink_filt/1.basic_stat/SAP_indel.hardy > /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/2.indel_filtering/1.plink_filt/1.basic_stat/0.1_het.txt
 
 #now this 0.1_het.txt contains ID with <0.1 heterozygosity.
 #here SAP filtered is  maf >0.05 and geno <30%
 
-plink2 -bfile /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/4.RAW_vcf/PLINK/2.filtering/SAP_V5_filtered -extract /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/4.RAW_vcf/PLINK/1.basic_stats/0.1_het.txt -make-bed -out /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/4.RAW_vcf/PLINK/2.filtering/1.het_0.1/SAP_v5_final_filt
+plink2 -bfile /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/2.indel_filtering/1.plink_filt/2.filter/SAP_indel_v5_filt -extract /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/2.indel_filtering/1.plink_filt/1.basic_stat/0.1_het.txt -make-bed -out /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/2.indel_filtering/1.plink_filt/2.filter/2.0.1_het_filt/SAP_v5_indel
 
 #this final filtered data contains variants with maf >/=0.05 and missing rate of <30% and heterozygosity with <0.1
+
+
+#to convert the bfile into vcf
+plink --bfile /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/2.indel_filtering/1.plink_filt/2.filter/2.0.1_het_filt/SAP_v5_indel --recode vcf --out /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/2.indel_filtering/1.plink_filt/2.filter/2.0.1_het_filt/SAP_indel.vcf
+
+
+#to convert .vcf into .vcf.gz
+
+
 ```
 
 ### generating the graphs from basic statistics.
