@@ -662,12 +662,12 @@ plink2 --bfile /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/
 # so I have obtained seperate file of observed heterozygosity from --hardy function using following code
 #calculated heterozygosity using plink2.0 function -hardy which gives observed heterozygosity in column 8.
 
-awk '$8 < 0.1 {print $2}'  /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/1.plink/1.basic_stat/1.basic_stat.hardy > /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/1.plink/0.1_het.txt
+awk '$8 < 0.1 {print $2}'  /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/4.RAW_vcf/PLINK/1.basic_stats/SAP_v5.hardy > /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/4.RAW_vcf/PLINK/1.basic_stats/0.1_het.txt
 
 #now this 0.1_het.txt contains ID with <0.1 heterozygosity.
 #here SAP filtered is  maf >0.05 and geno <30%
 
-plink2 -bfile /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/1.plink/1.stat_filter/SAP_V5_filtered -extract /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/1.plink/0.1_het.txt -make-bed -out /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/1.plink/1.stat_filter/1.het_filter/het_0.1_SAP
+plink2 -bfile /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/4.RAW_vcf/PLINK/2.filtering/SAP_V5_filtered -extract /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/4.RAW_vcf/PLINK/1.basic_stats/0.1_het.txt -make-bed -out /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/4.RAW_vcf/PLINK/2.filtering/1.het_0.1/SAP_v5_final_filt
 
 #this final filtered data contains variants with maf >/=0.05 and missing rate of <30% and heterozygosity with <0.1
 ```
@@ -769,6 +769,7 @@ bcftools reheader -s /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filt
 ### to submit the jobs at a specified time
 
 ```{r}
+
 # Define the job names
 jobs <- c(
   "Chr01_1_5000000vcf.sh",
