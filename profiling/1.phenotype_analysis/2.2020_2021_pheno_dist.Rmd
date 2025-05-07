@@ -23,6 +23,7 @@ library(tidyverse)
 library(data.table)
 library(ggridges)
 library(patchwork)
+library(readxl)
 ```
 
 #loading the phenotype dataset and sub-population of SAP
@@ -241,8 +242,8 @@ create_grouped_ridge_plot_with_corrected_vlines <- function(data, trait) {
 
 #plots with HN, LN and NR (individual plots) fro the year 2020
 ```{r}
-# Define the directory where you want to save the plots
-save_path <- "graphs/1.phenotype_distribution/2020/1.individual_trait_pheno_dist/"
+#directory to save plots 
+save_path <- "graphs/1.phenotype_distribution/2020/misch"
 
 # Loop through each trait, create the density plot, and save it
 traits <- unique(d2020_long$Trait)
@@ -259,9 +260,11 @@ for (trait in traits) {
   ggsave(filename = filename, plot = plot, width = 10, height = 6)
   print(paste("Saved:", filename))  # Print confirmation of saved file
 }
-
 ```
 
+```{r}
+
+```
 
 
 ```{r}
@@ -394,3 +397,40 @@ ggsave(filename = filename_combined, plot = combined_plot, width = 20, height =1
 print(paste("Saved combined multipanel plot:", filename_combined))
 
 ```
+
+
+
+```{r}
+# Load required library
+library(openxlsx)
+
+# Create workbook
+wb <- createWorkbook()
+
+# Summarize 2020: Mean BLUEs by Trait and Treatment
+summary_2020 <- d2020_long %>%
+  group_by(Year, Trait, Condition) %>%
+  summarise(mean_value = mean(Value, na.rm = TRUE), .groups = 'drop') %>%
+  rename(Treatment = Condition)
+
+# Add sheet and write data
+addWorksheet(wb, "2020")
+writeData(wb, "2020", summary_2020)
+
+# Summarize 2021: Mean BLUEs by Trait and Treatment
+summary_2021 <- d2021_long %>%
+  group_by(Year, Trait, Condition) %>%
+  summarise(mean_value = mean(Value, na.rm = TRUE), .groups = 'drop') %>%
+  rename(Treatment = Condition)
+
+# Add sheet and write data
+addWorksheet(wb, "2021")
+writeData(wb, "2021", summary_2021)
+
+# Save workbook
+saveWorkbook(wb, file = "data/1.Phenotype_data/1.2020_2021_SAP/Trait_Treatment_Summary.xlsx", overwrite = TRUE)
+
+print("Excel workbook saved with treatment, trait, and year summary.")
+
+```
+

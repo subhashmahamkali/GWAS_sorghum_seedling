@@ -1,0 +1,137 @@
+---
+title: "PCA"
+author: "subhash"
+date: "2025-04-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+
+# Load PCA results for both datasets
+pca_289 <- read.table("/Users/subhashmahamkali/Downloads/289_pca.eigenvec", header=F)
+colnames(pca_289) <- c("FID", "IID", paste0("PC", 1:10))
+
+pca_400 <- read.table("/Users/subhashmahamkali/Downloads/400_pca_28m.eigenvec", header=F)
+colnames(pca_400) <- c("FID", "IID", paste0("PC", 1:10))
+
+data <- read.csv("/Users/subhashmahamkali/Downloads/tpj15853-sup-0001-files1 (1).csv")
+data = data[,c(1,2,5)]
+colnames(data) <- c("Pinumber", "cluster","Country")
+
+cluster_names <- c("1" = "durra",
+                   "2" = "kafir",
+                   "3" = "caudatum",
+                   "4" = "milo/durra-bicolor",
+                   "5" = "mixed/bicolor",
+                   "6" = "guinea")  # change if needed
+
+data <- data %>% mutate(cluster = as.character(cluster), ClusterName = cluster_names[cluster])
+data = data[,c(1,4)]
+
+# Read and clean data
+data2 <- read_excel("/Users/subhashmahamkali/Downloads/13068_2021_2016_MOESM1_ESM (1).xlsx")
+colnames(data2) <- data2[1, ]
+data2 <- data2[-1, ]
+data2 = data2[, c(1,6)]
+data2$Type[data2$Type == "Weedy"] <- "Wild sorghum"
+data2 <- data2[data2$Type != "S.propinquum", ]
+colnames(data2) <- c("Pinumber", "cluster")
+
+pca_meta_289 <- inner_join(pca_289, data2, by = c("IID" = "Pinumber"))
+pca_meta_400 <- inner_join(pca_400, data, by = c("IID" = "Pinumber"))
+
+# For 289 dataset, manually assign ClusterName based on 'cluster' column
+data2 <- data2 %>%
+  mutate(ClusterName = case_when(
+    cluster == "Improved" ~ "Improved",
+    cluster == "Landrace" ~ "Landrace",
+    cluster == "Wild sorghum" ~ "Wild sorghum",
+    TRUE ~ NA_character_  # For any unassigned values, set as NA
+  ))
+
+colnames(data) <- c("Pinumber", "cluster")
+
+# For 400 dataset, manually assign ClusterName based on 'cluster' column
+data <- data %>%
+  mutate(ClusterName = case_when(
+    cluster == "durra" ~ "durra",
+    cluster == "kafir" ~ "kafir",
+    cluster == "caudatum" ~ "caudatum",
+    cluster == "milo/durra-bicolor" ~ "milo/durra-bicolor",
+    cluster == "mixed/bicolor" ~ "mixed/bicolor",
+    cluster == "guinea" ~ "guinea",
+    TRUE ~ NA_character_  # For any unassigned values, set as NA
+  ))
+
+# Now filter out rows where ClusterName is NA
+data2 <- data2 %>% filter(!is.na(ClusterName))
+data <- data %>% filter(!is.na(ClusterName))
+
+# Merge PCA data with the updated metadata for both datasets
+pca_meta_289 <- inner_join(pca_289, data2, by = c("IID" = "Pinumber"))
+pca_meta_400 <- inner_join(pca_400, data, by = c("IID" = "Pinumber"))
+
+# Add a 'Set' column to differentiate the two datasets
+pca_meta_289$Set <- "SorGSD"
+pca_meta_400$Set <- "SAP"
+
+# Combine both datasets
+pca_meta <- bind_rows(pca_meta_289, pca_meta_400)
+
+# Define colors and shapes for plotting
+shape_vec <- c("SorGSD" = 17, "SAP" = 16)  # Circle for 289 and Triangle for 400 datasets
+
+color_vec <- c(
+  "Improved" = "#E41A1C", "Landrace" = "#377EB8", "Wild sorghum" = "#4DAF4A",  # 3 for 289
+  "durra" = "#FF7F00", "kafir" = "#FFFF33", "caudatum" = "#984EA3",  # 6 for 400
+  "milo/durra-bicolor" = "#F781BF", "mixed/bicolor" = "#A6A6A6", "guinea" = "#FF5733"  # 6 for 400
+)
+
+p <- ggplot(pca_meta, aes(x=PC1, y=PC2, color=ClusterName, shape=factor(Set))) +
+  geom_point(size=3) +
+  scale_shape_manual(values=shape_vec) +
+  scale_color_manual(values=color_vec) +
+  theme_minimal() +
+  labs(x="PC1", y="PC2", color="Subpopulation", shape="Dataset") +
+  theme(    text = element_text(size=14),
+    legend.title = element_text(size=14),
+    legend.text = element_text(size=12)
+  )
+ggsave("/Users/subhashmahamkali/Documents/gwas_sap/profiling/graphs/pca.pdf", plot = p, width = 8, height = 6)
+```
+```{r}
+library(dplyr)
+library(plotly)
+
+# Assuming your PCA data and metadata are already prepared
+# Combine both datasets
+pca_meta <- bind_rows(pca_meta_289, pca_meta_400)
+
+# Create a 3D PCA plot
+p3d <- plot_ly(pca_meta, x = ~PC1, y = ~PC2, z = ~PC3, 
+               color = ~ClusterName, 
+               colors = color_vec, 
+               type = "scatter3d", 
+               mode = "markers", 
+               symbol = ~Set,  # Set the shapes using the 'Set' column
+               markers = list(size = 5)) %>%
+  layout(scene = list(
+            xaxis = list(title = "PC1"),
+            yaxis = list(title = "PC2"),
+            zaxis = list(title = "PC3")),
+         title = "3D PCA Plot of SorGSD and SAP Datasets",
+         legend = list(title = list(text = 'Subpopulation')))
+
+# Show the plot
+p3d
+
+# To save the 3D plot as an HTML file
+htmlwidgets::saveWidget(p3d, "/Users/subhashmahamkali/Documents/gwas_sap/profiling/graphs/pca_3d.html")
+```
+

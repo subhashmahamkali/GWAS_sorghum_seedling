@@ -1,0 +1,240 @@
+---
+title: "Geographical distribution of sorghum accesions used in this study"
+author: "subhash"
+date: "2025-04-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(maps)
+
+data <- read.csv("/Users/subhashmahamkali/Downloads/tpj15853-sup-0001-files1 (1).csv")
+data = data[,c(1,2,5)]
+colnames(data) <- c("Pinumber", "cluster","Country")
+country_counts <- data %>%count(Country, name = "n")
+world <- map_data("world")
+
+map_df <- world %>% 
+  group_by(region) %>% 
+  summarise(long = mean(range(long)), lat = mean(range(lat))) %>%
+  left_join(country_counts, by = c("region" = "Country")) %>%
+  filter(!is.na(n))
+
+#ggplot(world, aes(x = long, y = lat)) +
+  #geom_polygon(aes(group = group), fill = "white", color = "gray80") +
+  #geom_point(data = map_df, aes(x = long, y = lat, size = n), color = "red") +
+  #theme_minimal() +
+  #labs(x = "Longitude", y = "Latitude", size = "Number of Accessions") +
+  #theme(panel.background = element_rect(fill = "lightblue"))
+
+cluster_names <- c("1" = "durra",
+                   "2" = "kafir",
+                   "3" = "caudatum",
+                   "4" = "milo/durra-bicolor",
+                   "5" = "mixed/bicolor",
+                   "6" = "guinea")  # change if needed
+
+data <- data %>%
+  filter(!is.na(Country)) %>%            # Remove missing countries
+  mutate(cluster = as.character(cluster),
+         ClusterName = cluster_names[cluster])  # Assign descriptive names
+
+country_cluster_counts <- data %>%
+  count(Country, ClusterName)
+
+world <- map_data("world")
+
+centroids <- world %>%
+  group_by(region) %>%
+  summarise(long = mean(range(long)), lat = mean(range(lat)))
+
+map_df <- country_cluster_counts %>%
+  left_join(centroids, by = c("Country" = "region")) %>%
+  filter(!is.na(long))  # Keep only countries that matched map data
+
+
+ggplot(world, aes(long, lat)) +
+  geom_polygon(aes(group = group), fill = "white", color = "gray70") +
+  geom_point(data = map_df, aes(x = long, y = lat, color = ClusterName), alpha = 0.8) +
+  scale_color_manual(values = c("durra" = "green",
+                                "kafir" = "orange",
+                                "caudatum" = "purple",
+                                "milo/durra-bicolor" = "gold",
+                                "mixed/bicolor" = "brown",
+                                "guinea" = "red")) +
+  theme_minimal() +
+  labs(x = "Longitude", y = "Latitude", size = "Accessions", color = "Cluster") +
+  theme(legend.position = "right")
+        #panel.background = element_rect(fill = "lightpink"))
+```
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(maps)
+
+# Read and clean data
+data2 <- read_excel("/Users/subhashmahamkali/Downloads/13068_2021_2016_MOESM1_ESM (1).xlsx")
+colnames(data2) <- data2[1, ]
+data2 <- data2[-1, ]
+data2 = data2[, c(1:2, 5:6)]
+
+
+data2$Type[data2$Type == "Weedy"] <- "Wild sorghum"
+data2$Type[data2$Type == "S.propinquum"] <- "Wild sorghum"
+#data2 <- data2[data2$Type != "S.propinquum", ]
+data2 = data2[, c(2:4)]
+colnames(data2) <- c("Pinumber", "Country", "cluster")
+
+# Count the number of accessions for each country and cluster
+country_cluster_counts <- data2 %>%
+  count(Country, cluster)
+
+# Get world map data
+world <- map_data("world")
+centroids <- world %>%
+  group_by(region) %>%
+  summarise(long = mean(range(long)), lat = mean(range(lat)))
+
+# Merge data with map centroids
+map_df <- country_cluster_counts %>%
+  left_join(centroids, by = c("Country" = "region")) %>%
+  filter(!is.na(long))  # Keep only countries that matched map data
+
+# Plot the map with original cluster names
+ggplot(world, aes(long, lat)) +
+  geom_polygon(aes(group = group), fill = "white", color = "gray70") +
+  geom_point(data = map_df, aes(x = long, y = lat, color = cluster), alpha = 0.8) +
+  scale_color_manual(values = c("Improved" = "green", 
+                                "Wild sorghum" = "orange", 
+                                "Landrace" = "blue")) +
+  theme_minimal() +
+  labs(x = "Longitude", y = "Latitude", size = "Accessions", color = "Cluster") +
+  theme(legend.position = "right")
+```
+
+
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(maps)
+library(ggplot2)
+# Read and clean the first dataset
+data <- read.csv("/Users/subhashmahamkali/Downloads/tpj15853-sup-0001-files1 (1).csv")
+data = data[, c(1, 2, 5)]
+colnames(data) <- c("Pinumber", "cluster", "Country")
+cluster_names <- c("1" = "durra", "2" = "kafir", "3" = "caudatum", "4" = "milo/durra-bicolor", 
+                   "5" = "mixed/bicolor", "6" = "guinea")
+
+# Clean the Country names in the first dataset to match world map region names
+data <- data %>%
+  mutate(Country = recode(Country,
+                          "S. Africa" = "South Africa",
+                          "USA" = "United States",
+                          "Prob. China" = "China",
+                          "Guatemala" = "Guatemala",
+                          "Unknown" = NA_character_,  # Handle unknown cases
+                          "?" = NA_character_)) %>%
+  filter(!is.na(Country)) %>%
+  mutate(cluster = as.character(cluster),
+         ClusterName = cluster_names[cluster],
+         shape = "circle")  # Assign circle shape for plot1
+
+# Read and clean the second dataset
+data2 <- read_excel("/Users/subhashmahamkali/Downloads/13068_2021_2016_MOESM1_ESM (1).xlsx")
+colnames(data2) <- data2[1, ]
+data2 <- data2[-1, ]
+data2 = data2[, c(1:2, 5:6)]
+data2$Type[data2$Type == "Weedy"] <- "Wild sorghum"
+data2 <- data2[data2$Type != "S.propinquum", ]
+data2 = data2[, c(2:4)]
+colnames(data2) <- c("Pinumber", "Country", "cluster")
+
+# Clean the Country names in the second dataset to match world map region names
+data2 <- data2 %>%
+  mutate(Country = recode(Country,
+                          "S. Africa" = "South Africa",
+                          "USA" = "United States",
+                          "Prob. China" = "China",
+                          "Guatemala" = "Guatemala",
+                          "Unknown" = NA_character_,
+                          "?" = NA_character_)) %>%
+  filter(!is.na(Country)) %>%
+  mutate(shape = "triangle")  # Default shape for plot2 as triangle
+
+# Map for clusters from both datasets
+cluster_names <- c(
+  "1" = "durra", 
+  "2" = "kafir", 
+  "3" = "caudatum", 
+  "4" = "milo/durra-bicolor", 
+  "5" = "mixed/bicolor", 
+  "6" = "guinea",
+  "Improved" = "Improved",        # Add the Improved cluster
+  "Wild sorghum" = "Wild sorghum", # Add the Wild sorghum cluster
+  "Landrace" = "Landrace"         # Add the Landrace cluster
+)
+
+# Update: Assign new cluster names for 'Improved', 'Wild sorghum', and 'Landrace'
+data2 <- data2 %>%
+  mutate(ClusterName = case_when(
+    cluster == "Improved" ~ "Improved",    # For 'Improved'
+    cluster == "Wild sorghum" ~ "Wild sorghum",  # For 'Wild sorghum'
+    cluster == "Landrace" ~ "Landrace",    # For 'Landrace'
+    TRUE ~ cluster_names[cluster]         # For the other clusters
+  ))
+
+# Assign shape 'triangle' for 'Landrace', 'Improved', 'Wild sorghum' in both datasets
+combined_data <- bind_rows(data, data2)
+
+combined_data <- combined_data %>%
+  mutate(shape = case_when(
+    ClusterName %in% c("Improved", "Wild sorghum", "Landrace") ~ "triangle",  # Assign triangle for specific clusters
+    TRUE ~ "circle"  # Assign circle for other clusters
+  ))
+
+# Handle NA values in ClusterName column
+combined_data <- combined_data %>%
+  filter(!is.na(ClusterName))  # Remove rows with NA clusters
+
+# Get world map data
+world <- map_data("world")
+centroids <- world %>%
+  group_by(region) %>%
+  summarise(long = mean(range(long)), lat = mean(range(lat)))
+
+# Merge data with map centroids
+map_df <- combined_data %>%
+  left_join(centroids, by = c("Country" = "region")) %>%
+  filter(!is.na(long))  # Keep only countries that matched map data
+
+# Define color palette for clusters
+cluster_colors <- c("durra" = "green", "kafir" = "orange", "caudatum" = "purple", 
+                    "milo/durra-bicolor" = "gold", "mixed/bicolor" = "brown", "guinea" = "red", 
+                    "Improved" = "lightpink", "Wild sorghum" = "navy", "Landrace" = "blue")
+
+# Plot the combined map with customized legend for shapes
+p = ggplot(world, aes(long, lat)) +
+  geom_polygon(aes(group = group), fill = "white", color = "gray70") +
+  geom_point(data = map_df, aes(x = long, y = lat, color = ClusterName, shape = shape), alpha = 0.8, size = 3) +
+  scale_color_manual(values = cluster_colors) +
+  scale_shape_manual(values = c("circle" = 16, "triangle" = 17), 
+                     labels = c("circle" = "SAP", "triangle" = "Sorgsd")) +  # Change legend labels for shapes
+  theme_minimal() +
+  labs(x = "Longitude", y = "Latitude", size = "Accessions", color = "Cluster", shape = "Plot") +
+  theme(legend.position = "right")
+
+ggsave("/Users/subhashmahamkali/Documents/gwas_sap/graphs/1.phenotype_distribution/geo_dist.pdf", 
+       plot = p, device = "pdf", width = 9, height = 5, units = "in", 
+       dpi = 500,
+       useDingbats = FALSE)  
+
+```
+
