@@ -19,7 +19,7 @@ printHistogram <- function(data, phenotype, title = NULL, bin_no=50)
 # Use new, fixed version of data from James
 # Rename columns because I'm picky (and it makes combining across year datasets easier later)
 # Fix genotypes with multiple names in the dataset 
-sap2020 <- read_excel('/Users/subhashmahamkali/Downloads/subhash-blues/SAP2020_merged_v3.1.xls') %>%
+sap2020 <- read_excel('/Users/subhashmahamkali/Documents/gwas_sap/data/0.RAW_20_21_pheno_data/SAP2020_merged_v3.1.xls') %>%
   rename(plot = PlotID, 
          genotype = SorghumAccession,
          poorStand = `PoorStand?`, 
@@ -60,7 +60,7 @@ sap2020 <- read_excel('/Users/subhashmahamkali/Downloads/subhash-blues/SAP2020_m
                                Treatment=='SufficientNitrogen' ~ 'HN'),
          plotLocation = str_c(row, column, block, sep = '-')) %>%
   select(!c(SorghumName, SNPDataID, Treatment))
-sap2020kyle <- read.csv('/Users/subhashmahamkali/Downloads/subhash-blues/2020_Sorghum_KL_Data.csv') %>%
+sap2020kyle <- read.csv('/Users/subhashmahamkali/Documents/gwas_sap/data/0.RAW_20_21_pheno_data/2020_Sorghum_KL_Data.csv') %>%
   rowwise() %>%
   mutate(plotLocation = str_c(Row, Col, Rep, sep='-'))
 
@@ -73,7 +73,7 @@ sap2020HN <- sap2020 %>%
   filter(treatment=='HN')
 
 # Repeat process for 2021 (aside from Kyle's corrections)
-sap2021 <- read_excel('/Users/subhashmahamkali/Downloads/subhash-blues/SAPMerged2021_v2.3.xlsx')[1:27] %>% 
+sap2021 <- read_excel('/Users/subhashmahamkali/Documents/gwas_sap/data/0.RAW_20_21_pheno_data/SAPMerged2021_v2.3.xlsx')[1:27] %>% 
   rename(genotype = PINumber, 
          plot = Plot,
          treatment = Treatment, 
@@ -552,7 +552,7 @@ blues <- bind_rows(bluesByEnvironment, bluesByEnvironmentWide, bluesAcrossYears,
   pivot_wider(id_cols = genotype, values_from = BLUE, names_from = valueID)
 
 # export BLUES 
-write.csv(blues, 'BLUEs_SAP2020_2021.csv', quote = FALSE, row.names = FALSE)
+write.csv(blues, '/Users/subhashmahamkali/Documents/gwas_sap/data/0.RAW_20_21_pheno_data/BLUEs_SAP2020_2021.csv', quote = FALSE, row.names = FALSE)
 
 # unify years of data with and without extreme values
 sap2020$year <- '2020'
