@@ -1,0 +1,32 @@
+---
+title: "negative_selection"
+author: "subhash"
+date: "2025-05-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{bash,eval=F}
+module purge
+module load anaconda
+mamba env create -f environment.yml -p $NRDSTOR/PlantCaduceus_1
+conda activate $NRDSTOR/PlantCaduceus_1
+#pip cache purge'
+srun --nodes=1 --mem=16G --ntasks=1 --time=3:00:00 --pty bash
+mamba install --no-update-deps cudatoolkit
+pip install -r requirements.txt --no-build-isolation
+python
+import torch
+from mamba_ssm import Mamba
+
+srun --partition=gpu --gres=gpu:1 --time=00:30:00 --pty bash
+python /work/jyanglab/subhash/PC/git/PlantCaduceus/src/zero_shot_score.py -input /work/jyanglab/subhash/PC/git/PlantCaduceus/examples/example_snp.tsv -output output.tsv -model 'kuleshov-group/PlantCaduceus_l32' -device 'cuda:1'
+
+```
+
+

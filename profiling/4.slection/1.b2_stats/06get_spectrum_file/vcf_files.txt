@@ -1,0 +1,10 @@
+Chr10.50BGEM_founders_sorghum_V5.vcf
+Chr1.50BGEM_founders_sorghum_V5.vcf
+Chr2.50BGEM_founders_sorghum_V5.vcf
+Chr3.50BGEM_founders_sorghum_V5.vcf
+Chr4.50BGEM_founders_sorghum_V5.vcf
+Chr5.50BGEM_founders_sorghum_V5.vcf
+Chr6.50BGEM_founders_sorghum_V5.vcf
+Chr7.50BGEM_founders_sorghum_V5.vcf
+Chr8.50BGEM_founders_sorghum_V5.vcf
+Chr9.50BGEM_founders_sorghum_V5.vcf

@@ -1,0 +1,3 @@
+perl get_input.pl
+python /common/jyanglab/gxu6/software/BalLeRMix/software/BalLeRMix_v2.3.py -i TEO.Chr10.input.txt --getSpect --spect TEO.Chr10.input.spect.DAF.txt
+python /common/jyanglab/gxu6/software/BalLeRMix/software/BalLeRMix_v2.3.py -i TEO.Chr10.input.txt --spect TEO.Chr10.input.spect.DAF.txt --physPos -o TEO.Chr10.B2_stat.txt
