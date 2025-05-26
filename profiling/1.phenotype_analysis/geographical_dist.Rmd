@@ -238,3 +238,153 @@ ggsave("/Users/subhashmahamkali/Documents/gwas_sap/graphs/1.phenotype_distributi
 
 ```
 
+
+
+
+```{r}
+install.packages(c("terra", "tidyverse", "raster", "sf", "rnaturalearth", "rnaturalearthdata"))
+
+library(terra)           # for reading GeoTIFF
+library(tidyverse)
+library(sf)              # for spatial operations
+library(rnaturalearth)   # for country boundaries
+library(rnaturalearthdata)
+
+
+# Read the nitrogen application raster (GeoTIFF)
+n_raster <- rast("/Users/subhashmahamkali/Downloads/FertilizerCropSpecific_Geotiff/Fertilizer_sorghum/sorghum_NitrogenApplication_Rate.tif")  # rename if needed
+plot(n_raster)  # quick look
+# Get country polygons
+# Step 1: Join nitrogen application data into the world_sf object
+
+# Get country polygons
+world_sf <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Calculate mean nitrogen application per country (ignoring NA values)
+country_n_data <- terra::extract(n_raster, vect(world_sf), fun = mean, na.rm = TRUE)
+
+# Combine with country names
+country_n_data$Country <- world_sf$name
+colnames(country_n_data)[2] <- "mean_N_app_kg_ha"
+
+# Clean result
+country_n_data <- country_n_data %>%
+  dplyr::select(Country, mean_N_app_kg_ha) %>%
+  mutate(N_Limited = mean_N_app_kg_ha < 50)  # e.g., <50 kg/ha threshold
+
+
+world_sf <- world_sf %>%
+  left_join(country_n_data, by = c("name" = "Country"))
+
+# Step 2: Now plot with geom_sf() using the added 'mean_N_app_kg_ha' column
+k = ggplot(world_sf) +
+  geom_sf(aes(fill = mean_N_app_kg_ha), color = "gray80") +
+  scale_fill_gradientn(colors = c("lightyellow", "orange", "darkred"), 
+                       name = "N (kg/ha)", na.value = "gray95") +
+  geom_point(data = map_df, aes(x = long, y = lat, color = ClusterName, shape = shape), 
+             size = 3, alpha = 0.9) +
+  scale_color_manual(values = cluster_colors) +
+  scale_shape_manual(values = c("circle" = 16, "triangle" = 17)) +
+  theme_minimal() +
+  labs(title = "Geographical Distribution of Sorghum Accessions with N Application Background",
+       x = "Longitude", y = "Latitude", color = "Cluster", shape = "Panel")
+
+```
+
+```{r}
+map_df <- map_df %>%
+  mutate(shape = case_when(
+    ClusterName %in% c("Landrace", "Improved", "Wild sorghum") ~ ClusterName,
+    TRUE ~ "Other"
+  ))
+
+# Define unique shapes for each special category
+shape_values <- c("Landrace" = 17,       # triangle
+                  "Improved" = 15,       # filled square
+                  "Wild sorghum" = 18,   # diamond
+                  "Other" = 16)          # filled circle (default SAP)
+
+
+k = ggplot(world_sf) +
+  geom_sf(aes(fill = mean_N_app_kg_ha), color = "gray80") +
+  scale_fill_gradientn(colors = c("lightyellow", "orange", "darkred"), 
+                       name = "N (kg/ha)", na.value = "gray95") +
+  geom_point(data = map_df, aes(x = long, y = lat, color = ClusterName, shape = shape), 
+             size = 3, alpha = 0.9) +
+  scale_color_manual(values = cluster_colors) +
+  scale_shape_manual(values = shape_values,
+                     labels = c("Landrace" = "Landrace", 
+                                "Improved" = "Improved", 
+                                "Wild sorghum" = "Wild", 
+                                "Other" = "SAP")) +
+  theme_minimal() +
+  labs(title = "Geographical Distribution of Sorghum Accessions with N Application Background",
+       x = "Longitude", y = "Latitude", color = "Cluster", shape = "Type")
+
+
+ggsave("/Users/subhashmahamkali/Documents/gwas_sap/graphs/1.phenotype_distribution/geo_dist_withN.pdf", 
+       plot = k, device = "pdf", width = 9, height = 5, units = "in", 
+       dpi = 500,
+       useDingbats = FALSE)
+
+
+
+
+# Keep only the subpopulations (exclude Landrace, Improved, Wild sorghum)
+cluster_colors <- c(
+  "durra" = "green",
+  "kafir" = "orange",
+  "caudatum" = "purple",
+  "milo/durra-bicolor" = "gold",
+  "mixed/bicolor" = "brown",
+  "guinea" = "red"
+)
+
+
+map_df <- map_df %>%
+  mutate(ClusterName = ifelse(ClusterName %in% c("Landrace", "Improved", "Wild sorghum"), NA, ClusterName))
+k = ggplot(world_sf) +
+  geom_sf(aes(fill = mean_N_app_kg_ha), color = "gray80") +
+  scale_fill_gradientn(colors = c("lightyellow", "orange", "darkred"), 
+                       name = "N (kg/ha)", na.value = "gray95") +
+  geom_point(data = map_df, aes(x = long, y = lat, color = ClusterName, shape = shape), 
+             size = 3, alpha = 0.9, na.rm = TRUE) +
+  scale_color_manual(values = cluster_colors, na.translate = FALSE) +  # remove NA colors
+  scale_shape_manual(values = shape_values,
+                     labels = c("Landrace" = "Landrace", 
+                                "Improved" = "Improved", 
+                                "Wild sorghum" = "Wild", 
+                                "Other" = "SAP")) +
+  theme_minimal() +
+  labs(title = "Geographical Distribution of Sorghum Accessions with N Application Background",
+       x = "Longitude", y = "Latitude", color = "Cluster", shape = "Type")
+
+
+```
+
+
+
+```{r, eval=FALSE}
+@article{mueller2012closing,
+  title={Closing yield gaps through nutrient and water management},
+  author={Mueller, Nathaniel D and Gerber, James S and Johnston, Matt and Ray, Deepak K and Ramankutty, Navin and Foley, Jonathan A},
+  journal={Nature},
+  volume={490},
+  number={7419},
+  pages={254--257},
+  year={2012},
+  publisher={Nature Publishing Group}
+}
+
+
+
+@misc{earthstat_nutrient,
+  title = {Nutrient Application for Major Crops},
+  author = {{EarthStat.org}},
+  year = {2024},
+  url = {https://www.earthstat.org/nutrient-application},
+  note = {Accessed May 2025}
+}
+
+```
+
