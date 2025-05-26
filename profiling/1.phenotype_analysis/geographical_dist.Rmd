@@ -252,7 +252,7 @@ library(rnaturalearthdata)
 
 
 # Read the nitrogen application raster (GeoTIFF)
-n_raster <- rast("/Users/subhashmahamkali/Downloads/FertilizerCropSpecific_Geotiff/Fertilizer_sorghum/sorghum_NitrogenApplication_Rate.tif")  # rename if needed
+n_raster <- rast("/Users/subhashmahamkali/Documents/gwas_sap/data/1.Phenotype_data/sorghum_NitrogenApplication_Rate.tif")  # rename if needed
 plot(n_raster)  # quick look
 # Get country polygons
 # Step 1: Join nitrogen application data into the world_sf object
