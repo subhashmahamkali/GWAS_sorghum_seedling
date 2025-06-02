@@ -322,10 +322,8 @@ k = ggplot(world_sf) +
        x = "Longitude", y = "Latitude", color = "Cluster", shape = "Type")
 
 
-ggsave("/Users/subhashmahamkali/Documents/gwas_sap/graphs/1.phenotype_distribution/geo_dist_withN.pdf", 
-       plot = k, device = "pdf", width = 9, height = 5, units = "in", 
-       dpi = 500,
-       useDingbats = FALSE)
+ggsave("/Users/subhashmahamkali/Documents/gwas_sap/graphs/1.phenotype_distribution/geo_dist_withN.pdf", plot = k, device = "pdf", width = 9, height = 6, units = "in", 
+       dpi = 500, useDingbats = FALSE)
 
 
 
@@ -385,6 +383,10 @@ k = ggplot(world_sf) +
   url = {https://www.earthstat.org/nutrient-application},
   note = {Accessed May 2025}
 }
+
+
+https://www.earthstat.org/nutrient-application-major-crops/
+  https://www.earthstat.org/yield-gaps-climate-bins-major-crops/
 
 ```
 

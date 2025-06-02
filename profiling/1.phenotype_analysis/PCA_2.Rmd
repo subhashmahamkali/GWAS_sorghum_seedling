@@ -1,0 +1,273 @@
+---
+title: "pca_2"
+author: "subhash"
+date: "2025-06-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{bash,eval=F}
+#directory all files in 
+cd /work/jyanglab/subhash/sorgsd/filterfed_vcf/0.pca/
+
+#adds Chr as prefic (to extract common varaiats between SAP and SorGSD datsests)
+awk '{ $1 = "Chr"$1; if ($2 == "." || $2 == "") $2 = $1"_"$4; print }' 289_dataset.bim > 289_dataset_fixed.bim289_dataset_fixed.bim
+cp 289_dataset.bed 289_dataset_fixed.bed
+cp 289_dataset.fam 289_dataset_fixed.fam
+plink --bfile 289_dataset_fixed --make-bed --out 289_dataset_renamed --allow-extra-chr
+
+#extracted all SNPS from 289 accessions(sorgsd)
+cut -f2 289_dataset_renamed.bim > snps_A.txt
+
+#extracted all snps from 400 accesions (SAP)
+cut -f2 /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/1.plink/1.stat_filter/1.het_filter/1.het_0.1_SAP.bim > snps_B.txt
+
+#extracted common SNPS between the datsets
+comm -12 <(sort snps_A.txt) <(sort snps_B.txt) > common_snps.txt
+
+#ensure chromosomes have Chr01 insted of Chr1 
+awk '{chr = $1;if (chr < 10) chr = "0" chr;$2 = "Chr" chr "_" $4;print}' 289_dataset.bim > 289_dataset_fixed2.bim
+cp 289_dataset.bed 289_dataset_fixed2.bed
+cp 289_dataset.fam 289_dataset_fixed2.fam
+plink --bfile 289_dataset_fixed2 --make-bed --out 289_dataset_final --allow-extra-chr
+cut -f2 289_dataset_final.bim > snps_A.txt
+comm -12 <(sort snps_A.txt) <(sort snps_B.txt) > common_snps.txt
+
+#subsetting both datsets based on common extrated SNPS and merging both datasets as one
+plink --bfile 289_dataset_final --extract common_snps.txt --make-bed --out dataA_common --allow-extra-chr
+
+plink --bfile /work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/1.plink/1.stat_filter/1.het_filter/1.het_0.1_SAP --extract common_snps.txt --make-bed --out dataB_common
+
+plink --bfile dataA_common --bmerge dataB_common.bed dataB_common.bim dataB_common.fam --make-bed --out merged_data
+
+#filtering for only bi allelic SNPs and removing multiallelic SNPs adn then merge them as I got error from plink for multiallelic
+plink --bfile dataA_common --biallelic-only strict --make-bed --out dataA_common_biallelic
+plink --bfile dataB_common --biallelic-only strict --make-bed --out dataB_common_biallelic
+
+plink --bfile dataA_common_biallelic   --bmerge dataB_common_biallelic.bed dataB_common_biallelic.bim dataB_common_biallelic.fam   --make-bed --out merged_data
+```
+
+
+
+
+```{bash,eval=F}
+#during the above merge gave an error
+#used chat GPT to resolve issue
+#flips the strand of mismatched SNPs in datasetB 
+plink --bfile dataB_common_biallelic --flip merged_data-merge.missnp   --make-bed --out dataB_common_biallelic_flipped
+#and then merging here
+plink --bfile dataA_common_biallelic   --bmerge dataB_common_biallelic_flipped.bed dataB_common_biallelic_flipped.bim dataB_common_biallelic_flipped.fam   --make-bed --out merged_data_final
+#got an error here so removed all problamatic SNPs and then merge
+plink --bfile dataA_common_biallelic --exclude merged_data_final-merge.missnp   --make-bed --out dataA_cleaned
+plink --bfile dataB_common_biallelic_flipped --exclude merged_data_final-merge.missnp   --make-bed --out dataB_cleaned
+#merged datasets
+plink --bfile dataA_cleaned   --bmerge dataB_cleaned.bed dataB_cleaned.bim dataB_cleaned.fam   --make-bed --out merged_data_cleaned
+#final PCA
+plink --bfile merged_data_cleaned --pca 10 --out merged_pca
+```
+
+
+
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(readxl)
+
+# 1. Load new PCA result from merged dataset
+merged_pca <- read.table("/Users/subhashmahamkali/Downloads/merged_pca.eigenvec", header = FALSE)
+colnames(merged_pca) <- c("FID", "IID", paste0("PC", 1:10))
+
+# 2. Load SAP metadata
+sap_data <- read.csv("/Users/subhashmahamkali/Downloads/tpj15853-sup-0001-files1 (1).csv")[, c(1, 2, 5)]
+colnames(sap_data) <- c("Pinumber", "cluster", "Country")
+
+# Assign subpopulation names for SAP
+sap_cluster_names <- c("1" = "durra", "2" = "kafir", "3" = "caudatum",
+                       "4" = "milo/durra-bicolor", "5" = "mixed/bicolor", "6" = "guinea")
+sap_data <- sap_data %>%
+  mutate(cluster = as.character(cluster),
+         ClusterName = sap_cluster_names[cluster],
+         Set = "SAP") %>%
+  filter(!is.na(ClusterName)) %>%
+  select(Pinumber, ClusterName, Set)
+
+# 3. Load SorGSD metadata
+sorgsd_data <- read_excel("/Users/subhashmahamkali/Downloads/13068_2021_2016_MOESM1_ESM (1).xlsx")
+colnames(sorgsd_data) <- sorgsd_data[1, ]
+sorgsd_data <- sorgsd_data[-1, c(1, 6)]
+colnames(sorgsd_data) <- c("Pinumber", "cluster")
+
+# Clean and assign labels for SorGSD
+sorgsd_data$cluster[sorgsd_data$cluster == "Weedy"] <- "Wild sorghum"
+sorgsd_data <- sorgsd_data[sorgsd_data$cluster != "S.propinquum", ]
+sorgsd_data <- sorgsd_data %>%
+  mutate(ClusterName = case_when(
+    cluster == "Improved" ~ "Improved",
+    cluster == "Landrace" ~ "Landrace",
+    cluster == "Wild sorghum" ~ "Wild sorghum",
+    TRUE ~ NA_character_
+  ),
+  Set = "SorGSD") %>%
+  filter(!is.na(ClusterName)) %>%
+  select(Pinumber, ClusterName, Set)
+
+# 4. Combine metadata from both sets
+all_meta <- bind_rows(sap_data, sorgsd_data)
+
+# 5. Merge metadata with PCA
+pca_annotated <- inner_join(merged_pca, all_meta, by = c("IID" = "Pinumber"))
+
+# 6. Define colors and shapes
+shape_vec <- c("SorGSD" = 17, "SAP" = 16)
+color_vec <- c(
+  "Improved" = "#E41A1C", "Landrace" = "#377EB8", "Wild sorghum" = "#4DAF4A",
+  "durra" = "#FF7F00", "kafir" = "#FFFF33", "caudatum" = "#984EA3",
+  "milo/durra-bicolor" = "#F781BF", "mixed/bicolor" = "#A6A6A6", "guinea" = "#FF5733"
+)
+
+# 7. Plot
+p <- ggplot(pca_annotated, aes(x = PC1, y = PC2, color = ClusterName, shape = Set)) +
+  geom_point(size = 3, alpha = 0.9) +
+  scale_shape_manual(values = shape_vec) +
+  scale_color_manual(values = color_vec) +
+  theme_minimal() +
+  labs(title = "PCA of Merged Sorghum Datasets", x = "PC1", y = "PC2", color = "Subpopulation", shape = "Dataset") +
+  theme(
+    text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 12)
+  )
+
+# Save plot
+ggsave("/Users/subhashmahamkali/Documents/gwas_sap/profiling/graphs/pca_merged.pdf", plot = p, width = 8, height = 6)
+
+```
+
+
+
+```{r}
+library(dplyr)
+library(ggplot2)
+
+# 1. Define shapes for domestication stages only
+shape_vec <- c(
+  "Improved" = 16,       # circle
+  "Landrace" = 15,       # square
+  "Wild sorghum" = 17    # triangle
+)
+
+# 2. Add new column for shape assignment
+pca_annotated <- pca_annotated %>%
+  mutate(shape_group = case_when(
+    ClusterName %in% names(shape_vec) ~ ClusterName,
+    TRUE ~ NA_character_
+  ))
+
+# 3. Define color for all 9 clusters
+color_vec <- c(
+  "caudatum" = "#984EA3",
+  "durra" = "#FF7F00",
+  "guinea" = "#FF5733",
+  "Improved" = "#E41A1C",
+  "kafir" = "#FFFF33",
+  "Landrace" = "#377EB8",
+  "milo/durra-bicolor" = "#F781BF",
+  "mixed/bicolor" = "#A6A6A6",
+  "Wild sorghum" = "#4DAF4A"
+)
+
+# 4. Plot — layer-wise separation of shaped and non-shaped points
+p <- ggplot() +
+  # Non-shaped points (default shape)
+  geom_point(data = filter(pca_annotated, is.na(shape_group)),
+             aes(x = PC1, y = PC2, color = ClusterName),
+             shape = 16, size = 2.8, alpha = 0.9) +
+  # Shaped points (Improved, Landrace, Wild sorghum)
+  geom_point(data = filter(pca_annotated, !is.na(shape_group)),
+             aes(x = PC1, y = PC2, color = ClusterName, shape = shape_group),
+             size = 3.5, alpha = 0.9) +
+  scale_shape_manual(values = shape_vec, guide = "none") +  # hide shape legend
+  scale_color_manual(values = color_vec) +  # show all colors in legend
+  theme_minimal() +
+  labs(title = "PCA of Merged Sorghum Datasets",
+       x = "PC1", y = "PC2",
+       color = "Subpopulation") +
+  theme(
+    text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 12),
+    legend.position = "right"
+  )
+
+# 5. Save
+ggsave("/Users/subhashmahamkali/Documents/gwas_sap/profiling/graphs/pca_final_clusters_shapes.pdf",plot = p, width = 8, height = 6)
+
+
+
+
+
+library(dplyr)
+library(ggplot2)
+
+# Shape definitions
+shape_vec <- c(
+  "Improved" = 16,       # filled circle
+  "Landrace" = 15,       # square
+  "Wild sorghum" = 17    # triangle
+)
+
+# Add shape group
+pca_annotated <- pca_annotated %>%
+  mutate(shape_group = case_when(
+    ClusterName %in% names(shape_vec) ~ ClusterName,
+    TRUE ~ NA_character_
+  ))
+
+# Color map for all 9 subpopulations
+color_vec <- c("durra" = "green", "kafir" = "orange", "caudatum" = "purple", 
+                    "milo/durra-bicolor" = "gold", "mixed/bicolor" = "brown", "guinea" = "red", 
+                    "Improved" = "lightpink", "Wild sorghum" = "navy", "Landrace" = "blue")
+
+
+
+# Plot
+p <- ggplot() +
+  # Layer 1: unshaped points (default round shape)
+  geom_point(
+    data = filter(pca_annotated, is.na(shape_group)),
+    aes(x = PC1, y = PC2, color = ClusterName),
+    shape = 16, size = 2.4, alpha = 0.7, position = position_jitter(width = 0.0008, height = 0.0008)
+  ) +
+  # Layer 2: shaped points (Improved, Landrace, Wild sorghum)
+  geom_point(
+    data = filter(pca_annotated, !is.na(shape_group)),
+    aes(x = PC1, y = PC2, color = ClusterName, shape = shape_group),
+    size = 3.6, alpha = 0.9, position = position_jitter(width = 0.0008, height = 0.0008)
+  ) +
+  scale_shape_manual(values = shape_vec, name = "Domestication Stage") +
+  scale_color_manual(values = color_vec) +
+  theme_minimal() +
+  labs(
+    title = "PCA of Merged Sorghum Datasets",
+    x = "PC1", y = "PC2",
+    color = "Subpopulation"
+  ) +
+  theme(
+    text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 12),
+    legend.position = "right"
+  )
+p + scale_x_continuous(limits = c(-0.05, 0.05))  # You can tweak these values
+
+# Save
+ggsave("/Users/subhashmahamkali/Documents/gwas_sap/graphs/pca_final_clear.pdf",
+       plot = p, width = 8.5, height = 6.2)
+
+nrow(pca_annotated)
+table(pca_annotated$ClusterName)
+```
