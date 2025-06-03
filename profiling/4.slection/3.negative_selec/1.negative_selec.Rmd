@@ -10,7 +10,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-
 ```{bash,eval=F}
 module purge
 module load anaconda
@@ -29,4 +28,318 @@ python /work/jyanglab/subhash/PC/git/PlantCaduceus/src/zero_shot_score.py -input
 
 ```
 
+
+since UNL's HCC has limited GPU resource, I planed to do the above plant CAD analysis by chunks of .vcf file.
+Insted of running plant CAD on all the 29 million variants I have subsetted them in to 10K vriants in each file.
+
+```{bash,eval=F}
+#!/usr/bin/bash
+#SBATCH --job-name=chunk_VCF
+#SBATCH --ntasks=1
+#SBATCH --mem-per-cpu=10G
+#SBATCH --time=10:00:00
+#SBATCH --partition=jclarke,batch,guest
+#SBATCH --output=/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/0.script/chunk_out.txt
+#SBATCH --error=/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/0.script/chunk_err.txt
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+
+module load bcftools
+module load htslib
+
+INPUT_VCF="/work/jyanglab/subhash/sorgsd/filterfed_vcf/SorGSD.289snp.miss05.vcf.gz"    # Input VCF
+OUTDIR="/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/"         # Output directory
+CHUNK_SIZE=10000                # SNPs per chunk
+#mkdir -p $OUTDIR
+# Step 1: Extract header
+bcftools view -h $INPUT_VCF > $OUTDIR/header.vcf
+
+# Step 2: Get total SNP count
+TOTAL_SNPS=$(bcftools view -H $INPUT_VCF | wc -l)
+CHUNKS=$(( (TOTAL_SNPS + CHUNK_SIZE - 1) / CHUNK_SIZE ))
+
+# Step 3: Split into body chunks (no header)
+bcftools view -H $INPUT_VCF | split -l $CHUNK_SIZE -d - $OUTDIR/body_chunk_
+
+# Step 4: Combine header, rename chromosomes, keep GT only
+# Rename chromosome 1-9 → Chr01–Chr09, 10 → Chr10
+# Skip chromosomes outside 1–10
+# Keep only GT field in sample columns
+for f in $OUTDIR/body_chunk_*; do
+  chunk_num=$(basename $f | cut -d'_' -f3)
+  outvcf="$OUTDIR/chunk_${chunk_num}.vcf"
+
+  cat $OUTDIR/header.vcf "$f" | \
+  awk 'BEGIN{OFS="\t"}
+    /^#/ {print; next}
+    {
+      
+      if ($1 ~ /^[0-9]+$/ && $1 <= 10) {
+        if ($1 < 10) $1 = "Chr0"$1;
+        else $1 = "Chr"$1;
+      } else {
+        next 
+      }
+      for (i=10; i<=NF; i++) {
+        split($i, a, ":"); $i = a[1]
+      }
+      print
+    }' > "$outvcf"
+
+  # Compress and index
+  bgzip -f "$outvcf"
+  tabix -p vcf "${outvcf}.gz"
+
+  # Remove raw chunk
+  rm "$f"
+done
+rm chunk_9919{36..74}.vcf.gz
+rm chunk_9919{36..74}.vcf.gz.tbi
+
+```
+
+
+below code helps to create the input files from the vcf 10k variants chunks for the plant CAD model.
+
+```{bash,eval=F}
+#!/usr/bin/bash
+#SBATCH --job-name=vcf_to_tsv
+#SBATCH --ntasks=1
+#SBATCH --mem=16G
+#SBATCH --time=12:00:00
+#SBATCH --partition=jclarke,batch,guest
+#SBATCH --output=/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/0.unziped/tsv_out/script/vcf_to_tsv_out.txt
+#SBATCH --error=/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/0.unziped/tsv_out/script/vcf_to_tsv_err.txt
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+
+# Load required module
+module load bedtools
+
+# Set genome fasta path
+genomeFA="/work/jyanglab/subhash/0.assignment_agro_932/0..refrence/Phytozome/PhytozomeV13/Sbicolor/v5.1/assembly/Sbicolor_730_v5.0.fa"
+# Input directory with plain .vcf chunks
+VCF_DIR="/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/0.unziped"
+# Output directory for .tsv files
+OUT_DIR="${VCF_DIR}/tsv_out"
+
+# Loop through each uncompressed VCF file
+for inputVCF in $VCF_DIR/chunk_*.vcf; do
+    base=$(basename $inputVCF .vcf)
+    output="${OUT_DIR}/${base}.tsv"
+    echo "Processing: $base"
+    # Step 2: Create BED file
+    grep -v '^#' ${inputVCF} | awk -v OFS="\t" '{print $1,$2-256,$2+256}' > ${inputVCF}.bed
+    # Step 3: Extract sequence
+    bedtools getfasta -tab -fi $genomeFA -bed ${inputVCF}.bed -fo ${inputVCF}.seq.tsv
+    # Step 4: Combine SNP info with sequences
+    awk -v OFS="\t" '$0 !~ /^#/ {print $1,$2-256,$2+256,$2,$4,$5}' ${inputVCF} | \
+    paste - <(cut -f2 ${inputVCF}.seq.tsv) > ${output}_tmp
+    # Step 5: Finalize
+    echo -e "chr\tstart\tend\tpos\tref\talt\tsequences" > ${output}
+    cat ${output}_tmp >> ${output}
+    # Step 6: Cleanup
+    rm ${inputVCF}.bed ${inputVCF}.seq.tsv ${output}_tmp
+done
+```
+
+Running plant CAD 
+I have run each gpu job on 300k varinatson each job
+
+```{bash}
+#!/bin/bash
+#SBATCH --partition=gpu
+#SBATCH --gres=gpu:1
+#SBATCH --constraint=gpu_v100
+#SBATCH --time=03:30:00
+#SBATCH --mem=5G
+#SBATCH --output=/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/0.unziped/tsv_out/0.zero_shot/script/batch_%A_%a.out
+#SBATCH --error=/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/0.unziped/tsv_out/0.zero_shot/script/batch_%A_%a.err
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+
+# Activate environment
+ml anaconda
+conda activate $NRDSTOR/PlantCaduceus_1
+
+# Use batch number from argument
+BATCH_NUM=$1
+BATCH_FILE="/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/0.unziped/tsv_out/0.zero_shot/script/0.file_names_batch/file_batch_${BATCH_NUM}"
+
+echo "Starting Batch $BATCH_NUM using $BATCH_FILE"
+while read FILE; do
+    echo "Scoring $FILE"
+    OUTFILE=$(basename $FILE .tsv)_score.tsv
+    python /work/jyanglab/subhash/PC/git/PlantCaduceus/src/zero_shot_score.py \
+        -input "$FILE" \
+        -output "/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/0.unziped/tsv_out/0.zero_shot/$OUTFILE" \
+        -model 'kuleshov-group/PlantCaduceus_l32' \
+        -device 'cuda:0'
+done < "$BATCH_FILE"
+
+# Submit the next batch
+NEXT_BATCH=$((BATCH_NUM + 1))
+if [ -f "/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/0.unziped/tsv_out/0.zero_shot/script/0.file_names_batch/file_batch_${NEXT_BATCH}" ]; then
+    echo "Submitting next batch: $NEXT_BATCH"
+    sbatch --job-name=zero_shot_batch${NEXT_BATCH} batch_runner.slurm ${NEXT_BATCH}
+else
+    echo "All batches completed."
+fi
+```
+
+
+```{bash,eval=FALSE}
+#!/usr/bin/bash
+#SBATCH --job-name=gene_load_summary_percent
+#SBATCH --ntasks=1
+#SBATCH --mem=160G
+#SBATCH --time=25:00:00
+#SBATCH --partition=jclarke,batch,guest
+#SBATCH --output=/work/jyanglab/subhash/sorgsd/filterfed_vcf/glsout_percent.txt
+#SBATCH --error=/work/jyanglab/subhash/sorgsd/filterfed_vcf/glserr_percent.txt
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+
+ml R
+#Rscript /work/jyanglab/subhash/sorgsd/filterfed_vcf/gene_load_summary.R
+Rscript /work/jyanglab/subhash/sorgsd/filterfed_vcf/gl_percent.R
+```
+
+
+
+```{r,eval=FALSE}
+library(data.table)
+library(dplyr)
+
+# Load data
+individual_data <- fread("/work/jyanglab/subhash/sorgsd/filterfed_vcf/genotypes_fixed.txt", sep = "\t")
+individual_data$V1 <- ifelse(individual_data$V1 %in% 1:9, paste0("Chr0", individual_data$V1), paste0("Chr", individual_data$V1))
+setnames(individual_data, c("chr", "pos", "ref", "alt", paste0("indiv", 1:(ncol(individual_data) - 4))))
+
+overlapping_data <- fread("/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/0.unziped/tsv_out/0.zero_shot/1.bed_files/zeroshot_in_gene.bed")
+setnames(overlapping_data, c("chr", "start", "end", "pos", "zeroshotscore", "chr_1", "start_1", "end_1", "geneID", "annot", "string", "int"))
+
+# Merge
+merged_data <- merge(overlapping_data, individual_data, by = c("chr", "pos"))
+d <- merged_data[, c("chr", "pos", "zeroshotscore", "start_1", "end_1", "geneID", paste0("indiv", 1:289))]
+
+# Filter for deleterious SNPs
+subset_df <- d[zeroshotscore < 0, ]
+
+# --- VECTORIZE GENETIC LOAD ---
+
+# Function to convert genotype to multiplier
+geno_to_multiplier <- function(x) {
+  ifelse(x == "./.", NA,
+    ifelse(x == "1/1", 2,
+      ifelse(x %in% c("0/1", "1/0"), 1,
+        ifelse(x == "0/0", 0, NA)
+      )
+    )
+  )
+}
+
+# Apply to all genotype columns at once
+genotype_cols <- paste0("indiv", 1:289)
+genotype_matrix <- subset_df[, ..genotype_cols]
+
+# Convert all genotypes to multipliers
+multiplier_matrix <- as.data.table(lapply(genotype_matrix, geno_to_multiplier))
+
+# Multiply by zeroshotscore
+for (i in seq_along(multiplier_matrix)) {
+  multiplier_matrix[[i]] <- multiplier_matrix[[i]] * subset_df$zeroshotscore
+}
+
+# Combine gene info + load info
+subset_df_final <- cbind(subset_df[, .(chr, pos, start_1, end_1, geneID)], multiplier_matrix)
+
+# --- SUMMARIZE ---
+
+# Create genetic load columns names
+genetic_load_cols <- names(multiplier_matrix)
+
+# Summarize per gene
+gene_load_summary <- subset_df_final[, c(
+  .(chr = first(chr), start = min(start_1), end = max(end_1)),
+  lapply(.SD, function(x) sum(abs(x), na.rm = TRUE))
+), by = geneID, .SDcols = genetic_load_cols]
+
+# Save output
+fwrite(gene_load_summary, "/work/jyanglab/subhash/sorgsd/filterfed_vcf/gene_load_summary.txt", sep = "\t", quote = FALSE, row.names = FALSE)
+```
+
+
+```{r,eval=FALSE}
+library(data.table)
+library(dplyr)
+# Load individual genotype data
+individual_data <- fread("/work/jyanglab/subhash/sorgsd/filterfed_vcf/genotypes_fixed.txt", sep = "\t")
+# Format chromosome names
+individual_data$V1 <- ifelse(individual_data$V1 %in% 1:9, paste0("Chr0", individual_data$V1), paste0("Chr", individual_data$V1))
+colnames(individual_data) <- c("chr", "pos", "ref", "alt", paste0("indiv", 1:(ncol(individual_data) - 4)))
+
+# Load overlapping SNPs with gene and zero-shot scores
+overlapping_data <- fread("/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/0.unziped/tsv_out/0.zero_shot/1.bed_files/zeroshot_in_gene.bed")
+colnames(overlapping_data) <- c("chr", "start", "end", "pos", "zeroshotscore", "chr_1", "start_1", "end_1", "geneID", "annot", "string", "int")
+
+# Merge data
+merged_data <- merge(overlapping_data, individual_data, by = c("chr", "pos"))
+
+# Filter for deleterious SNPs only (zeroshotscore < 0)
+d <- merged_data[, c("chr", "pos", "zeroshotscore", "start_1", "end_1", "geneID", paste0("indiv", 1:289))]
+subset_df <- d[d$zeroshotscore < 0, ]
+# Compute quantile cutoffs
+quantiles <- quantile(subset_df$zeroshotscore, probs = c(0.5, 0.9, 0.99, 0.999), na.rm = TRUE)
+
+# Subsets by percentile
+top_50  <- subset_df[subset_df$zeroshotscore <= quantiles[1], ]
+top_10  <- subset_df[subset_df$zeroshotscore <= quantiles[2], ]
+top_1   <- subset_df[subset_df$zeroshotscore <= quantiles[3], ]
+top_0.1 <- subset_df[subset_df$zeroshotscore <= quantiles[4], ]
+# Define genetic load calculation
+compute_genetic_load <- function(genotype, zeroshotscore) {
+  if (genotype == "./.") {
+    return(NA)
+  } else if (genotype == "1/1") {
+    return(2 * zeroshotscore)
+  } else if (genotype == "0/0") {
+    return(0)
+  } else if (genotype %in% c("0/1", "1/0")) {
+    return(zeroshotscore)
+  } else {
+    return(NA)
+  }
+}
+# Generalized function for genetic load calculation and export
+calculate_gene_load <- function(df, label) {
+  for (i in 1:289) {
+    indiv_col <- paste0("indiv", i)
+    new_col <- paste0("genetic_load_", i)
+    df[[new_col]] <- mapply(compute_genetic_load, df[[indiv_col]], df$zeroshotscore)
+  }
+
+  genetic_load_cols <- paste0("genetic_load_", 1:289)
+  gene_load_summary <- df %>%
+    group_by(geneID) %>%
+    summarise(
+      chr = first(chr),
+      start = min(start_1),
+      end = max(end_1),
+      across(all_of(genetic_load_cols), ~sum(abs(.), na.rm = TRUE))
+    )
+  fwrite(
+    gene_load_summary,
+    paste0("/work/jyanglab/subhash/sorgsd/filterfed_vcf/gene_load_summary_top_", label, ".txt"),
+    sep = "\t",
+    quote = FALSE,
+    row.names = FALSE
+  )
+}
+# Run for all subsets
+calculate_gene_load(top_50, "50pct")
+calculate_gene_load(top_10, "10pct")
+calculate_gene_load(top_1, "1pct")
+calculate_gene_load(top_0.1, "0.1pct")
+```
 
