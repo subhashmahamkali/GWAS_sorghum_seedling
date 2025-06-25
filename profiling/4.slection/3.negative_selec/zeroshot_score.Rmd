@@ -1,0 +1,226 @@
+---
+title: "zero_shot_score"
+author: "subhash"
+date: "2025-06-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# preparing input files for running Plant caudaces
+
+creating multiple 10K varainats of chunk files from large .vcf file  for running zeroshot score on GPU
+
+
+```{bash}
+#!/usr/bin/bash
+#SBATCH --job-name=chunk_VCF
+#SBATCH --ntasks=1
+#SBATCH --mem-per-cpu=10G
+#SBATCH --time=10:00:00
+#SBATCH --partition=jclarke,batch,guest
+#SBATCH --output=/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/0.script/chunk_out.txt
+#SBATCH --error=/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/0.script/chunk_err.txt
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+
+
+
+module load bcftools
+module load htslib
+
+INPUT_VCF="/work/jyanglab/subhash/sorgsd/filterfed_vcf/SorGSD.289snp.miss05.vcf.gz"    # Input VCF
+OUTDIR="/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/"         # Output directory
+CHUNK_SIZE=10000                # SNPs per chunk
+
+#mkdir -p $OUTDIR
+# Step 1: Extract header
+bcftools view -h $INPUT_VCF > $OUTDIR/header.vcf
+
+# Step 2: Get total SNP count
+TOTAL_SNPS=$(bcftools view -H $INPUT_VCF | wc -l)
+CHUNKS=$(( (TOTAL_SNPS + CHUNK_SIZE - 1) / CHUNK_SIZE ))
+
+# Step 3: Split into body chunks (no header)
+bcftools view -H $INPUT_VCF | split -l $CHUNK_SIZE -d - $OUTDIR/body_chunk_
+
+# Step 4: Combine header, rename chromosomes, keep GT only
+# Rename chromosome 1-9 → Chr01–Chr09, 10 → Chr10
+# Skip chromosomes outside 1–10
+# Keep only GT field in sample columns
+for f in $OUTDIR/body_chunk_*; do
+  chunk_num=$(basename $f | cut -d'_' -f3)
+  outvcf="$OUTDIR/chunk_${chunk_num}.vcf"
+
+  cat $OUTDIR/header.vcf "$f" | \
+  awk 'BEGIN{OFS="\t"}
+    /^#/ {print; next}
+    {
+      
+      if ($1 ~ /^[0-9]+$/ && $1 <= 10) {
+        if ($1 < 10) $1 = "Chr0"$1;
+        else $1 = "Chr"$1;
+      } else {
+        next 
+      }
+      for (i=10; i<=NF; i++) {
+        split($i, a, ":"); $i = a[1]
+      }
+      print
+    }' > "$outvcf"
+
+  # Compress and index
+  bgzip -f "$outvcf"
+  tabix -p vcf "${outvcf}.gz"
+
+  # Remove raw chunk
+  rm "$f"
+done
+rm chunk_9919{36..74}.vcf.gz
+rm chunk_9919{36..74}.vcf.gz.tbi
+
+```
+
+
+unzipping all these chunks 
+
+```{bash}
+#!/usr/bin/bash
+#SBATCH --job-name=snpchunk_VCF
+#SBATCH --ntasks=1
+#SBATCH --mem-per-cpu=4G
+#SBATCH --time=10:00:00
+#SBATCH --partition=jclarke,batch,guest
+#SBATCH --output=/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/snp_chunks/script/snpchunk_out.txt
+#SBATCH --error=/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/snp_chunks/script/snpchunk_err.txt
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+
+
+ml bcftools
+
+cd /work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/
+
+for f in chunk_*.vcf.gz; do
+  base=$(basename "$f" .vcf.gz)
+  bcftools view -v snps "$f" -Oz -o snp_chunks/${base}_snps.vcf.gz
+  tabix -p vcf snp_chunks/${base}_snps.vcf.gz
+done
+```
+
+creating input .tsv files from multiple chunks of variant .vcf files
+
+```{bash}
+#!/usr/bin/bash
+#SBATCH --job-name=vcf_to_tsv
+#SBATCH --ntasks=1
+#SBATCH --mem=16G
+#SBATCH --time=12:00:00
+#SBATCH --partition=jclarke,batch,guest
+#SBATCH --output=/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/0.unziped/tsv_out/script/vcf_to_tsv_out.txt
+#SBATCH --error=/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/0.unziped/tsv_out/script/vcf_to_tsv_err.txt
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+
+# Load required module
+module load bedtools
+
+# Set genome fasta path
+genomeFA="/work/jyanglab/subhash/0.assignment_agro_932/0..refrence/Phytozome/PhytozomeV13/Sbicolor/v5.1/assembly/Sbicolor_730_v5.0.fa"
+# Input directory with plain .vcf chunks
+VCF_DIR="/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/0.unziped"
+# Output directory for .tsv files
+OUT_DIR="${VCF_DIR}/tsv_out"
+
+# Loop through each uncompressed VCF file
+for inputVCF in $VCF_DIR/chunk_*.vcf; do
+    base=$(basename $inputVCF .vcf)
+    output="${OUT_DIR}/${base}.tsv"
+    echo "Processing: $base"
+    # Step 2: Create BED file
+    grep -v '^#' ${inputVCF} | awk -v OFS="\t" '{print $1,$2-256,$2+256}' > ${inputVCF}.bed
+    # Step 3: Extract sequence
+    bedtools getfasta -tab -fi $genomeFA -bed ${inputVCF}.bed -fo ${inputVCF}.seq.tsv
+    # Step 4: Combine SNP info with sequences
+    awk -v OFS="\t" '$0 !~ /^#/ {print $1,$2-256,$2+256,$2,$4,$5}' ${inputVCF} | \
+    paste - <(cut -f2 ${inputVCF}.seq.tsv) > ${output}_tmp
+    # Step 5: Finalize
+    echo -e "chr\tstart\tend\tpos\tref\talt\tsequences" > ${output}
+    cat ${output}_tmp >> ${output}
+    # Step 6: Cleanup
+    rm ${inputVCF}.bed ${inputVCF}.seq.tsv ${output}_tmp
+done
+
+```
+
+## running plant caudaces model
+
+running plant caudaces on each .tsv chunk files in to different batches
+for each batch I have run 100K varinats (10 x 10K variant chunk files) 
+
+```{bash}
+#!/bin/bash
+#SBATCH --partition=gpu
+#SBATCH --gres=gpu:1
+#SBATCH --constraint=gpu_v100
+#SBATCH --time=03:30:00
+#SBATCH --mem=5G
+#SBATCH --output=/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/0.unziped/tsv_out/0.zero_shot/script/batch_%A_%a.out
+#SBATCH --error=/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/0.unziped/tsv_out/0.zero_shot/script/batch_%A_%a.err
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+
+# Activate environment
+ml anaconda
+conda activate $NRDSTOR/PlantCaduceus_1
+
+# Use batch number from argument
+BATCH_NUM=$1
+BATCH_FILE="/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/0.unziped/tsv_out/0.zero_shot/script/0.file_names_batch/file_batch_${BATCH_NUM}"
+
+echo "Starting Batch $BATCH_NUM using $BATCH_FILE"
+while read FILE; do
+    echo "Scoring $FILE"
+    OUTFILE=$(basename $FILE .tsv)_score.tsv
+    python /work/jyanglab/subhash/PC/git/PlantCaduceus/src/zero_shot_score.py \
+        -input "$FILE" \
+        -output "/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/0.unziped/tsv_out/0.zero_shot/$OUTFILE" \
+        -model 'kuleshov-group/PlantCaduceus_l32' \
+        -device 'cuda:0'
+done < "$BATCH_FILE"
+
+# Submit the next batch
+NEXT_BATCH=$((BATCH_NUM + 1))
+if [ -f "/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/0.unziped/tsv_out/0.zero_shot/script/0.file_names_batch/file_batch_${NEXT_BATCH}" ]; then
+    echo "Submitting next batch: $NEXT_BATCH"
+    sbatch --job-name=zero_shot_batch${NEXT_BATCH} batch_runner.slurm ${NEXT_BATCH}
+else
+    echo "All batches completed."
+fi
+
+```
+
+merging all the tsv files with zeroshot scores into one large .tsv file with scores
+
+```{bash}
+#!/usr/bin/bash
+#SBATCH --job-name=merging_tsv
+#SBATCH --ntasks=1
+#SBATCH --mem=4G
+#SBATCH --time=12:00:00
+#SBATCH --partition=jclarke,batch,guest
+#SBATCH --output=/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/0.unziped/tsv_out/0.zero_shot/script/merged_tsv_out.txt
+#SBATCH --error=/work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/0.unziped/tsv_out/0.zero_shot/script/merged_tsv_err.txt
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+
+cd /work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/0.unziped/tsv_out/0.zero_shot
+
+#all .tsv files are named like `chunk_991916_score.tsv`etc.
+#This will merge all files into `merged_output.tsv`
+
+awk 'NR==1 || FNR > 1' chunk_*_score.tsv > merged_score.tsv
+```
+

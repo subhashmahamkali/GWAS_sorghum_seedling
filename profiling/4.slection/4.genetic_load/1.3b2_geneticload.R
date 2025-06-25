@@ -1,3 +1,19 @@
+
+#/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/B2/b2.bed
+#/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/B2/b2_gene.bed
+
+#/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/positive_selection/landrace_vs_improved.windowed.weir.fst
+#/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/positive_selection/sorg_wild_vs_improved.windowed.weir.fst
+#/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/positive_selection/sorg_wild_vs_landrace.windowed.weir.fst
+
+#/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/positive_selection/wild_vs_improved.bed
+#/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/positive_selection/wild_vs_landrace.bed
+#/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/positive_selection/landrace_vs_improved.bed
+
+
+#/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/6.BT623_gene.V5_up_dw_2k.bed
+#/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/7.sorghum.annotations.xlsx
+
 library(data.table)
 
 b = fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/B2/b2_gene.bed")

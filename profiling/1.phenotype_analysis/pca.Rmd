@@ -105,6 +105,9 @@ p <- ggplot(pca_meta, aes(x=PC1, y=PC2, color=ClusterName, shape=factor(Set))) +
   )
 ggsave("/Users/subhashmahamkali/Documents/gwas_sap/profiling/graphs/pca.pdf", plot = p, width = 8, height = 6)
 ```
+
+
+
 ```{r}
 library(dplyr)
 library(plotly)
