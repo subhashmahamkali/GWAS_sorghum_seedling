@@ -271,3 +271,165 @@ ggsave("/Users/subhashmahamkali/Documents/gwas_sap/graphs/pca_final_clear.pdf",
 nrow(pca_annotated)
 table(pca_annotated$ClusterName)
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{bash}
+ml plink
+plink --vcf /mnt/nrdstor/jyanglab/subhash/datasets/2.289_sorgsd/SorGSD.289snp.miss05.AGPV5.vcf --make-bed --out SorGSD.289snp.miss05.unimp
+
+awk '{print $1, $4}' /mnt/nrdstor/jyanglab/subhash/datasets/2.289_sorgsd/PLINK_un_imputed/SorGSD.289snp.miss05.unimp.bim > /mnt/nrdstor/jyanglab/subhash/datasets/2.289_sorgsd/PLINK_un_imputed/SorGSD.289snp.chr_pos.txt
+sort /mnt/nrdstor/jyanglab/subhash/datasets/2.289_sorgsd/PLINK_un_imputed/SorGSD.289snp.chr_pos.txt > /mnt/nrdstor/jyanglab/subhash/datasets/2.289_sorgsd/PLINK_un_imputed/SorGSD.289snp.chr_pos_sorted.txt
+
+awk '{print $1, $4}' /mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/2.filtered_vcf/1.het_0.1_SAP.bim > /mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/2.filtered_vcf/1.het_0.1_SAP_pos.txt
+sort /mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/2.filtered_vcf/1.het_0.1_SAP_pos.txt > /mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/2.filtered_vcf/1.het_0.1_SAP_pos_sorted.txt
+
+comm -12 /mnt/nrdstor/jyanglab/subhash/datasets/2.289_sorgsd/PLINK_un_imputed/SorGSD.289snp.chr_pos_sorted.txt /mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/2.filtered_vcf/1.het_0.1_SAP_pos_sorted.txt > common_chr_pos.txt
+#sort /mnt/nrdstor/jyanglab/subhash/datasets/2.289_sorgsd/PLINK_un_imputed/common_chr_pos.txt > /mnt/nrdstor/jyanglab/subhash/datasets/2.289_sorgsd/PLINK_un_imputed/common_chr_pos_sorted.txt
+
+
+cd /mnt/nrdstor/jyanglab/subhash/datasets/2.289_sorgsd/PLINK_un_imputed
+awk 'NR==FNR {a[$1"_"$2]; next} ($1"_"$4) in a {print $2}'   OFS="_" common_chr_pos.txt SorGSD.289snp.miss05.unimp.bim > SorGSD.289snp_common.txt
+
+
+cd /mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/2.filtered_vcf
+awk 'NR==FNR {a[$1"_"$2]; next} ($1"_"$4) in a {print $2}'   OFS="_" /mnt/nrdstor/jyanglab/subhash/datasets/2.289_sorgsd/PLINK_un_imputed/common_chr_pos.txt 1.het_0.1_SAP.bim > 1.het_0.1_SAP_common.txt
+
+
+cd /mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/2.filtered_vcf
+ml plink
+plink --bfile 1.het_0.1_SAP --extract 1.het_0.1_SAP_common.txt --make-bed --out pca/SAP_pca_common
+
+cd /mnt/nrdstor/jyanglab/subhash/datasets/2.289_sorgsd/PLINK_un_imputed
+plink --bfile SorGSD.289snp.miss05.unimp --extract SorGSD.289snp_common.txt --make-bed --out pca/SorGSD.289snp_common
+
+
+plink --bfile /mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/2.filtered_vcf/pca/SAP_pca_common --bmerge /mnt/nrdstor/jyanglab/subhash/datasets/2.289_sorgsd/PLINK_un_imputed/pca/SorGSD.289snp_common.bed /mnt/nrdstor/jyanglab/subhash/datasets/2.289_sorgsd/PLINK_un_imputed/pca/SorGSD.289snp_common.bim /mnt/nrdstor/jyanglab/subhash/datasets/2.289_sorgsd/PLINK_un_imputed/pca/SorGSD.289snp_common.fam --make-bed --out /mnt/nrdstor/jyanglab/subhash/datasets/pca_common/merged_for_pca
+
+
+
+
+
+
+```
+
+```{r}
+# Load the PCA result
+merged_pca <- read.table("/Users/subhashmahamkali/Downloads/pca.eigenvec", header = FALSE)
+# Assign column names
+colnames(merged_pca) <- c("FID", "IID", paste0("PC", 1:(ncol(merged_pca) - 2)))
+
+# Basic PCA scatter plot: PC1 vs PC2
+plot(pca$PC1, pca$PC2,
+     xlab = "Principal Component 1",
+     ylab = "Principal Component 2",
+     main = "PCA of Merged Genotypes",
+     pch = 19, col = "steelblue")
+
+# Optional: Label points with IID (sample IDs)
+# text(pca$PC1, pca$PC2, labels = pca$IID, pos = 3, cex = 0.7)
+
+
+library(dplyr)
+library(ggplot2)
+library(readxl)
+
+# 2. Load SAP metadata
+sap_data <- read.csv("/Users/subhashmahamkali/Downloads/tpj15853-sup-0001-files1 (1).csv")[, c(1, 2, 5)]
+colnames(sap_data) <- c("Pinumber", "cluster", "Country")
+
+# Assign subpopulation names for SAP
+sap_cluster_names <- c("1" = "durra", "2" = "kafir", "3" = "caudatum",
+                       "4" = "milo/durra-bicolor", "5" = "mixed/bicolor", "6" = "guinea")
+sap_data <- sap_data %>%
+  mutate(cluster = as.character(cluster),
+         ClusterName = sap_cluster_names[cluster],
+         Set = "SAP") %>%
+  filter(!is.na(ClusterName)) %>%
+  select(Pinumber, ClusterName, Set)
+
+# 3. Load SorGSD metadata
+sorgsd_data <- read_excel("/Users/subhashmahamkali/Downloads/13068_2021_2016_MOESM1_ESM (1).xlsx")
+colnames(sorgsd_data) <- sorgsd_data[1, ]
+sorgsd_data <- sorgsd_data[-1, c(1, 6)]
+colnames(sorgsd_data) <- c("Pinumber", "cluster")
+
+# Clean and assign labels for SorGSD
+sorgsd_data$cluster[sorgsd_data$cluster == "Weedy"] <- "Wild sorghum"
+sorgsd_data <- sorgsd_data[sorgsd_data$cluster != "S.propinquum", ]
+sorgsd_data <- sorgsd_data %>%
+  mutate(ClusterName = case_when(
+    cluster == "Improved" ~ "Improved",
+    cluster == "Landrace" ~ "Landrace",
+    cluster == "Wild sorghum" ~ "Wild sorghum",
+    TRUE ~ NA_character_
+  ),
+  Set = "SorGSD") %>%
+  filter(!is.na(ClusterName)) %>%
+  select(Pinumber, ClusterName, Set)
+
+# 4. Combine metadata from both sets
+all_meta <- bind_rows(sap_data, sorgsd_data)
+
+# 5. Merge metadata with PCA
+pca_annotated <- inner_join(merged_pca, all_meta, by = c("IID" = "Pinumber"))
+
+# 6. Define colors and shapes
+shape_vec <- c("SorGSD" = 17, "SAP" = 16)
+color_vec <- c(
+  "Improved" = "#E41A1C", "Landrace" = "#377EB8", "Wild sorghum" = "#4DAF4A",
+  "durra" = "#FF7F00", "kafir" = "#FFFF33", "caudatum" = "#984EA3",
+  "milo/durra-bicolor" = "#F781BF", "mixed/bicolor" = "#A6A6A6", "guinea" = "#FF5733"
+)
+
+# 7. Plot
+p <- ggplot(pca_annotated, aes(x = PC1, y = PC2, color = ClusterName, shape = Set)) +
+  geom_point(size = 3, alpha = 0.9) +
+  scale_shape_manual(values = shape_vec) +
+  scale_color_manual(values = color_vec) +
+  theme_minimal() +
+  labs(title = "PCA of Merged Sorghum Datasets", x = "PC1", y = "PC2", color = "Subpopulation", shape = "Dataset") +
+  theme(
+    text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 12)
+  )
+
+# Save plot
+ggsave("/Users/subhashmahamkali/Documents/gwas_sap/profiling/graphs/pca_merged.pdf", plot = p, width = 8, height = 6)
+
+```
+
