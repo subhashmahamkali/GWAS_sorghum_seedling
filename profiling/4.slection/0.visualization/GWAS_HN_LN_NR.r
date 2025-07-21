@@ -3,11 +3,11 @@
 
 #library(Ropt)
 library(data.table)
-a=fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum project/positive_selection/all_traits.txt", header=T,data.table=F)
+a=fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/positive_selection/all_traits.txt", header=T,data.table=F)
 a[,1]=gsub("_filtered.csv","",a[,1])
 colnames(a)[1]="Trait"
-ch=fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum project/positive_selection/sorg.chr_length_V5.txt", header=T,data.table=F)
-d=fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum project/positive_selection/All_GWAS_sorg.txt", header=T,data.table=F)[,-c(5:6)]
+ch=fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/positive_selection/sorg.chr_length_V5.txt", header=T,data.table=F)
+d=fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/positive_selection/All_GWAS_sorg.txt", header=T,data.table=F)[,-c(5:6)]
 d=merge(d,a,by="Trait",all.x=T)
 d=d[,c(2,3,4,1,5:6)]
 

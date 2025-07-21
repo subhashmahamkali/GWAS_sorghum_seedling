@@ -14,7 +14,7 @@ knitr::opts_knit$set(root.dir = "/work/jyanglab/subhash/variant_calling")
 # defining the genotype_ID with PI numbers for the 400 indivudals....
 
 ```{r}
-PI <- read.table("accession_ID.txt", sep = "\t", header = TRUE)
+PI <- read.table("/Users/subhashmahamkali/Downloads/variant_calling/accession_ID.txt", sep = "\t", header = TRUE)
 PI_numbers = PI[, 1]
 PI_numbers
 ```
@@ -102,7 +102,7 @@ writeLines(alignment, con = "alignment.txt")
 #marking the duplicates using picard tool....
 
 ```{r}
-setwd("/work/jyanglab/subhash/variant_calling/4.picard/0.scripts")
+setwd("/Users/subhashmahamkali/Downloads/1.miscellaneous/sdjlasj")
 # Define the template for the SLURM script
 template <-
 '#!/bin/sh
@@ -138,6 +138,8 @@ generate_script <- function(PI) {
 sapply(PI_numbers, generate_script)
 # Write sbatch commands to a txt file
 writeLines(picard, con = "picard.txt")
+
+sbatch picard.txt
 ```
 
 #step - 3

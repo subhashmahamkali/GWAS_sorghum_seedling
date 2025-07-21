@@ -73,10 +73,11 @@ map_df <- combined_data %>%
   filter(!is.na(long))
 
 # --- 6. Cluster color palette ---
-cluster_colors <- c("durra" = "green", "kafir" = "orange", "caudatum" = "purple", 
-                    "milo/durra-bicolor" = "gold", "mixed/bicolor" = "brown", 
-                    "guinea" = "red", "Improved" = "lightpink", 
-                    "Wild sorghum" = "navy", "Landrace" = "blue")
+cluster_colors <- c("durra" = "#FF7F00", "kafir" = "#FFFF33", "caudatum" = "#984EA3", 
+                    "milo/durra-bicolor" = "#F781BF", "mixed/bicolor" = "#A6A6A6", 
+                    "guinea" = "#FF5733", "Improved" = "#E41A1C", 
+                    "Wild sorghum" = "#4DAF4A", "Landrace" = "#377EB8")
+
 
 cluster_counts <- combined_data %>%
   group_by(ClusterName) %>%

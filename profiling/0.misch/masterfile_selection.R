@@ -13,12 +13,8 @@ colnames(gsd)[2] = "plant"
 sap = fread("/Users/subhashmahamkali/Downloads/tpj15853-sup-0001-files1 (2).csv")
 sap = sap[, 1]
 colnames(sap)[1] = "sample"
-
-
 mor_sap = intersect(mor$sample, sap$sample)
 mor_sap = data.frame(sample = mor_sap)
-
-
 mor_gsd = intersect(mor$sample, gsd$plant)
 mor_gsd = data.frame(sample = mor_gsd)
 
@@ -29,7 +25,6 @@ b <- read_excel("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_proje
 b <- b[, c(1, 9)]
 b <- b[-c(1, 2), ]
 b <- b[!duplicated(b$Gene), ]
-
 colnames(b) <- c("Gene", "Description")
 colnames(d)[9] <- "Gene"
 merged_data <- merge(d, b, by = "Gene", all.x = TRUE)
@@ -39,11 +34,9 @@ write.table(merged_data, "/Users/subhashmahamkali/Downloads/1.miscellaneous/b2_g
 
 
 library(data.table)
-
 # Load original score intervals
 orig <- fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/B2/b2.bed", header = FALSE)
 colnames(orig) <- c("chr", "start", "end", "score")
-
 # Load gene-intersected file
 gene <- fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/B2/b2_gene.bed", header = FALSE)
 colnames(gene) <- c("chr", "start", "end", "score", "gene_chr", "gene_start", "gene_end", "strand", "gene_id")
@@ -71,7 +64,6 @@ fwrite(gene_with_orig_coords,
 
 
 library(data.table)
-
 # Step 1: Load merged gene file (with max_score per merged region)
 gene <- fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/positive_selection/pos_genes.bed", header = FALSE)
 colnames(gene) <- c("chr", "merged_start", "merged_end", "max_score", "comparison",
@@ -83,7 +75,6 @@ fst_files <- list(
   landrace_vs_improved  = fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/positive_selection/landrace_vs_improved.windowed.weir.fst"),
   sorg_wild_vs_landrace = fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/positive_selection/sorg_wild_vs_landrace.windowed.weir.fst")
 )
-
 # Ensure proper column names
 for (name in names(fst_files)) {
   setnames(fst_files[[name]], c("CHROM", "BIN_START", "BIN_END", "N_VARIANTS", "WEIGHTED_FST", "MEAN_FST"))
@@ -91,11 +82,9 @@ for (name in names(fst_files)) {
 
 # Step 3: Apply fuzzy match per comparison
 result_list <- list()
-
 for (comp in unique(gene$comparison)) {
   gene_sub <- gene[comparison == comp]
   fst <- fst_files[[comp]]
-  
   result_sub <- gene_sub[, {
     hits <- fst[CHROM == chr & BIN_END >= merged_start & BIN_START <= merged_end]
     match <- hits[which.min(abs(WEIGHTED_FST - max_score))]
@@ -135,3 +124,14 @@ write.table(merged_data, "/Users/subhashmahamkali/Downloads/1.miscellaneous/sorg
 #d = final_result
 #colnames(d)[11] <- "Gene"
 write.table(merged_data, "/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/positive_selection/pos_genes_annot.txt", sep="\t", row.names=FALSE, col.names=FALSE, quote=FALSE)
+
+
+
+#after this I merged these 2 files on excell with b2 as column and all these as another column and saved it.
+
+
+
+d = fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/GWAS/GWAS_NR.bed")
+max(d$V4)
+min(d$V4)
+

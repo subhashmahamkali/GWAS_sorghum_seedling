@@ -1,0 +1,100 @@
+---
+title: "zoom_plots"
+author: "subhash"
+date: "2025-07-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+balancing_selection and edits zoom in plot
+```{r}
+library(data.table)
+library(ggplot2)
+d=fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/B2/Sorghum_landrace.AGPV5.B2_stat.txt", header=T,data.table=F)
+region_df <- subset(d, Chr == 9 & physPos >= 56100000 & physPos <= 56400000)
+
+genes_df <- data.frame(gene = "AMT2-1",chr = 9,start = 56225526,end = 56325665)
+#this is gene average
+genes_df$avg = (genes_df$start + genes_df$end)/2
+thr=quantile(d[,4],0.99)
+
+p =ggplot(region_df, aes(x = physPos, y = LR)) +
+  geom_point(color = "black", size = 1) +
+  geom_hline(yintercept = thr, color = "red", linetype = "dashed") +
+  geom_vline(xintercept = genes_df$avg,color = "darkgreen", size = 1, linetype = "dashed") +
+  labs(title = "Balancing Selection: Chr9 gene in edits(pPTN 1483)",
+       x = "Genomic Position (mb)",
+       y = "Balancing Selection Score") +
+  scale_y_continuous(limits = c(-1, NA)) +
+  scale_x_continuous(labels = function(x) x / 1e6) +
+  theme_bw() +  theme(plot.title = element_text(hjust = 0.5))
+ggsave("/Users/subhashmahamkali/Documents/gwas_sap/graphs/0.edits_misch/bs.png", p, width = 8, height = 5, dpi = 500)
+
+```
+
+GWAS zoom in plot for the edits
+```{r}
+d=fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/positive_selection/All_GWAS_sorg.txt", header=T,data.table=F)[,-c(5:6)]
+region_df <- subset(d, CHROM == 10 & POS >= 2500000 & POS <= 2620000)
+region_df$logP <- -log10(region_df$`P-value`)
+#this is gene average
+avg = (2589356+2590518)/2
+p = ggplot(region_df, aes(x = POS, y = logP)) +
+  geom_point(color = "black", size = 1) +
+  geom_hline(yintercept = -log10(1e-5), linetype = "dashed", color = "red") +
+  geom_vline(xintercept = avg,color = "darkgreen", size = 1, linetype = "dashed") +
+  scale_x_continuous(labels = function(x) x / 1e6) +
+  labs(title = "GWAS TillersPerPlant _21_HN (Chr10 (early nodulin related) in edits(pPTN 1479))",
+       x = "Genomic Position (mb)", y = expression(-log[10](P))) +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_point(aes(x = 2565075, y = -log10(0.00000985)), color = "red", size = 2)
+p
+ggsave("/Users/subhashmahamkali/Documents/gwas_sap/graphs/0.edits_misch/1.GWAS.png", p, width = 8, height = 5, dpi = 500)
+```
+
+
+2.GWAS
+```{r}
+region_df <- subset(d, CHROM == 2 & POS >= 1416168 & POS <= 1496168)
+region_df$logP <- -log10(region_df$`P-value`)
+#this is gene average
+avg = (1477121+1479328)/2
+p = ggplot(region_df, aes(x = POS, y = logP)) +
+  geom_point(color = "black", size = 1) +
+  geom_hline(yintercept = -log10(1e-5), linetype = "dashed", color = "red") +
+  geom_vline(xintercept = avg,color = "darkgreen", size = 1, linetype = "dashed") +
+  scale_x_continuous(labels = function(x) x / 1e6) +
+  labs(title = "GWASrachisdiameterupper_20_NR (Chr2 (Myb TF) in edits pPTN1617)",
+       x = "Genomic Position (mb)", y = expression(-log[10](P))) +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_point(aes(x = 1456168, y = -log10(0.00000621)), color = "red", size = 2)
+p
+ggsave("/Users/subhashmahamkali/Documents/gwas_sap/graphs/0.edits_misch/2.GWAS.png", p, width = 8, height = 5, dpi = 500)
+```
+
+3.GWAS
+```{r}
+region_df <- subset(d, CHROM == 1 & POS >= 67095161 & POS <= 67175161)
+region_df$logP <- -log10(region_df$`P-value`)
+#this is gene average
+avg = (67092434+67094604)/2
+p = ggplot(region_df, aes(x = POS, y = logP)) +
+  geom_point(color = "black", size = 1) +
+  geom_hline(yintercept = -log10(1e-5), linetype = "dashed", color = "red") +
+  geom_vline(xintercept = avg,color = "darkgreen", size = 1, linetype = "dashed") +
+  scale_x_continuous(labels = function(x) x / 1e6) +
+  labs(title = "GWAS thirdleadwodth_20_LN (Chr1 (SPX domain-containing protein 3) in edits pPTN1617)",
+       x = "Genomic Position (mb)", y = expression(-log[10](P))) +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_point(aes(x = 67135161, y = -log10(0.00000553)), color = "red", size = 2)
+p
+ggsave("/Users/subhashmahamkali/Documents/gwas_sap/graphs/0.edits_misch/3.GWAS.png", p, width = 8, height = 5, dpi = 500)
+```
+
