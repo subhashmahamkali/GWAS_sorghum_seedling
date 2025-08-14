@@ -183,13 +183,11 @@ done
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
 
-# Load variables
 CHR=${SLURM_ARRAY_TASK_ID}
-# Paths
+
 INPUT_DIR=/work/jyanglab/subhash/sorgsd/bal_s/3.input
 OUT_DIR=/work/jyanglab/subhash/sorgsd/bal_s/4.b2/wild
-SOFT_DIR=/mnt/nrdstor/jyanglab/subhash/software/BallerMix/software
-# Filenames
+
 INPUT_FILE=${INPUT_DIR}/wild_BalLeRMix_input_chr${CHR}.txt.filtered
 DAF_FILE=${OUT_DIR}/Chr${CHR}.wild_49_samples.propinquum.DAF.txt
 B2_FILE=${OUT_DIR}/Chr${CHR}.wild_49samples.propinquum.B2_stat.txt
