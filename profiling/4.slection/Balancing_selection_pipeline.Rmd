@@ -1,0 +1,202 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Filtering the vcf files for the wild and improved lines along with S.propinqaum (ancestor allele)
+using vcftools subset the 3 .vcf files for wild, improved and ancestor
+also calculated the allele freequecny in ancestor(#3) samples
+
+```{bash}
+#!/bin/sh
+#SBATCH --job-name=filter_missing
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --time=120:00:00
+#SBATCH --mem=10G
+#SBATCH --partition=jclarke,batch,guest
+#SBATCH --error=/work/jyanglab/subhash/sorgsd/bal_s/filter_missing_err.txt
+#SBATCH --output=/work/jyanglab/subhash/sorgsd/bal_s/filter_missing_out.txt
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+
+ml vcftools
+
+vcftools --vcf /work/jyanglab/subhash/sorgsd/gen_v5/SorGSD.289snp.imputed.V5.vcf --keep /work/jyanglab/subhash/sorgsd/filterfed_vcf/propinqaum_sample.txt --recode --out /work/jyanglab/subhash/sorgsd/bal_s/propinqaum_3sample
+
+vcftools --vcf propinqaum_3sample.recode.vcf --freq --out /work/jyanglab/subhash/sorgsd/bal_s/propinqaum_3sample
+
+vcftools --vcf /work/jyanglab/subhash/sorgsd/gen_v5/SorGSD.289snp.imputed.V5.vcf --keep /work/jyanglab/subhash/sorgsd/filterfed_vcf/wild.txt --recode --out /work/jyanglab/subhash/sorgsd/bal_s/wild_50_samples
+
+vcftools --vcf /work/jyanglab/subhash/sorgsd/gen_v5/SorGSD.289snp.imputed.V5.vcf --keep /work/jyanglab/subhash/sorgsd/filterfed_vcf/improved.txt --recode --out /work/jyanglab/subhash/sorgsd/bal_s/imp_129_samples
+```
+
+
+submitting below R code as slurm job on HCC unl
+```{bash}
+#!/bin/sh
+#SBATCH --job-name=ans
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --time=120:00:00
+#SBATCH --mem=10G
+#SBATCH --partition=jclarke,batch,guest
+#SBATCH --error=/work/jyanglab/subhash/sorgsd/bal_s/ans_freq/ans_err.txt
+#SBATCH --output=/work/jyanglab/subhash/sorgsd/bal_s/ans_freq/ans_out.txt
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+
+ml R
+Rscript /work/jyanglab/subhash/sorgsd/bal_s/ans_freq/ans.R
+```
+
+## Calculating ancestor allele freq and count for all the chromosomes at once from the outgroup
+
+```{r}
+library(data.table)
+
+d = fread("/work/jyanglab/subhash/sorgsd/bal_s/propinqaum_3sample.frq", header=F, data.table=TRUE)
+a1 = unlist(strsplit(d[[5]], ":"))
+allele1 = a1[seq(1, length(a1), by=2)]
+freq1 = as.numeric(a1[seq(2, length(a1), by=2)])
+a2 = unlist(strsplit(d[[6]], ":"))
+allele2 = a2[seq(1, length(a2), by=2)]
+freq2 = as.numeric(a2[seq(2, length(a2), by=2)])
+
+#after spliting giving the allele 1 and freq 1 and same for allele 2 and freq2
+
+d1 = data.table(d[, 1:2], allele1, freq1, allele2, freq2)
+setnames(d1, c("Chr", "Pos", "allele1", "Freq1", "allele2", "Freq2"))
+
+#consider whichever allele is higher is considered to be ancestral allele
+d1[, ancestral_allele := ifelse(Freq1 >= Freq2, allele1, allele2)]
+fwrite(d1, "/work/jyanglab/subhash/sorgsd/bal_s/ans_freq/Sorghum_ancestral_allele_V3.1.txt", sep = "\t")
+```
+
+### Calculating allele counts for both the wild and improved lines
+To caculate how many derived alleles at each site
+
+```{r}
+#!/bin/sh
+#SBATCH --job-name=frq
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --time=120:00:00
+#SBATCH --mem=10G
+#SBATCH --partition=jclarke,batch,guest
+#SBATCH --error=/work/jyanglab/subhash/sorgsd/bal_s/2.frq/frq_err.txt
+#SBATCH --output=/work/jyanglab/subhash/sorgsd/bal_s/2.frq/frq_out.txt
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+ml vcftools
+
+vcftools --vcf /work/jyanglab/subhash/sorgsd/bal_s/wild_50_samples.recode.vcf --counts --out /work/jyanglab/subhash/sorgsd/bal_s/2.frq/wild_counts
+
+vcftools --vcf /work/jyanglab/subhash/sorgsd/bal_s/imp_129_samples.recode.vcf --counts --out /work/jyanglab/subhash/sorgsd/bal_s/2.frq/imp_counts
+```
+
+
+
+```{bash}
+#!/bin/sh
+#SBATCH --job-name=inpu_w
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --time=120:00:00
+#SBATCH --mem=10G
+#SBATCH --partition=jclarke,batch,guest
+#SBATCH --error=/work/jyanglab/subhash/sorgsd/bal_s/3.input/inpW_err.txt
+#SBATCH --output=/work/jyanglab/subhash/sorgsd/bal_s/3.input/inpW_out.txt
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+
+ml R
+Rscript /work/jyanglab/subhash/sorgsd/bal_s/3.input/in_w.R
+```
+
+
+here I did subset to work on small sample set to test the pipeline once, it sucessfully generated the output files I have run the whole pipeline on large dataset
+
+```{bash}
+head -n 101 /work/jyanglab/subhash/sorgsd/bal_s/Sorghum_ancestral_allele_V3.1.txt > /work/jyanglab/subhash/sorgsd/bal_s/subset/anc_subset.txt
+head -n 101 /work/jyanglab/subhash/sorgsd/bal_s/2.frq/wild_counts.frq.count > /work/jyanglab/subhash/sorgsd/bal_s/subset/wild_counts_subset.frq.count
+head -n 101 imp_counts.frq.count > /work/jyanglab/subhash/sorgsd/bal_s/subset/imp_counts_subset.frq.count
+
+
+head -n 1000 /work/jyanglab/subhash/sorgsd/bal_s/subset/BalLeRMix_input_chr1.filtered.txt > 1000.txt
+```
+
+#### Generating the input file for the BalLeRiMix 
+
+This below script helps to calculate derived allele count (which is opposite of ancester allele)
+```{r}
+library(data.table)
+
+anc <- fread("/work/jyanglab/subhash/sorgsd/bal_s/ans_freq/Sorghum_ancestral_allele_V3.1.txt")
+
+wild <- fread("/work/jyanglab/subhash/sorgsd/bal_s/2.frq/wild_counts.frq.count", skip = 1,
+              col.names = c("Chr", "Pos", "N_alleles", "n", "allele1_count", "allele2_count"))
+
+setnames(wild, c("Chr", "Pos", "N_alleles", "n", "count1", "count2"))
+
+wild[, count1_num := as.integer(sub("^[A-Z]:", "", count1))]
+wild[, count2_num := as.integer(sub("^[A-Z]:", "", count2))]
+
+#chromsome by chromsome loop here to calculate derived allele count in each site ( opposite of ancester allel) 
+
+for (chr in unique(anc$Chr)) {
+  anc_chr <- anc[Chr == chr]
+  wild_chr <- wild[Chr == chr]
+  wild_merged_chr <- merge(anc_chr, wild_chr, by = c("Chr", "Pos"))
+  wild_merged_chr[, x := ifelse(ancestral_allele == allele1, count2_num, count1_num)]
+  wild_input_chr <- wild_merged_chr[, .(physPos = Pos, 
+                                        genePos = Pos / 1e6, 
+                                        x = x, 
+                                        n = n)]
+#writingg the input file for BalLeRMix
+  fwrite(wild_input_chr, 
+         paste0("/work/jyanglab/subhash/sorgsd/bal_s/3.input/wild_BalLeRMix_input_chr", chr, ".txt"), 
+         sep = "\t", col.names = FALSE)
+}
+```
+
+filtering the missing count values 
+```{bash}
+for f in /work/jyanglab/subhash/sorgsd/bal_s/3.input/wild_BalLeRMix_input_chr*.txt; do
+  awk '$3 > 0' "$f" > "${f}.filtered"
+done
+```
+
+##### Running the BalLeRMix on each chromsome  to generate B2 score at each site
+
+```{r}
+#!/bin/sh
+#SBATCH --job-name=wild_array
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --time=160:00:00
+#SBATCH --mem=20G
+#SBATCH --partition=jclarke,batch,guest
+#SBATCH --error=/work/jyanglab/subhash/sorgsd/bal_s/4.b2/wild/W_err_%A_%a.txt
+#SBATCH --output=/work/jyanglab/subhash/sorgsd/bal_s/4.b2/wild/W_out_%A_%a.txt
+#SBATCH --array=1-10
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+
+# Load variables
+CHR=${SLURM_ARRAY_TASK_ID}
+# Paths
+INPUT_DIR=/work/jyanglab/subhash/sorgsd/bal_s/3.input
+OUT_DIR=/work/jyanglab/subhash/sorgsd/bal_s/4.b2/wild
+SOFT_DIR=/mnt/nrdstor/jyanglab/subhash/software/BallerMix/software
+# Filenames
+INPUT_FILE=${INPUT_DIR}/wild_BalLeRMix_input_chr${CHR}.txt.filtered
+DAF_FILE=${OUT_DIR}/Chr${CHR}.wild_49_samples.propinquum.DAF.txt
+B2_FILE=${OUT_DIR}/Chr${CHR}.wild_49samples.propinquum.B2_stat.txt
+# Step 1: Get spectrum
+python ${SOFT_DIR}/BalLeRMix_v2.5.py -i ${INPUT_FILE} --getSpect --spect ${DAF_FILE}
+# Step 2: Run B2 statistic
+python ${SOFT_DIR}/BalLeRMix_v2.5.py -i ${INPUT_FILE} --spect ${DAF_FILE} --physPos -o ${B2_FILE}
+```
+
+
