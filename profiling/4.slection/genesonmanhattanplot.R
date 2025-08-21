@@ -20,7 +20,9 @@ gene$phys_pos <- gene$phys_pos / 1e6
 d=fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/B2/Sorghum_landrace.AGPV5.B2_stat.txt", header=T,data.table=F)
 d=d[,c(1,2,4)] #keeps only column 1,2,4 chr,pos,score
 thr=quantile(d[,3],0.99)#threshold of 1%
-d=d[order(d[,1],d[,2]),]#order by chr and pos
+thr
+#1111.447
+thrd=d[order(d[,1],d[,2]),]#order by chr and pos
 dd=NULL
 for (k in 1:10){sub=subset(d,d[,1]==k)
 sub[,2]=sub[,2]+ch[k,4]

@@ -1,8 +1,9 @@
 ---
-title: "R Notebook"
+title: "1.Balancing selection ananlysis (B2 score)"
 output: html_notebook
+author: "subhash"
+date: "2025-08-13"
 ---
-
 # Filtering the vcf files for the wild and improved lines along with S.propinqaum (ancestor allele)
 using vcftools subset the 3 .vcf files for wild, improved and ancestor
 also calculated the allele freequecny in ancestor(#3) samples
@@ -33,6 +34,7 @@ vcftools --vcf /work/jyanglab/subhash/sorgsd/gen_v5/SorGSD.289snp.imputed.V5.vcf
 
 
 submitting below R code as slurm job on HCC unl
+
 ```{bash}
 #!/bin/sh
 #SBATCH --job-name=ans
@@ -76,7 +78,7 @@ fwrite(d1, "/work/jyanglab/subhash/sorgsd/bal_s/ans_freq/Sorghum_ancestral_allel
 ### Calculating allele counts for both the wild and improved lines
 To caculate how many derived alleles at each site
 
-```{r}
+```{bash}
 #!/bin/sh
 #SBATCH --job-name=frq
 #SBATCH --nodes=1
@@ -88,10 +90,9 @@ To caculate how many derived alleles at each site
 #SBATCH --output=/work/jyanglab/subhash/sorgsd/bal_s/2.frq/frq_out.txt
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+
 ml vcftools
-
 vcftools --vcf /work/jyanglab/subhash/sorgsd/bal_s/wild_50_samples.recode.vcf --counts --out /work/jyanglab/subhash/sorgsd/bal_s/2.frq/wild_counts
-
 vcftools --vcf /work/jyanglab/subhash/sorgsd/bal_s/imp_129_samples.recode.vcf --counts --out /work/jyanglab/subhash/sorgsd/bal_s/2.frq/imp_counts
 ```
 
@@ -121,8 +122,6 @@ here I did subset to work on small sample set to test the pipeline once, it suce
 head -n 101 /work/jyanglab/subhash/sorgsd/bal_s/Sorghum_ancestral_allele_V3.1.txt > /work/jyanglab/subhash/sorgsd/bal_s/subset/anc_subset.txt
 head -n 101 /work/jyanglab/subhash/sorgsd/bal_s/2.frq/wild_counts.frq.count > /work/jyanglab/subhash/sorgsd/bal_s/subset/wild_counts_subset.frq.count
 head -n 101 imp_counts.frq.count > /work/jyanglab/subhash/sorgsd/bal_s/subset/imp_counts_subset.frq.count
-
-
 head -n 1000 /work/jyanglab/subhash/sorgsd/bal_s/subset/BalLeRMix_input_chr1.filtered.txt > 1000.txt
 ```
 
@@ -160,41 +159,123 @@ for (chr in unique(anc$Chr)) {
 }
 ```
 
-filtering the missing count values 
+
+
 ```{bash}
-for f in /work/jyanglab/subhash/sorgsd/bal_s/3.input/wild_BalLeRMix_input_chr*.txt; do
-  awk '$3 > 0' "$f" > "${f}.filtered"
+#copying the Ballerimix input files (for each chromosome) in to different directories (by creating new ones) to keep the files organized and then filtereing the empty rows
+cd /work/jyanglab/subhash/sorgsd/bal_s/3.input/wild
+for chr in {1..10}; do
+    mkdir -p chr_${chr}
+    # Copy original input
+    cp imp_BalLeRMix_input_chr${chr}.txt chr_${chr}/
+    # Filter out monomorphic sites
+    awk '$3>0 && $3<$4' chr_${chr}/imp_BalLeRMix_input_chr${chr}.txt \
+        > chr_${chr}/imp_BalLeRMix_input_chr${chr}.filtered.txt
+done
+
+
+#splitting the each chromosome file into 5k varinats for easy calculation of B2 score
+cd /work/jyanglab/subhash/sorgsd/bal_s/3.input/wild
+for chr in {1..10}; do
+    cd chr_${chr}
+    split -l 5000 --numeric-suffixes=1 --suffix-length=4 \
+        imp_BalLeRMix_input_chr${chr}.filtered.txt chunk_
+    cd ..
+done
+
+#generatig the spectrun DAF file for each chrmosome 
+#SFS calculation from the BalLeriMix to use to calculate the B2 score
+cd /work/jyanglab/subhash/sorgsd/bal_s/3.input/wild
+for chr in {1..10}; do
+    python /mnt/nrdstor/jyanglab/subhash/software/BallerMix/software/BalLeRMix_v2.5.py \
+        -i chr_${chr}/imp_BalLeRMix_input_chr${chr}.filtered.txt \
+        --getSpect \
+        --spect chr_${chr}/chr${chr}.spect.txt
+done
+
+
+#counting number of chunks in each chromosome (just for teh ease of jobsubimiting on HCC unl)
+for chr in {1..10}; do
+    echo "chr_${chr}: $(ls chr_${chr}/chunk_* | wc -l) chunks"
+done
+#chr_1: 207 chunks
+#chr_2: 226 chunks
+#chr_3: 202 chunks
+#chr_4: 214 chunks
+#chr_5: 176 chunks
+#chr_6: 167 chunks
+#chr_7: 156 chunks
+#chr_8: 181 chunks
+#chr_9: 175 chunks
+#chr_10: 182 chunks
+
+#creating log files to get the out and error files for each job
+for chr in {1..10}; do
+    mkdir -p /work/jyanglab/subhash/sorgsd/bal_s/3.input/imp/chr_${chr}/logs
 done
 ```
 
-##### Running the BalLeRMix on each chromsome  to generate B2 score at each site
 
-```{r}
-#!/bin/sh
-#SBATCH --job-name=wild_array
+The below is the template I used to submit the BalLeriMix model to compute B2 score on each variant. using this template I can run many jobs to get the B2 stat score
+
+```{bash}
+#!/bin/bash
+#SBATCH --job-name=chr${CHR}_wild
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --time=160:00:00
-#SBATCH --mem=20G
-#SBATCH --partition=jclarke,batch,guest
-#SBATCH --error=/work/jyanglab/subhash/sorgsd/bal_s/4.b2/wild/W_err_%A_%a.txt
-#SBATCH --output=/work/jyanglab/subhash/sorgsd/bal_s/4.b2/wild/W_out_%A_%a.txt
-#SBATCH --array=1-10
-#SBATCH --mail-type=ALL
+#SBATCH --time=5:00:00
+#SBATCH --mem=4G
+#SBATCH --partition=batch,guest,jclarke
+#SBATCH --output=/work/jyanglab/subhash/sorgsd/bal_s/3.input/wild/chr_${CHR}/logs/%A_%a.out.txt
+#SBATCH --error=/work/jyanglab/subhash/sorgsd/bal_s/3.input/wild/chr_${CHR}/logs/%A_%a.err.txt
 #SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+#SBATCH --mail-type=END,FAIL
 
-CHR=${SLURM_ARRAY_TASK_ID}
+# Inputs
+CHR=${CHR}   # passed via sbatch --export
+CHUNK_DIR=/work/jyanglab/subhash/sorgsd/bal_s/3.input/wild/chr_${CHR}
+SOFTWARE=/mnt/nrdstor/jyanglab/subhash/software/BallerMix/software/BalLeRMix_v2.5.py
 
-INPUT_DIR=/work/jyanglab/subhash/sorgsd/bal_s/3.input
-OUT_DIR=/work/jyanglab/subhash/sorgsd/bal_s/4.b2/wild
+# Format ID like 0001, 0002...
+ID=$(printf "%04d" ${SLURM_ARRAY_TASK_ID})
+FILE=$CHUNK_DIR/chunk_${ID}
 
-INPUT_FILE=${INPUT_DIR}/wild_BalLeRMix_input_chr${CHR}.txt.filtered
-DAF_FILE=${OUT_DIR}/Chr${CHR}.wild_49_samples.propinquum.DAF.txt
-B2_FILE=${OUT_DIR}/Chr${CHR}.wild_49samples.propinquum.B2_stat.txt
-# Step 1: Get spectrum
-python ${SOFT_DIR}/BalLeRMix_v2.5.py -i ${INPUT_FILE} --getSpect --spect ${DAF_FILE}
-# Step 2: Run B2 statistic
-python ${SOFT_DIR}/BalLeRMix_v2.5.py -i ${INPUT_FILE} --spect ${DAF_FILE} --physPos -o ${B2_FILE}
+echo ">>> Processing chromosome $CHR, chunk $ID"
+
+python $SOFTWARE \
+   -i "$FILE" \
+   --spect $CHUNK_DIR/chr${CHR}.spect.txt \
+   --physPos \
+   -o "${FILE}.B2.txt"
+
+echo ">>> Finished chromosome $CHR, chunk $ID$ CHUNK_DIR/chr${CHR}.spect.txt"
+
 ```
+
+job submission by chromosome to chromsome
+```{bash}
+sbatch --export=CHR=1 --array=1-207 chr_array.slurm
+sbatch --export=CHR=2 --array=1-226 chr_array.slurm
+sbatch --export=CHR=3 --array=1-202 chr_array.slurm
+sbatch --export=CHR=4 --array=1-214 chr_array.slurm
+sbatch --export=CHR=5 --array=1-176 chr_array.slurm
+sbatch --export=CHR=6 --array=1-167 chr_array.slurm
+sbatch --export=CHR=7 --array=1-156 chr_array.slurm
+sbatch --export=CHR=8 --array=1-181 chr_array.slurm
+sbatch --export=CHR=9 --array=1-175 chr_array.slurm
+sbatch --export=CHR=10 --array=1-182 chr_array.slurm
+```
+
+
+# these are mischlenus code from the begginer 
+I use them to track my running jobs
+since I submitted toomany jobs to see and track using naked eye 
+the below code lines will help to 
+```{bash}
+squeue -j 11541491 | wc -l
+sacct -j 11545344 --format=JobID,State
+squeue -j 11545344 -o "%.18i %.9T" | wc -l
+```
+
 
 
