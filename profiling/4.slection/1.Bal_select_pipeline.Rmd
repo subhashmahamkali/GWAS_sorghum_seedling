@@ -278,4 +278,189 @@ squeue -j 11545344 -o "%.18i %.9T" | wc -l
 ```
 
 
+# merging all the chunk output files into one big file
+
+```{bash}
+#merging all the chunks in each chromosome as one file
+for chr in {1..10}; do     out="chr_${chr}/chr${chr}_merged.B2.txt";     echo "Merging chromosome $chr → $out";     cat chr_${chr}/chunk_*.B2.txt > "$out"; done
+
+#merging all the chromsomes in to one big file buy adding an extra column called chromosme
+out="imp_chr_merged_with_chr.B2.txt"
+for chr in {1..10}; do     file="chr_${chr}/chr${chr}_merged.B2.txt";     echo "Adding $file to $out with chr=$chr";          if [ $chr -eq 1 ]; then         awk -v c=$chr 'NR==1{print $0 "\tchr"; next} {print $0 "\t" c}' "$file" > "$out";     else         awk -v c=$chr 'NR>1{print $0 "\t" c}' "$file" >> "$out";     fi; done
+
+
+# zipping the file for ease of loading in R studio
+gzip -c imp_chr_merged_with_chr.B2.txt > imp_chr_merged_with_chr.B2.txt.gz
+
+#filtering the top1% B2 scores and then sorting based on chromosome and position
+sort -k3,3nr all_chr_merged_with_chr.B2.txt | head -n $(($(wc -l < all_chr_merged_with_chr.B2.txt )/100)) > wild.top1.txt
+```
+
+
+# landraces
+creating the bed file for the top one perecent
+
+```{bash}
+#create top 1% threshold
+sort -k4,4nr /mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/Sorghum_landrace.AGPV5.B2_stat.txt | head -n $(($(wc -l < /mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/Sorghum_landrace.AGPV5.B2_stat.txt )/100)) > /mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/land.top1.txt
+
+#convert to bed file
+awk -v OFS="\t" '{start=$2-40000; if(start<0) start=0; end=$2+40000; print $1, start, end, $4}' /mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/land.top1.txt > /mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/land.40kb.bed
+
+#sort the bed file according to the chromosomes
+sort -k1,1V -k2,2n /mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/land.40kb.bed > /mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/land.40kb.sorted.bed
+
+wc -l /mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/land.40kb.sorted.bed
+#147267
+
+```
+
+
+# Domestication trajectory
+creating the bed files from the balancing selection results
+```{bash}
+#wild population 
+#generating the bed file and sorting based on chromomes
+awk -v OFS="\t" '{start=$1-40000; if(start<0) start=0; end=$1+40000; print $7, start, end, $3}' /work/jyanglab/subhash/sorgsd/bal_s/3.input/wild/wild.top1.txt > wild.40kb.bed
+
+sort -k1,1V -k2,2n wild.40kb.bed > wild.40kb.sorted.bed
+
+wc -l wild.40kb.sorted.bed 
+#213176
+
+#improved lines
+awk -v OFS="\t" '{start=$1-40000; if(start<0) start=0; end=$1+40000; print $7, start, end, $3}' /work/jyanglab/subhash/sorgsd/bal_s/3.input/imp/imp.top1.txt > /work/jyanglab/subhash/sorgsd/bal_s/3.input/imp/imp.40kb.bed
+
+sort -k1,1V -k2,2n imp.40kb.bed > imp.40kb.sorted.bed
+
+wc -l imp.40kb.sorted.bed 
+#94048
+```
+
+# looking for the overlap in bed files within bal
+
+```{bash}
+cd /work/jyanglab/subhash/sorgsd/bal_s/3.input
+ml bedtools
+#merging the nearby positions and kept the highest value
+bedtools merge -i wild.40kb.sorted.bed -d 40000 -c 4 -o max > wild.40kb.merged.bed
+bedtools merge -i land.40kb.sorted.bed -d 40000 -c 4 -o max > land.40kb.merged.bed
+bedtools merge -i imp.40kb.sorted.bed -d 40000 -c 4 -o max > imp.40kb.merged.bed
+
+cd /work/jyanglab/subhash/sorgsd/bal_s/3.input
+bedtools intersect -a wild.40kb.merged.bed -b land.40kb.merged.bed -wa -wb > W_L_overlap.bed
+wc -l W_L_overlap.bed 
+#137
+bedtools intersect -a W_L_overlap.bed -b imp.40kb.merged.bed -wa -wb > W_L_I_overlap.bed
+wc -l W_L_I_overlap.bed 
+#60
+
+#These 60 loci are conserved balancing selection targets the selective pressure that maintains variation in wild populations has persisted through domestication and improvement.
+#They are high confidence candidates for important functional genes or regulatory regions.
+###These are loci where genetic diversity is actively maintained across evolutionary and breeding processes.
+```
+
+
+# seeing the overlap between the bal and pos
+```{bash}
+bedtools intersect -a wild.merged.bed -b /mnt/nrdstor/jyanglab/subhash/datasets/3.results/positive/wild_vs_landrace.bed -wa -wb > bal_wild_landrace.bed
+
+bedtools intersect -a wild.merged.bed -b /mnt/nrdstor/jyanglab/subhash/datasets/3.results/positive/landrace_vs_improved.bed -wa -wb > 
+bal_landrace_vs_improved.bed
+```
+
+what is loci?
+A locus is a genomic region defined by merged B2 windows (+,- 40kb from physPos).
+Each locus can include multiple SNPs or variants, but it is considered one signal of balancing selection.
+By merging nearby windows (±40 kb and adjacent regions), we avoid counting the same signal multiple times.
+
+
+
+
+
+
+```{bash}
+/work/jyanglab/subhash/sorgsd/bal_s/3.input
+
+awk '{OFS="\t"; print $NF, $1-1, $1, $3}' /work/jyanglab/subhash/sorgsd/bal_s/3.input/wild/wild.top1.txt > 0.1wild.sites.bed
+
+sort -k1,1 -k2,2n 0.1wild.sites.bed > 0.01wild.sites.sorted.bed
+
+bedtools intersect -a 0.01wild.sites.sorted.bed -b W_L_I_overlap.bed -wa > 0.001wild_in_overlap.bed
+
+bedtools intersect -a 0.01wild.sites.sorted.bed -b W_L_I_overlap.bed -wa -wb > 0.0001wild_overlap_with_locus.bed
+
+awk '{
+    key = $5":"$6; 
+    if($4>max[key]){max[key]=$4; line[key]=$0}
+} END{for(k in line) print line[k]}' 0.0001wild_overlap_with_locus.bed > wild_leading_SNPs.bed
+#60
+```
+
+
+Improved 
+
+```{bash}
+/work/jyanglab/subhash/sorgsd/bal_s/3.input
+
+awk '{OFS="\t"; print $NF, $1-1, $1, $3}' /work/jyanglab/subhash/sorgsd/bal_s/3.input/imp/imp.top1.txt > 0.1imp.sites.bed
+#94048 0.1imp.sites.bed
+sort -k1,1 -k2,2n 0.1imp.sites.bed > 0.01imp.sites.sorted.bed
+#94048 0.01imp.sites.sorted.bed
+bedtools intersect -a 0.01imp.sites.sorted.bed -b W_L_I_overlap.bed -wa > 0.001imp_in_overlap.bed
+#40620 0.001imp_in_overlap.bed
+bedtools intersect -a 0.01imp.sites.sorted.bed -b W_L_I_overlap.bed -wa -wb > 0.0001imp_overlap_with_locus.bed
+#40620 0.0001imp_overlap_with_locus.bed
+awk '{
+    key = $5":"$6; 
+    if($4>max[key]){max[key]=$4; line[key]=$0}
+} END{for(k in line) print line[k]}' 0.0001imp_overlap_with_locus.bed > imp_leading_SNPs.bed
+#59 imp_leading_SNPs.bed
+```
+
+landraces
+
+```{bash}
+/work/jyanglab/subhash/sorgsd/bal_s/3.input
+
+awk '{OFS="\t"; print $1, $2-1, $2, $4}' /mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/land.top1.txt > 0.1land.sites.bed
+ wc -l 0.1land.sites.bed
+#147267
+
+sort -k1,1 -k2,2n 0.1land.sites.bed > 0.01land.sites.sorted.bed
+ wc -l 0.01land.sites.sorted.bed
+#147267
+
+bedtools intersect -a 0.01land.sites.sorted.bed -b W_L_I_overlap.bed -wa > 0.001land_in_overlap.bed
+#55858 
+bedtools intersect -a 0.01land.sites.sorted.bed -b W_L_I_overlap.bed -wa -wb > 0.0001land_overlap_with_locus.bed
+
+awk '{
+    key = $5":"$6; 
+    if($4>max[key]){max[key]=$4; line[key]=$0}
+} END{for(k in line) print line[k]}' 0.0001land_overlap_with_locus.bed > land_leading_SNPs.bed
+#57 
+```
+
+
+```{bash}
+#!/bin/sh
+#SBATCH --job-name=freq
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --time=120:00:00
+#SBATCH --mem=10G
+#SBATCH --partition=jclarke,batch,guest
+#SBATCH --error=/work/jyanglab/subhash/sorgsd/bal_s/frq_err.txt
+#SBATCH --output=/work/jyanglab/subhash/sorgsd/bal_s/frq_out.txt
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+
+cd /work/jyanglab/subhash/sorgsd/bal_s
+
+ml vcftools
+#vcftools --vcf /work/jyanglab/subhash/sorgsd/bal_s/wild_50_samples.recode.vcf --freq --out wild_freq
+vcftools --vcf /work/jyanglab/subhash/sorgsd/bal_s/landraces.recode.vcf --freq --out landrace_freq
+vcftools --vcf /work/jyanglab/subhash/sorgsd/bal_s/imp_129_samples.recode.vcf --freq --out improved_freq
+```
 
