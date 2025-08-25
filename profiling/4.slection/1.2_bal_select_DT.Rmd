@@ -13,6 +13,10 @@ filtered the files from top 1% B2 scores
 
 ```{bash}
 #create top 1% threshold
+#output of all the lines are available at largedata on HCC
+
+cd /work/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/
+
 sort -k4,4nr /mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/Sorghum_landrace.AGPV5.B2_stat.txt | head -n $(($(wc -l < /mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/Sorghum_landrace.AGPV5.B2_stat.txt )/100)) > /mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/land.top1.txt
 
 #convert to bed file
@@ -153,6 +157,7 @@ awk '{
 #57 
 ```
 
+# calculating allele freequecies from all 3 sub-populations
 
 ```{bash}
 #!/bin/sh
@@ -170,13 +175,13 @@ awk '{
 cd /work/jyanglab/subhash/sorgsd/bal_s
 
 ml vcftools
-#vcftools --vcf /work/jyanglab/subhash/sorgsd/bal_s/wild_50_samples.recode.vcf --freq --out wild_freq
+vcftools --vcf /work/jyanglab/subhash/sorgsd/bal_s/wild_50_samples.recode.vcf --freq --out wild_freq
 vcftools --vcf /work/jyanglab/subhash/sorgsd/bal_s/landraces.recode.vcf --freq --out landrace_freq
 vcftools --vcf /work/jyanglab/subhash/sorgsd/bal_s/imp_129_samples.recode.vcf --freq --out improved_freq
 ```
 
-
-
+taking the allele frequencies for the leading SNPs in all the 3 sub-populations
+extracting the minor allele freequecy for those leading SNPs
 
 ```{bash}
 # Example for wild
@@ -194,6 +199,66 @@ awk 'NR==FNR {pos[$1":"$2]=1; next}
      ($1":"$2) in pos {split($5,a,":"); split($6,b,":"); 
      freq=(a[2]<=b[2]?a[2]:b[2]); 
      print $1,$2,freq}' /work/jyanglab/subhash/sorgsd/bal_s/3.input/wild_leading_SNPs_positions.sorted.bed /work/jyanglab/subhash/sorgsd/bal_s/improved_freq.frq > imp_leading_SNPs.af     
+
+```
+
+Extracting minor allele frequencies for all the leading SNPs in all the 3 sub-popualtions in same file 
+
+```{bash}
+paste wild_leading_SNPs.af land_leading_SNPs.af imp_leading_SNPs.af | \
+awk '{OFS="\t"; print $1":"$2, $3, $6, $9}' > trajectory_table.txt
+wc -l trajectory_table.txt
+#60
+```
+
+I thought to see the leading SNPs allele frequencies pattern of these 3 sub-popualtions
+I ploted both the average MAF accross these leading SNPs in each sub-population and 
+also plotted the individual leading SNP MAF in each of these 3 sub-pop
+
+```{r}
+library(tidyverse)
+
+# Load trajectory table
+traj <- read.table("trajectory_table.txt", header = FALSE, sep = "\t",
+                   col.names = c("SNP", "Wild", "Landrace", "Improved"))
+
+traj_long <- traj %>%
+  pivot_longer(cols = c("Wild", "Landrace", "Improved"),
+               names_to = "Population",
+               values_to = "MAF")
+
+# Individual SNP trajectories
+p1 <- ggplot(traj_long, aes(x = Population, y = MAF, group = SNP, color = SNP)) +
+  geom_line() +
+  geom_point() +
+  theme_minimal() +
+  labs(title = "Allele Frequency Trajectories of Leading SNPs",
+       x = "Population",
+       y = "Minor Allele Frequency") +
+  theme(legend.position = "none")  # hide legend if too many SNPs
+
+#PDF
+#ggsave("wild_SNP_trajectories.pdf", plot = p1, width = 8, height = 6)
+
+#PNG
+ggsave("wild_SNP_trajectories.png", plot = p1, width = 8, height = 6, dpi = 300)
+
+#Average MAF per population
+avg_traj <- traj_long %>%
+  group_by(Population) %>%
+  summarise(mean_MAF = mean(MAF))
+
+#Plot2
+p2 <- ggplot(avg_traj, aes(x = Population, y = mean_MAF, group = 1)) +
+  geom_line(size = 1.2, color = "blue") +
+  geom_point(size = 3, color = "red") +
+  theme_minimal() +
+  labs(title = "Average Allele Frequency Trajectory",
+       x = "Population",
+       y = "Average Minor Allele Frequency")
+
+#ggsave("average_SNP_trajectory.pdf", plot = p2, width = 6, height = 5)
+ggsave("average_SNP_trajectory.png", plot = p2, width = 6, height = 5, dpi = 300)
 
 ```
 
