@@ -22,13 +22,13 @@ also calculated the allele freequecny in ancestor(#3) samples
 #SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
 
 ml vcftools
-
+#preparing the outgroup file
 vcftools --vcf /work/jyanglab/subhash/sorgsd/gen_v5/SorGSD.289snp.imputed.V5.vcf --keep /work/jyanglab/subhash/sorgsd/filterfed_vcf/propinqaum_sample.txt --recode --out /work/jyanglab/subhash/sorgsd/bal_s/propinqaum_3sample
-
+#getting the frequencies
 vcftools --vcf propinqaum_3sample.recode.vcf --freq --out /work/jyanglab/subhash/sorgsd/bal_s/propinqaum_3sample
-
+#preparing the wild lines file
 vcftools --vcf /work/jyanglab/subhash/sorgsd/gen_v5/SorGSD.289snp.imputed.V5.vcf --keep /work/jyanglab/subhash/sorgsd/filterfed_vcf/wild.txt --recode --out /work/jyanglab/subhash/sorgsd/bal_s/wild_50_samples
-
+#preparing the improved lines
 vcftools --vcf /work/jyanglab/subhash/sorgsd/gen_v5/SorGSD.289snp.imputed.V5.vcf --keep /work/jyanglab/subhash/sorgsd/filterfed_vcf/improved.txt --recode --out /work/jyanglab/subhash/sorgsd/bal_s/imp_129_samples
 ```
 
@@ -52,7 +52,7 @@ ml R
 Rscript /work/jyanglab/subhash/sorgsd/bal_s/ans_freq/ans.R
 ```
 
-## Calculating ancestor allele freq and count for all the chromosomes at once from the outgroup
+## Calculating ancestor allele freq from the outgroup
 
 ```{r}
 library(data.table)
@@ -115,16 +115,6 @@ ml R
 Rscript /work/jyanglab/subhash/sorgsd/bal_s/3.input/in_w.R
 ```
 
-
-here I did subset to work on small sample set to test the pipeline once, it sucessfully generated the output files I have run the whole pipeline on large dataset
-
-```{bash}
-head -n 101 /work/jyanglab/subhash/sorgsd/bal_s/Sorghum_ancestral_allele_V3.1.txt > /work/jyanglab/subhash/sorgsd/bal_s/subset/anc_subset.txt
-head -n 101 /work/jyanglab/subhash/sorgsd/bal_s/2.frq/wild_counts.frq.count > /work/jyanglab/subhash/sorgsd/bal_s/subset/wild_counts_subset.frq.count
-head -n 101 imp_counts.frq.count > /work/jyanglab/subhash/sorgsd/bal_s/subset/imp_counts_subset.frq.count
-head -n 1000 /work/jyanglab/subhash/sorgsd/bal_s/subset/BalLeRMix_input_chr1.filtered.txt > 1000.txt
-```
-
 #### Generating the input file for the BalLeRiMix 
 
 This below script helps to calculate derived allele count (which is opposite of ancester allele)
@@ -162,7 +152,7 @@ for (chr in unique(anc$Chr)) {
 
 
 ```{bash}
-#copying the Ballerimix input files (for each chromosome) in to different directories (by creating new ones) to keep the files organized and then filtereing the empty rows
+#copying the Ballerimix input files (for each chromosome) in to different directories (by creating new ones) to keep the files organized and then filtering the empty rows
 cd /work/jyanglab/subhash/sorgsd/bal_s/3.input/wild
 for chr in {1..10}; do
     mkdir -p chr_${chr}
@@ -198,23 +188,23 @@ done
 for chr in {1..10}; do
     echo "chr_${chr}: $(ls chr_${chr}/chunk_* | wc -l) chunks"
 done
-#chr_1: 207 chunks
-#chr_2: 226 chunks
-#chr_3: 202 chunks
-#chr_4: 214 chunks
-#chr_5: 176 chunks
-#chr_6: 167 chunks
-#chr_7: 156 chunks
-#chr_8: 181 chunks
-#chr_9: 175 chunks
-#chr_10: 182 chunks
+#number of chunk files in each chromosome folder in wild samples
+#chr_1: 878 chunks
+#chr_2: 1114 chunks
+#chr_3: 1010 chunks
+#chr_4: 906 chunks
+#chr_5: 684 chunks
+#chr_6: 730 chunks
+#chr_7: 786 chunks
+#chr_8: 810 chunks
+#chr_9: 798 chunks
+#chr_10: 822 chunks
 
 #creating log files to get the out and error files for each job
 for chr in {1..10}; do
     mkdir -p /work/jyanglab/subhash/sorgsd/bal_s/3.input/imp/chr_${chr}/logs
 done
 ```
-
 
 The below is the template I used to submit the BalLeriMix model to compute B2 score on each variant. using this template I can run many jobs to get the B2 stat score
 
@@ -253,17 +243,18 @@ echo ">>> Finished chromosome $CHR, chunk $ID$ CHUNK_DIR/chr${CHR}.spect.txt"
 ```
 
 job submission by chromosome to chromsome
+
 ```{bash}
-sbatch --export=CHR=1 --array=1-207 chr_array.slurm
-sbatch --export=CHR=2 --array=1-226 chr_array.slurm
-sbatch --export=CHR=3 --array=1-202 chr_array.slurm
-sbatch --export=CHR=4 --array=1-214 chr_array.slurm
-sbatch --export=CHR=5 --array=1-176 chr_array.slurm
-sbatch --export=CHR=6 --array=1-167 chr_array.slurm
-sbatch --export=CHR=7 --array=1-156 chr_array.slurm
-sbatch --export=CHR=8 --array=1-181 chr_array.slurm
-sbatch --export=CHR=9 --array=1-175 chr_array.slurm
-sbatch --export=CHR=10 --array=1-182 chr_array.slurm
+sbatch --export=CHR=1 --array=1-878 chr_array.slurm
+sbatch --export=CHR=2 --array=1-1114 chr_array.slurm
+sbatch --export=CHR=3 --array=1-1010 chr_array.slurm
+sbatch --export=CHR=4 --array=1-906 chr_array.slurm
+sbatch --export=CHR=5 --array=1-684 chr_array.slurm
+sbatch --export=CHR=6 --array=1-730 chr_array.slurm
+sbatch --export=CHR=7 --array=1-786 chr_array.slurm
+sbatch --export=CHR=8 --array=1-810 chr_array.slurm
+sbatch --export=CHR=9 --array=1-798 chr_array.slurm
+sbatch --export=CHR=10 --array=1-822 chr_array.slurm
 ```
 
 
@@ -271,12 +262,22 @@ sbatch --export=CHR=10 --array=1-182 chr_array.slurm
 I use them to track my running jobs
 since I submitted toomany jobs to see and track using naked eye 
 the below code lines will help to 
+
+#misch
+here I did subset to work on small sample set to test the pipeline once, it sucessfully generated the output files I have run the whole pipeline on large dataset
+
+```{bash}
+head -n 101 /work/jyanglab/subhash/sorgsd/bal_s/Sorghum_ancestral_allele_V3.1.txt > /work/jyanglab/subhash/sorgsd/bal_s/subset/anc_subset.txt
+head -n 101 /work/jyanglab/subhash/sorgsd/bal_s/2.frq/wild_counts.frq.count > /work/jyanglab/subhash/sorgsd/bal_s/subset/wild_counts_subset.frq.count
+head -n 101 imp_counts.frq.count > /work/jyanglab/subhash/sorgsd/bal_s/subset/imp_counts_subset.frq.count
+head -n 1000 /work/jyanglab/subhash/sorgsd/bal_s/subset/BalLeRMix_input_chr1.filtered.txt > 1000.txt
+```
+
 ```{bash}
 squeue -j 11541491 | wc -l
 sacct -j 11545344 --format=JobID,State
 squeue -j 11545344 -o "%.18i %.9T" | wc -l
 ```
-
 
 # merging all the chunk output files into one big file
 
@@ -297,170 +298,4 @@ sort -k3,3nr all_chr_merged_with_chr.B2.txt | head -n $(($(wc -l < all_chr_merge
 ```
 
 
-# landraces
-creating the bed file for the top one perecent
-
-```{bash}
-#create top 1% threshold
-sort -k4,4nr /mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/Sorghum_landrace.AGPV5.B2_stat.txt | head -n $(($(wc -l < /mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/Sorghum_landrace.AGPV5.B2_stat.txt )/100)) > /mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/land.top1.txt
-
-#convert to bed file
-awk -v OFS="\t" '{start=$2-40000; if(start<0) start=0; end=$2+40000; print $1, start, end, $4}' /mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/land.top1.txt > /mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/land.40kb.bed
-
-#sort the bed file according to the chromosomes
-sort -k1,1V -k2,2n /mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/land.40kb.bed > /mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/land.40kb.sorted.bed
-
-wc -l /mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/land.40kb.sorted.bed
-#147267
-
-```
-
-
-# Domestication trajectory
-creating the bed files from the balancing selection results
-```{bash}
-#wild population 
-#generating the bed file and sorting based on chromomes
-awk -v OFS="\t" '{start=$1-40000; if(start<0) start=0; end=$1+40000; print $7, start, end, $3}' /work/jyanglab/subhash/sorgsd/bal_s/3.input/wild/wild.top1.txt > wild.40kb.bed
-
-sort -k1,1V -k2,2n wild.40kb.bed > wild.40kb.sorted.bed
-
-wc -l wild.40kb.sorted.bed 
-#213176
-
-#improved lines
-awk -v OFS="\t" '{start=$1-40000; if(start<0) start=0; end=$1+40000; print $7, start, end, $3}' /work/jyanglab/subhash/sorgsd/bal_s/3.input/imp/imp.top1.txt > /work/jyanglab/subhash/sorgsd/bal_s/3.input/imp/imp.40kb.bed
-
-sort -k1,1V -k2,2n imp.40kb.bed > imp.40kb.sorted.bed
-
-wc -l imp.40kb.sorted.bed 
-#94048
-```
-
-# looking for the overlap in bed files within bal
-
-```{bash}
-cd /work/jyanglab/subhash/sorgsd/bal_s/3.input
-ml bedtools
-#merging the nearby positions and kept the highest value
-bedtools merge -i wild.40kb.sorted.bed -d 40000 -c 4 -o max > wild.40kb.merged.bed
-bedtools merge -i land.40kb.sorted.bed -d 40000 -c 4 -o max > land.40kb.merged.bed
-bedtools merge -i imp.40kb.sorted.bed -d 40000 -c 4 -o max > imp.40kb.merged.bed
-
-cd /work/jyanglab/subhash/sorgsd/bal_s/3.input
-bedtools intersect -a wild.40kb.merged.bed -b land.40kb.merged.bed -wa -wb > W_L_overlap.bed
-wc -l W_L_overlap.bed 
-#137
-bedtools intersect -a W_L_overlap.bed -b imp.40kb.merged.bed -wa -wb > W_L_I_overlap.bed
-wc -l W_L_I_overlap.bed 
-#60
-
-#These 60 loci are conserved balancing selection targets the selective pressure that maintains variation in wild populations has persisted through domestication and improvement.
-#They are high confidence candidates for important functional genes or regulatory regions.
-###These are loci where genetic diversity is actively maintained across evolutionary and breeding processes.
-```
-
-
-# seeing the overlap between the bal and pos
-```{bash}
-bedtools intersect -a wild.merged.bed -b /mnt/nrdstor/jyanglab/subhash/datasets/3.results/positive/wild_vs_landrace.bed -wa -wb > bal_wild_landrace.bed
-
-bedtools intersect -a wild.merged.bed -b /mnt/nrdstor/jyanglab/subhash/datasets/3.results/positive/landrace_vs_improved.bed -wa -wb > 
-bal_landrace_vs_improved.bed
-```
-
-what is loci?
-A locus is a genomic region defined by merged B2 windows (+,- 40kb from physPos).
-Each locus can include multiple SNPs or variants, but it is considered one signal of balancing selection.
-By merging nearby windows (±40 kb and adjacent regions), we avoid counting the same signal multiple times.
-
-
-
-
-
-
-```{bash}
-/work/jyanglab/subhash/sorgsd/bal_s/3.input
-
-awk '{OFS="\t"; print $NF, $1-1, $1, $3}' /work/jyanglab/subhash/sorgsd/bal_s/3.input/wild/wild.top1.txt > 0.1wild.sites.bed
-
-sort -k1,1 -k2,2n 0.1wild.sites.bed > 0.01wild.sites.sorted.bed
-
-bedtools intersect -a 0.01wild.sites.sorted.bed -b W_L_I_overlap.bed -wa > 0.001wild_in_overlap.bed
-
-bedtools intersect -a 0.01wild.sites.sorted.bed -b W_L_I_overlap.bed -wa -wb > 0.0001wild_overlap_with_locus.bed
-
-awk '{
-    key = $5":"$6; 
-    if($4>max[key]){max[key]=$4; line[key]=$0}
-} END{for(k in line) print line[k]}' 0.0001wild_overlap_with_locus.bed > wild_leading_SNPs.bed
-#60
-```
-
-
-Improved 
-
-```{bash}
-/work/jyanglab/subhash/sorgsd/bal_s/3.input
-
-awk '{OFS="\t"; print $NF, $1-1, $1, $3}' /work/jyanglab/subhash/sorgsd/bal_s/3.input/imp/imp.top1.txt > 0.1imp.sites.bed
-#94048 0.1imp.sites.bed
-sort -k1,1 -k2,2n 0.1imp.sites.bed > 0.01imp.sites.sorted.bed
-#94048 0.01imp.sites.sorted.bed
-bedtools intersect -a 0.01imp.sites.sorted.bed -b W_L_I_overlap.bed -wa > 0.001imp_in_overlap.bed
-#40620 0.001imp_in_overlap.bed
-bedtools intersect -a 0.01imp.sites.sorted.bed -b W_L_I_overlap.bed -wa -wb > 0.0001imp_overlap_with_locus.bed
-#40620 0.0001imp_overlap_with_locus.bed
-awk '{
-    key = $5":"$6; 
-    if($4>max[key]){max[key]=$4; line[key]=$0}
-} END{for(k in line) print line[k]}' 0.0001imp_overlap_with_locus.bed > imp_leading_SNPs.bed
-#59 imp_leading_SNPs.bed
-```
-
-landraces
-
-```{bash}
-/work/jyanglab/subhash/sorgsd/bal_s/3.input
-
-awk '{OFS="\t"; print $1, $2-1, $2, $4}' /mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/land.top1.txt > 0.1land.sites.bed
- wc -l 0.1land.sites.bed
-#147267
-
-sort -k1,1 -k2,2n 0.1land.sites.bed > 0.01land.sites.sorted.bed
- wc -l 0.01land.sites.sorted.bed
-#147267
-
-bedtools intersect -a 0.01land.sites.sorted.bed -b W_L_I_overlap.bed -wa > 0.001land_in_overlap.bed
-#55858 
-bedtools intersect -a 0.01land.sites.sorted.bed -b W_L_I_overlap.bed -wa -wb > 0.0001land_overlap_with_locus.bed
-
-awk '{
-    key = $5":"$6; 
-    if($4>max[key]){max[key]=$4; line[key]=$0}
-} END{for(k in line) print line[k]}' 0.0001land_overlap_with_locus.bed > land_leading_SNPs.bed
-#57 
-```
-
-
-```{bash}
-#!/bin/sh
-#SBATCH --job-name=freq
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
-#SBATCH --time=120:00:00
-#SBATCH --mem=10G
-#SBATCH --partition=jclarke,batch,guest
-#SBATCH --error=/work/jyanglab/subhash/sorgsd/bal_s/frq_err.txt
-#SBATCH --output=/work/jyanglab/subhash/sorgsd/bal_s/frq_out.txt
-#SBATCH --mail-type=ALL
-#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
-
-cd /work/jyanglab/subhash/sorgsd/bal_s
-
-ml vcftools
-#vcftools --vcf /work/jyanglab/subhash/sorgsd/bal_s/wild_50_samples.recode.vcf --freq --out wild_freq
-vcftools --vcf /work/jyanglab/subhash/sorgsd/bal_s/landraces.recode.vcf --freq --out landrace_freq
-vcftools --vcf /work/jyanglab/subhash/sorgsd/bal_s/imp_129_samples.recode.vcf --freq --out improved_freq
-```
 

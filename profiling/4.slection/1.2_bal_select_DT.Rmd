@@ -172,3 +172,26 @@ ml vcftools
 vcftools --vcf /work/jyanglab/subhash/sorgsd/bal_s/landraces.recode.vcf --freq --out landrace_freq
 vcftools --vcf /work/jyanglab/subhash/sorgsd/bal_s/imp_129_samples.recode.vcf --freq --out improved_freq
 ```
+
+
+
+
+```{bash}
+# Example for wild
+awk 'NR==FNR {pos[$1":"$2]=1; next} 
+     ($1":"$2) in pos {split($5,a,":"); split($6,b,":"); 
+     freq=(a[2]<=b[2]?a[2]:b[2]); 
+     print $1,$2,freq}' /work/jyanglab/subhash/sorgsd/bal_s/3.input/wild_leading_SNPs_positions.sorted.bed /work/jyanglab/subhash/sorgsd/bal_s/wild_freq.frq > wild_leading_SNPs.af
+     
+awk 'NR==FNR {pos[$1":"$2]=1; next} 
+     ($1":"$2) in pos {split($5,a,":"); split($6,b,":"); 
+     freq=(a[2]<=b[2]?a[2]:b[2]); 
+     print $1,$2,freq}' /work/jyanglab/subhash/sorgsd/bal_s/3.input/wild_leading_SNPs_positions.sorted.bed /work/jyanglab/subhash/sorgsd/bal_s/landrace_freq.frq > land_leading_SNPs.af
+     
+awk 'NR==FNR {pos[$1":"$2]=1; next} 
+     ($1":"$2) in pos {split($5,a,":"); split($6,b,":"); 
+     freq=(a[2]<=b[2]?a[2]:b[2]); 
+     print $1,$2,freq}' /work/jyanglab/subhash/sorgsd/bal_s/3.input/wild_leading_SNPs_positions.sorted.bed /work/jyanglab/subhash/sorgsd/bal_s/improved_freq.frq > imp_leading_SNPs.af     
+
+```
+
