@@ -6,6 +6,7 @@ output: html_document
 ---
 After getting the output of B2 scores in all the 3 populaions
 I have merged the each chromosome and merged all the chromosomes into one big file.
+
 # landraces
 creating the bed file for the top one perecent
 filtered the files from top 1% B2 scores
@@ -25,8 +26,9 @@ wc -l /mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/land.40kb.sorted.bed
 
 ```
 
-
-# Domestication trajectory
+#wild population 
+#improved lines
+## Domestication trajectory
 creating the bed files for the wild and improved population
 creating the bed files from the balancing selection results
 ```{bash}
