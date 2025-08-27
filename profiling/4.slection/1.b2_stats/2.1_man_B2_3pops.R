@@ -101,12 +101,12 @@ col_filt <- ifelse(dd_filt[,1] %% 2 == 1, "#00000066", "#BEBEBE99")
 
 #png("/Users/subhashmahamkali/Documents/gwas_sap/1.b2_pos.png", height = 7, width = 14, res = 600, units = "in")
 png("main_plot.png",height = 7, width = 14, res = 600, units = "in")
-legend("topleft",c("Common Significant Loci"),pch=16,col="violetred",bty = "n",ncol=1,cex=1.5)
 par(mar = c(2, 3.5, 2, 2), mfrow = c(3,1), oma = c(2, 2, 1, 1))
 plot(dd_filt$physPos, dd_filt[,3],
      col = col_filt, pch = 16, cex = 0.4,
      bty = "l", xlim = range(dd_filt$physPos, na.rm=TRUE),
      axes = FALSE, xlab = "", ylab = "", font.lab = 2)
+legend("topleft",c("Common Significant Loci"),pch=16,col="violetred",bty = "n",ncol=1,cex=1.5)
 # y-axis
 axis(2, las=2, tck=-.03, cex.axis=1, font.axis=2)
 # x-axis
@@ -122,6 +122,8 @@ mtext("Balancing selection: wild population", side=3, line=0.5, font=2, cex=1, a
 points(w_plot$V5, w_plot$V4, 
        col=adjustcolor("violetred", alpha.f=0.7),
        pch=8, cex=0.8, type="h", lwd=1.3)
+points(red_points1$avg, red_points1$b2, col="red", pch=16, cex=1)
+text(red_points1$avg, red_points1$b2 * 1.02, labels = red_points1$short, cex = 1.5, font = 2, col = "black", srt = 45, xpd = NA)
 
 
 col_la <- ifelse(la_filt[,1] %% 2 == 1, "#00000066", "#BEBEBE99")
@@ -144,6 +146,8 @@ points(l_plot$V9, l_plot$V8,
        col=adjustcolor("violetred", alpha.f=0.7),
        pch=8, cex=0.8, type="h", lwd=1.3)
 
+points(red_points2$avg, red_points2$b2, col="red", pch=16, cex=1)
+text(red_points2$avg, red_points2$b2 * 1.02, labels = red_points2$short, cex = 1.5, font = 2, col = "black", srt = 45, xpd = NA)
 
 
 col_ii <- ifelse(ii_filt[,1] %% 2 == 1, "#00000066", "#BEBEBE99")
@@ -160,7 +164,24 @@ mtext("Balancing selection:improved population", side=3, line=0.5, font=2, cex=1
 points(i_plot$V13, i_plot$V12, 
        col=adjustcolor("violetred", alpha.f=0.7),
        pch=8, cex=0.8, type="h", lwd=1.3)
+points(red_points3$avg, red_points3$b2, col="red", pch=16, cex=1)
+text(red_points3$avg, red_points3$b2 * 1.02, labels = red_points3$short, cex = 1.5, font = 2, col = "black", srt = 45, xpd = NA)
 dev.off() 
+
+
+library(readxl)
+gene = read_excel("/Users/subhashmahamkali/Documents/gwas_sap/W_L_I_with_gene_description.xlsx", sheet = 2)
+gene$avg <- as.integer(gene$avg)
+for (k in 1:10) {
+  sub <- subset(gene, gene$chr == k)
+  sub$avg <- sub$avg + ch[k, 4]
+  gene[gene$chr == k, "avg"] <- sub$avg
+}
+gene$avg <- gene$avg / 1e6
+red_points3 <- gene[gene$comp == "imp", ]  
+red_points2 <- gene[gene$comp == "lan", ]
+red_points1 <- gene[gene$comp == "wild", ]
+
 
 
 

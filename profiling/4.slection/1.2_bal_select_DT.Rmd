@@ -262,3 +262,39 @@ ggsave("average_SNP_trajectory.png", plot = p2, width = 6, height = 5, dpi = 300
 
 ```
 
+#identifying the common genes
+
+```{bash}
+
+cd /work/jyanglab/subhash/sorgsd/bal_s/3.input
+
+ml bedtools
+
+bedtools intersect -a /work/jyanglab/subhash/sorgsd/bal_s/3.input/W_L_I_overlap.bed -b /mnt/nrdstor/jyanglab/subhash/datasets/3.results/6.BT623_gene.V5_up_dw_2k.bed -wa -wb > W_L_I_with_gene_overlap.bed
+
+```
+
+
+
+```{r}
+library(readxl)
+library(data.table)
+library(dplyr)
+library(writexl)
+
+d = fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/positive_selection/W_L_I_with_gene_overlap.bed")
+dim(d)
+a = read_excel("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/7.sorghum.annotations.xlsx", sheet = 2)
+dim(a)
+a_unique <- a %>%
+  distinct(Gene, .keep_all = TRUE)
+
+merged <- d %>%
+  left_join(a_unique, by = c("V17" = "Gene"))
+dim(merged)
+writexl::write_xlsx(merged, "W_L_I_with_gene_description.xlsx")
+
+
+
+```
+
