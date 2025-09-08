@@ -285,7 +285,6 @@ squeue -j 11545344 -o "%.18i %.9T" | wc -l
 
 ```{bash}
 #merging all the chunks in each chromosome as one file
-
 #for chr in {1..10}; do     out="chr_${chr}/chr${chr}_merged.B2.txt";     echo "Merging chromosome $chr → $out";     cat chr_${chr}/chunk_*.B2.txt > "$out"; done
 #bug fix: getting all the headers from each chunk file and then getting the unique one and adding it to the merged file
 #cd /work/jyanglab/subhash/sorgsd/bal_s/3.input/wild
@@ -312,24 +311,30 @@ done
 
 ```{bash}
 #merging all the chromsomes in to one big file buy adding an extra column called chromosme
-out="all_chr_merged_with_chr.B2.txt"
-
-for chr in {1..10}; do file="chr_${chr}/chr${chr}_merged.B2.txt" echo "Adding $file -> $out" if [ "$chr" -eq 1 ]; then cat "$file" > "$out"          # keep header
+out="wild_merged_chr.B2.txt"
+#out="imp_merged_chr.B2.txt"
+for chr in {1..10}; do
+  file="chr_${chr}/chr${chr}_merged.B2.txt"
+  echo "Adding $file -> $out"
+  if [ "$chr" -eq 1 ]; then
+    cat "$file" > "$out"          # keep header for the first file
   else
-    tail -n +2 "$file" >> "$out"  # skip header, append data
+    tail -n +2 "$file" >> "$out"  # skip header, append only data
   fi
 done
 
 # zipping the file for ease of loading in R studio
-gzip -c all_chr_merged_with_chr.B2.txt > all_chr_merged_with_chr.B2.txt.gz
+gzip -c wild_merged_chr.B2.txt > wild_merged_chr.B2.txt.gz
 
 #filtering the top1% B2 scores and then sorting based on chromosome and position
-(head -n 1 all_chr_merged_with_chr.B2.txt && tail -n +2 all_chr_merged_with_chr.B2.txt | sort -k3,3nr | head -n $(( ($(wc -l < all_chr_merged_with_chr.B2.txt) - 1) / 100 )) ) > wild.top1.txt
+(head -n 1 wild_merged_chr.B2.txt && tail -n +2 wild_merged_chr.B2.txt | sort -k3,3nr | head -n $(( ($(wc -l < wild_merged_chr.B2.txt) - 1) / 100 )) ) > wild.top1.txt
 
 wc -l all_chr_merged_with_chr.B2.txt
 #21313439
 wc -l wild.top1.txt 
 #213135 
-
+wc -l imp.top1.txt 
+#94030
+#(head -n 1 imp_merged_chr.B2.txt && tail -n +2 imp_merged_chr.B2.txt | sort -k3,3nr | head -n $(( ($(wc -l < imp_merged_chr.B2.txt) - 1) / 100 )) ) > imp.top1.txt
 ```
 

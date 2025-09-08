@@ -52,6 +52,7 @@ sort -k1,1V -k2,2n imp.40kb.bed > imp.40kb.sorted.bed
 
 wc -l imp.40kb.sorted.bed 
 #94048
+
 ```
 
 # looking for the overlap in bed files within bal
@@ -273,8 +274,6 @@ bedtools intersect -a /work/jyanglab/subhash/sorgsd/bal_s/3.input/W_L_I_overlap.
 
 ```
 
-
-
 ```{r}
 library(readxl)
 library(data.table)
@@ -282,6 +281,9 @@ library(dplyr)
 library(writexl)
 
 d = fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/positive_selection/W_L_I_with_gene_overlap.bed")
+
+d = fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/B2/W_L_I_with_gene_5kb.bed")
+
 dim(d)
 a = read_excel("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/7.sorghum.annotations.xlsx", sheet = 2)
 dim(a)
@@ -289,11 +291,79 @@ a_unique <- a %>%
   distinct(Gene, .keep_all = TRUE)
 
 merged <- d %>%
-  left_join(a_unique, by = c("V17" = "Gene"))
+  left_join(a_unique, by = c("V20" = "Gene"))
 dim(merged)
-writexl::write_xlsx(merged, "W_L_I_with_gene_description.xlsx")
+writexl::write_xlsx(merged, "/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/B2/W_L_I_5kb_description.xlsx")
+
+```
+# Finding genes overlapping with top 1% B2 scores
+date: 2025-09-08
 
 
+```{bash}
+# 1. SNPs to 1-bp BED intervals (chr, start=pos-1, end=pos, score=LR)
+awk 'NR>1{print $7,$1-1,$1,$3}' OFS="\t" wild.top1.txt \
+  | sort -k1,1V -k2,2n > wild.top1.sites.bed
+  
+# 2. Merge nearby sites within 10 kb, keep SNP count per region
+#bedtools merge -i wild.top1.sites.bed -d 10000 -c 4 -o count > wild.top1.merged.bed
+bedtools merge -i wild.top1.sites.bed -d 10000 -c 4 -o count,max > wild.top1.merged.bed
+
+
+# 3. Keep only regions with ≥2 significant SNPs
+awk '$4>=2' wild.top1.merged.bed > wild.top1.min2.bed
+
+# 4. Extend each region ±5 kb
+awk 'BEGIN{OFS="\t"}{start=$2-5000; if(start<0) start=0; end=$3+5000; print $1,start,end,$4,$5}' \
+  wild.top1.min2.bed > wild.top1.ext5k.bed
+
+#5. Intersect with genes (needs genes.bed from your GFF3)
+bedtools intersect -a wild.top1.ext5k.bed -b /work/jyanglab/subhash/sorgsd/bal_s/3.input/6.BT623_gene.V5_up_dw_2k.bed -wa -wb > wild.top1.genehits.bed
+```
+
+```{bash}
+awk 'NR>1{print $7,$1-1,$1,$3}' OFS="\t" imp.top1.txt \
+  | sort -k1,1V -k2,2n > imp.top1.sites.bed
+  
+bedtools merge -i imp.top1.sites.bed -d 10000 -c 4 -o count,max > imp.top1.merged.bed
+
+awk '$4>=2' imp.top1.merged.bed > imp.top1.min2.bed
+
+awk 'BEGIN{OFS="\t"}{start=$2-5000; if(start<0) start=0; end=$3+5000; print $1,start,end,$4,$5}' \
+  imp.top1.min2.bed > imp.top1.ext5k.bed
+
+bedtools intersect -a imp.top1.ext5k.bed -b /work/jyanglab/subhash/sorgsd/bal_s/3.input/6.BT623_gene.V5_up_dw_2k.bed -wa -wb > imp.top1.genehits.bed
+
+
+#landraces gene overlap.
+cd /mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/
+awk 'NR>1{print $1,$2-1,$2,$4}' OFS="\t" land.top1.txt \
+  | sort -k1,1V -k2,2n > land.top1.sites.bed
+  
+bedtools merge -i land.top1.sites.bed -d 10000 -c 4 -o count,max > land.top1.merged.bed
+
+awk '$4>=2' land.top1.merged.bed > land.top1.min2.bed
+
+awk 'BEGIN{OFS="\t"}{start=$2-5000; if(start<0) start=0; end=$3+5000; print $1,start,end,$4,$5}' \
+  land.top1.min2.bed > land.top1.ext5k.bed
+
+bedtools intersect -a land.top1.ext5k.bed -b /work/jyanglab/subhash/sorgsd/bal_s/3.input/6.BT623_gene.V5_up_dw_2k.bed -wa -wb > land.top1.genehits.bed
+#/mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/land.top1.genehits.bed
+
+cd /work/jyanglab/subhash/sorgsd/bal_s/3.input
+
+bedtools intersect -a /work/jyanglab/subhash/sorgsd/bal_s/3.input/wild/wild.top1.ext5k.bed -b /work/jyanglab/subhash/sorgsd/bal_s/3.input/imp/imp.top1.ext5k.bed -wa -wb > W_I_5kb.bed
+
+wc -l W_I_5kb.bed 
+#74
+bedtools intersect -a /work/jyanglab/subhash/sorgsd/bal_s/3.input/W_I_5kb.bed -b /mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/land.top1.ext5k.bed -wa -wb > W_L_I_5kb.bed
+
+wc -l W_L_I_5kb.bed 
+#57
+bedtools intersect -a /work/jyanglab/subhash/sorgsd/bal_s/3.input/W_L_I_5kb.bed -b /mnt/nrdstor/jyanglab/subhash/datasets/3.results/6.BT623_gene.V5_up_dw_2k.bed -wa -wb > W_L_I_with_gene_5kb.bed
+
+wc -l W_L_I_with_gene_5kb.bed
+#159
 
 ```
 
