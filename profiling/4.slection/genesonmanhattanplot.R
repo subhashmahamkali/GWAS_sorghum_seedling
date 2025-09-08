@@ -33,7 +33,7 @@ dd$physPos=dd$physPos/1e6
 col=ifelse(dd[,1]%%2==1,"#00000066","#BEBEBE99")
 #defines color for odd and even chromosomes odd(black and even(grey)
 
-png("/Users/subhashmahamkali/Documents/gwas_sap/1.b2_pos.png", height = 7, width = 14, res = 600, units = "in")
+png("/Users/subhashmahamkali/Documents/gwas_sap/1.b2_Fst_pos.png", height = 7, width = 14, res = 600, units = "in")
 #pdf("b2_pos.pdf", height = 6, width = 10)  # Open PDF device
 #library(Cairo)
 #CairoSVG("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/b2_pos.svg", width = 10, height = 6)
@@ -44,7 +44,7 @@ par(mar = c(2, 3.5, 2, 2), mfrow = c(3,1), oma = c(2, 2, 1, 1))
 #outer margin area -Bottem, Left, Top, Right
 plot(dd[,2],dd[,3],col=col,pch=16,cex=0.4,bty="l",xlim=c(0,717),axes=F,cex.lab=0.6,xlab="",ylab="", font.lab=2)
 mtext("B2", side=2, line=4, font=2, cex=1)
-mtext("Balancing selection: Landraces", side=3, line=0.4, font=2, cex=1,adj = 1)
+mtext("Balancing selection: wild population", side=3, line=0.4, font=2, cex=1,adj = 1)
 axis(2,las=2,tck=-.03,cex.axis=1.5,font.axis=2)
 segments(x0=0, x1=720, y0=thr, y1=thr, col="red", lty=2, lwd=2)
 legend("topleft",c("Common Significant Loci"),pch=16,col="violetred",bty = "n",ncol=1,cex=1.5)

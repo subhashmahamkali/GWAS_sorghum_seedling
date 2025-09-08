@@ -84,10 +84,9 @@ wc -l W_L_I_overlap.bed
 # seeing the overlap between the bal and pos
 
 ```{bash}
-bedtools intersect -a wild.merged.bed -b /mnt/nrdstor/jyanglab/subhash/datasets/3.results/positive/wild_vs_landrace.bed -wa -wb > bal_wild_landrace.bed
+bedtools intersect -a wild.40kb.merged.bed -b /mnt/nrdstor/jyanglab/subhash/datasets/3.results/positive/wild_vs_landrace.bed -wa -wb > pos_1_bal_wild_landrace.bed
 
-bedtools intersect -a wild.merged.bed -b /mnt/nrdstor/jyanglab/subhash/datasets/3.results/positive/landrace_vs_improved.bed -wa -wb > 
-bal_landrace_vs_improved.bed
+bedtools intersect -a wild.40kb.merged.bed -b /mnt/nrdstor/jyanglab/subhash/datasets/3.results/positive/landrace_vs_improved.bed -wa -wb > pos_2_bal_landrace_vs_improved.bed
 ```
 
 "what is loci?
