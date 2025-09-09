@@ -1,0 +1,71 @@
+---
+title: "misch_bal"
+author: "subhash"
+date: "2025-09-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{bash}
+# === settings ===
+
+cd /work/jyanglab/subhash/sorgsd/bal_s/3.input/wild
+
+FILE="wild_merged_chr.B2.txt"   # columns: physPos genPos LR xhat Ahat numSites chr
+CHR=5
+OSR_L=8638062
+OSR_U=8740146
+
+# === cutoffs (0.5%, 1%, 5%) ===
+N=$(awk 'NR>1{print $3}' "$FILE" | wc -l)
+p05=$(( N/200 ))
+p1=$(( N/100 ))
+p5=$(( N/20 ))
+
+echo "Total SNPs: $N"
+echo "Ranks -> 0.5%: $p05 | 1%: $p1 | 5%: $p5"
+
+awk 'NR>1{print $3}' "$FILE" \
+  | sort -nr \
+  | awk -v p05=$p05 -v p1=$p1 -v p5=$p5 '
+      NR==p05 {printf("0.5%% cutoff LR: %s\n",$1)}
+      NR==p1  {printf("1%% cutoff LR:   %s\n",$1)}
+      NR==p5  {printf("5%% cutoff LR:   %s\n",$1)}
+    '
+
+# === max LR inside OSR gene span ===
+awk -v CHR=$CHR -v L=$OSR_L -v U=$OSR_U '
+  $7==CHR && $1>=L && $1<=U {
+    if($3>max){max=$3; pos=$1}
+  }
+  END{
+    if(max=="") print "OSR span max LR: NA"
+    else printf("OSR span max LR: %s (pos %s)\n", max, pos)
+  }' "$FILE"
+
+# === max LR within ±10 kb and ±50 kb around OSR span (optional) ===
+awk -v CHR=$CHR -v L=$OSR_L -v U=$OSR_U '
+  BEGIN{L10=L-10000; if(L10<0)L10=0; U10=U+10000}
+  $7==CHR && $1>=L10 && $1<=U10 {
+    if($3>max){max=$3; pos=$1}
+  }
+  END{
+    if(max=="") print "OSR ±10kb max LR: NA"
+    else printf("OSR ±10kb max LR: %s (pos %s)\n", max, pos)
+  }' "$FILE"
+
+awk -v CHR=$CHR -v L=$OSR_L -v U=$OSR_U '
+  BEGIN{L50=L-50000; if(L50<0)L50=0; U50=U+50000}
+  $7==CHR && $1>=L50 && $1<=U50 {
+    if($3>max){max=$3; pos=$1}
+  }
+  END{
+    if(max=="") print "OSR ±50kb max LR: NA"
+    else printf("OSR ±50kb max LR: %s (pos %s)\n", max, pos)
+  }' "$FILE"
+
+```
+

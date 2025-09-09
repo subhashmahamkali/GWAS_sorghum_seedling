@@ -1,0 +1,106 @@
+---
+title: "bal_previous_pubs"
+author: "subhash"
+date: "2025-09-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+cd /work/jyanglab/subhash/sorgsd/bal_s/3.input/
+
+
+defineing function to plot zoom in plots for the balancing selection on flowering time and disease resistance genes
+```{r}
+`# minimal deps
+library(data.table); library(ggplot2)
+
+# one tiny function
+plot_simple <- function(file, chr, gene_start, gene_end,
+                        cut1, cut5,
+                        pos_col, chr_col, lr_col,
+                        flank = 1e5, highlight_pad = 1e4,
+                        title = "", out = "plot.png") {
+  
+  dt <- fread(file, data.table = FALSE)
+  L  <- max(0, gene_start - flank); U <- gene_end + flank
+  
+  x   <- dt[, pos_col]
+  cH  <- dt[, chr_col]
+  LR  <- dt[, lr_col]
+  
+  in_win   <- (cH == chr) & (x >= L & x <= U)
+  in_hi    <- (cH == chr) & (x >= (gene_start - highlight_pad)) & (x <= (gene_end + highlight_pad))
+  
+  dd <- data.frame(pos = x[in_win], LR = LR[in_win],
+                   highlight = in_hi[in_win])
+  
+  p <- ggplot(dd, aes(pos, LR)) +
+    geom_point(aes(color = highlight), size = 0.9) +
+    scale_color_manual(values = c(`TRUE` = "red", `FALSE` = "black"), guide = "none") +
+    geom_hline(yintercept = cut1, linetype = "dashed", color = "red") +
+    geom_hline(yintercept = cut5, linetype = "dotted", color = "grey40") +
+    annotate("rect", xmin = gene_start, xmax = gene_end, ymin = -Inf, ymax = Inf,
+             fill = "gold", alpha = 0.12) +
+    labs(title = title, x = paste0("chr", chr, " position (bp)"), y = "LR (B2)") +
+    theme_minimal(base_size = 12)
+  
+  ggsave(out, p, width = 7.5, height = 4.5, dpi = 300)
+  message("saved: ", out)
+}
+```
+
+
+#ploting on disease resistance chr5 and flowering time chr2 genes with top 1% and 5% cutoffs
+
+
+```{r}
+# Files
+wild_file <- "wild/wild_merged_chr.B2.txt"                 # cols: pos=1, chr=7, LR=3
+land_file <- "/mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/Sorghum_landrace.AGPV5.B2_stat.txt"     # cols: pos=2, chr=1, LR=4
+imp_file  <- "imp/imp_merged_chr.B2.txt"                  # cols: pos=1, chr=7, LR=3
+
+# Thresholds you already computed
+cut_w1 <- 831.4060859770689 ; cut_w5 <- 326.8956947085826
+cut_l1 <- 1111.4600565187793; cut_l5 <- 467.338518762117
+cut_i1 <- 1682.5056527436806; cut_i5 <- 750.3304563977654
+
+# (A) Ma1 / PRR37  chr1: 2,158,579–2,164,845
+plot_simple(wild_file, chr=2, gene_start=2158579, gene_end=2164845,
+            cut1=cut_w1, cut5=cut_w5,
+            pos_col=1, chr_col=7, lr_col=3,
+            title="Wild · Ma1/PRR37", out="wild_Ma1.png")
+
+plot_simple(land_file, chr=2, gene_start=2158579, gene_end=2164845,
+            cut1=cut_l1, cut5=cut_l5,
+            pos_col=2, chr_col=1, lr_col=4,
+            title="Landrace · Ma1/PRR37", out="land_Ma1.png")
+#CHR=2
+#OSR_L=2158579
+#OSR_U=2164845
+
+plot_simple(imp_file, chr=2, gene_start=2158579, gene_end=2164845,
+            cut1=cut_i1, cut5=cut_i5,
+            pos_col=1, chr_col=7, lr_col=3,
+            title="Improved · Ma1/PRR37", out="imp_Ma1.png")
+
+# (B) RPM1 NLR (OSR) chr5: 8,638,062–8,740,146
+plot_simple(wild_file, chr=5, gene_start=8638062, gene_end=8740146,
+            cut1=cut_w1, cut5=cut_w5,
+            pos_col=1, chr_col=7, lr_col=3,
+            title="Wild · RPM1 NLR cluster", out="wild_OSR.png")
+
+plot_simple(land_file, chr=5, gene_start=8638062, gene_end=8740146,
+            cut1=cut_l1, cut5=cut_l5,
+            pos_col=2, chr_col=1, lr_col=4,
+            title="Landrace · RPM1 NLR cluster", out="land_OSR.png")
+
+plot_simple(imp_file, chr=5, gene_start=8638062, gene_end=8740146,
+            cut1=cut_i1, cut5=cut_i5,
+            pos_col=1, chr_col=7, lr_col=3,
+            title="Improved · RPM1 NLR cluster", out="imp_OSR.png")
+
+```
+
