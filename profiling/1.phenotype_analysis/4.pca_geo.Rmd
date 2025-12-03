@@ -10,17 +10,25 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-library(tidyverse)
-library(readxl)
-library(maps)
-library(ggrepel)
-library(ggforce)
-library(patchwork)
-library(stringr)
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(readxl)
+  library(maps)
+  library(ggforce)
+  library(patchwork)
+})
 
+# ---------- Inputs ----------
+sap_csv   <- "/Users/subhashmahamkali/Downloads/tpj15853-sup-0001-files1 (1).csv"
+sorgsd_xl <- "/Users/subhashmahamkali/Downloads/13068_2021_2016_MOESM1_ESM (1).xlsx"
+pca_vec   <- "/Users/subhashmahamkali/Downloads/pca.eigenvec"
+pca_val   <- "/Users/subhashmahamkali/Downloads/pca.eigenval"
 
-# --- Load SAP metadata ---
-sap_data <- read.csv("/Users/subhashmahamkali/Downloads/tpj15853-sup-0001-files1 (1).csv")[, c(1, 2, 5)]
+out_png   <- "/Users/subhashmahamkali/Documents/gwas_sap/graphs/pca_geo_subpops.png"
+out_pdf   <- "/Users/subhashmahamkali/Documents/gwas_sap/graphs/pca_geo_subpops.pdf"
+
+# ---------- Load metadata: SAP ----------
+sap_data <- read.csv(sap_csv)[, c(1, 2, 5)]
 colnames(sap_data) <- c("Pinumber", "cluster", "Country")
 sap_cluster_names <- c("1" = "durra", "2" = "kafir", "3" = "caudatum",
                        "4" = "milo/durra-bicolor", "5" = "mixed/bicolor", "6" = "guinea")
@@ -31,10 +39,10 @@ sap_data <- sap_data %>%
   filter(!is.na(ClusterName)) %>%
   select(Pinumber, ClusterName, Set, Country)
 
-# --- Load SorGSD metadata ---
-sorgsd_data <- read_excel("/Users/subhashmahamkali/Downloads/13068_2021_2016_MOESM1_ESM (1).xlsx")
+# ---------- Load metadata: SorGSD ----------
+sorgsd_data <- read_excel(sorgsd_xl)
 colnames(sorgsd_data) <- sorgsd_data[1, ]
-sorgsd_data <- sorgsd_data[-1, c(1, 5, 6)] # PI, Country, cluster
+sorgsd_data <- sorgsd_data[-1, c(1, 5, 6)]  # PI, Country, cluster
 colnames(sorgsd_data) <- c("Pinumber", "Country", "cluster")
 sorgsd_data$cluster[sorgsd_data$cluster == "Weedy"] <- "Wild sorghum"
 sorgsd_data <- sorgsd_data[sorgsd_data$cluster != "S.propinquum", ]
@@ -49,22 +57,22 @@ sorgsd_data <- sorgsd_data %>%
   filter(!is.na(ClusterName)) %>%
   select(Pinumber, ClusterName, Set, Country)
 
-# --- Combine metadata ---
+# ---------- Combine metadata ----------
 all_meta <- bind_rows(sap_data, sorgsd_data)
 
-# --- Load PCA ---
-merged_pca <- read.table("/Users/subhashmahamkali/Downloads/pca.eigenvec", header = FALSE)
+# ---------- Load PCA ----------
+merged_pca <- read.table(pca_vec, header = FALSE)
 colnames(merged_pca) <- c("FID", "IID", paste0("PC", 1:(ncol(merged_pca) - 2)))
 
-# --- Merge with metadata ---
+# ---------- Merge with metadata ----------
 pca_annotated <- inner_join(merged_pca, all_meta, by = c("IID" = "Pinumber"))
 
-# --- Reassign Landrace & Improved to nearest SAP centroid ---
+# ---------- Reassign Landrace/Improved to nearest SAP centroid ----------
 sap_centroids <- pca_annotated %>%
   filter(ClusterName %in% c("durra", "kafir", "caudatum",
                             "milo/durra-bicolor", "mixed/bicolor", "guinea")) %>%
   group_by(ClusterName) %>%
-  summarise(PC1_mean = mean(PC1), PC2_mean = mean(PC2))
+  summarise(PC1_mean = mean(PC1), PC2_mean = mean(PC2), .groups = "drop")
 
 assign_to_sap <- function(pc1, pc2, centroids) {
   dists <- sqrt((centroids$PC1_mean - pc1)^2 + (centroids$PC2_mean - pc2)^2)
@@ -78,204 +86,39 @@ pca_annotated <- pca_annotated %>%
     ClusterName
   ))
 
-# --- Colors for 7 final groups ---
+# ---------- Colors ----------
 color_vec <- c(
-  "durra" = "#FF7F00", "kafir" = "#ebff33", "caudatum" = "#984EA3",
-  "milo/durra-bicolor" = "#F781BF", "mixed/bicolor" = "#A6A6A6", "guinea" = "#FF5733",
-  "Wild sorghum" = "#4DAF4A"
+  "durra" = "#FF7F00", "kafir" = "#EBFF33", "caudatum" = "#984EA3",
+  "milo/durra-bicolor" = "#F781BF", "mixed/bicolor" = "#A6A6A6",
+  "guinea" = "#FF5733", "Wild sorghum" = "#4DAF4A"
 )
 
-# --- PCA variance ---
-eigenvalues <- scan("/Users/subhashmahamkali/Downloads/pca.eigenval")
+# ---------- Variance explained ----------
+eigenvalues <- scan(pca_val)
 variance_explained <- eigenvalues / sum(eigenvalues) * 100
-PC1_var <- variance_explained[1]
-PC2_var <- variance_explained[2]
+PC1_var <- variance_explained[1]; PC2_var <- variance_explained[2]
 
-# --- PCA plot ---
-pca_plot <- ggplot(pca_annotated, aes(x = PC1, y = PC2, color = ClusterName_new)) +
-  geom_point(size = 2.5, alpha = 0.5) +
-  scale_color_manual(values = color_vec) +
-  theme_minimal(base_size = 11) +
-  labs(
-    x = paste0("PC1 (", round(PC1_var, 1), "%)"),
-    y = paste0("PC2 (", round(PC2_var, 1), "%)"),
-    color = "Subpopulations"
-  ) +
-  theme(
-    plot.title = element_blank(),
-    axis.title = element_text(size = 12),
-    axis.text = element_text(size = 12),
-    legend.title = element_blank(),
-    legend.text = element_text(size = 10),
-    legend.position = "right",
-    panel.grid = element_blank()
-  )
-
-# --- Map pie chart ---
-world <- map_data("world")
-centroids <- world %>%
-  group_by(region) %>%
-  summarise(long = mean(range(long)), lat = mean(range(lat)), .groups = "drop")
-
-# Update country info for reclassification
-map_df <- pca_annotated %>%
-  left_join(centroids, by = c("Country" = "region")) %>%
-  filter(!is.na(long))
-
-cluster_counts <- map_df %>%
-  group_by(ClusterName_new) %>%
-  summarise(n = n(), .groups = "drop") %>%
-  mutate(label = paste0(ClusterName_new, " (n=", n, ")"))
-
-pie_data <- map_df %>%
-  group_by(Country, long, lat, ClusterName_new) %>%
-  summarise(n = n(), .groups = "drop") %>%
-  group_by(Country) %>%
-  mutate(prop = n / sum(n),
-         angle = 2 * pi * cumsum(prop),
-         start = lag(angle, default = 0),
-         end = angle,
-         mid = (start + end)/2,
-         r = 3)
-
-map_plot <- ggplot() +
-  geom_polygon(data = world, aes(x = long, y = lat, group = group),
-               fill = "white", color = "gray70") +
-  geom_arc_bar(data = pie_data,
-               aes(x0 = long, y0 = lat, r0 = 0, r = r,
-                   start = start, end = end, fill = ClusterName_new),
-               alpha = 0.5, color = "black", size = 0.1) +
-  scale_fill_manual(values = color_vec) +
-  theme_minimal(base_size = 11) +
+# ---------- PCA plot (non-bold titles, single legend) ----------
+pca_plot <- ggplot(pca_annotated, aes(PC1, PC2, color = ClusterName_new)) +
+  geom_point(size = 2, alpha = 0.6) +
+  scale_color_manual(values = color_vec, name = NULL) +
+  scale_x_continuous(expand = expansion(mult = 0.02)) +
+  scale_y_continuous(expand = expansion(mult = 0.02)) +
+  coord_cartesian(clip = "on") +
+  labs(x = paste0("PC1 (", round(PC1_var, 1), "%)"),
+       y = paste0("PC2 (", round(PC2_var, 1), "%)")) +
+  theme_minimal(base_size = 12) +
   theme(
     panel.grid = element_blank(),
     panel.background = element_rect(fill = "white", color = NA),
-    plot.background = element_rect(fill = "white", color = NA),
-    axis.title = element_text(size = 12),
-    axis.text = element_text(size = 12),
-    legend.position = "none"
-  ) +
-  labs(x = "Longitude", y = "Latitude")
-
-# --- Combine ---
-combined <- map_plot + pca_plot +
-  plot_layout(ncol = 2, widths = c(1, 1), heights = c(1.2, 1))
-
-# Save high-res
-ggsave("/Users/subhashmahamkali/Documents/gwas_sap/graphs/Figure1_7subpops.png", combined, width = 12, height = 6, dpi = 600)
-ggsave("/Users/subhashmahamkali/Documents/gwas_sap/graphs/Figure1_7subpops.pdf", combined, width = 12, height = 6)
-
-```
-```{r}
-library(tidyverse)
-library(readxl)
-library(maps)
-library(ggrepel)
-library(ggforce)
-library(patchwork)
-library(stringr)
-
-# --- Load SAP metadata ---
-sap_data <- read.csv("/Users/subhashmahamkali/Downloads/tpj15853-sup-0001-files1 (1).csv")[, c(1, 2, 5)]
-colnames(sap_data) <- c("Pinumber", "cluster", "Country")
-sap_cluster_names <- c("1" = "durra", "2" = "kafir", "3" = "caudatum",
-                       "4" = "milo/durra-bicolor", "5" = "mixed/bicolor", "6" = "guinea")
-sap_data <- sap_data %>%
-  mutate(cluster = as.character(cluster),
-         ClusterName = sap_cluster_names[cluster],
-         Set = "SAP") %>%
-  filter(!is.na(ClusterName)) %>%
-  select(Pinumber, ClusterName, Set, Country)
-
-# --- Load SorGSD metadata ---
-sorgsd_data <- read_excel("/Users/subhashmahamkali/Downloads/13068_2021_2016_MOESM1_ESM (1).xlsx")
-colnames(sorgsd_data) <- sorgsd_data[1, ]
-sorgsd_data <- sorgsd_data[-1, c(1, 5, 6)] # PI, Country, cluster
-colnames(sorgsd_data) <- c("Pinumber", "Country", "cluster")
-sorgsd_data$cluster[sorgsd_data$cluster == "Weedy"] <- "Wild sorghum"
-sorgsd_data <- sorgsd_data[sorgsd_data$cluster != "S.propinquum", ]
-sorgsd_data <- sorgsd_data %>%
-  mutate(ClusterName = case_when(
-    cluster == "Improved" ~ "Improved",
-    cluster == "Landrace" ~ "Landrace",
-    cluster == "Wild sorghum" ~ "Wild sorghum",
-    TRUE ~ NA_character_
-  ),
-  Set = "SorGSD") %>%
-  filter(!is.na(ClusterName)) %>%
-  select(Pinumber, ClusterName, Set, Country)
-
-# --- Combine metadata ---
-all_meta <- bind_rows(sap_data, sorgsd_data)
-
-# --- Load PCA ---
-merged_pca <- read.table("/Users/subhashmahamkali/Downloads/pca.eigenvec", header = FALSE)
-colnames(merged_pca) <- c("FID", "IID", paste0("PC", 1:(ncol(merged_pca) - 2)))
-
-# --- Merge with metadata ---
-pca_annotated <- inner_join(merged_pca, all_meta, by = c("IID" = "Pinumber"))
-
-# --- Reassign Landrace & Improved to nearest SAP centroid ---
-sap_centroids <- pca_annotated %>%
-  filter(ClusterName %in% c("durra", "kafir", "caudatum",
-                            "milo/durra-bicolor", "mixed/bicolor", "guinea")) %>%
-  group_by(ClusterName) %>%
-  summarise(PC1_mean = mean(PC1), PC2_mean = mean(PC2))
-
-assign_to_sap <- function(pc1, pc2, centroids) {
-  dists <- sqrt((centroids$PC1_mean - pc1)^2 + (centroids$PC2_mean - pc2)^2)
-  centroids$ClusterName[which.min(dists)]
-}
-
-pca_annotated <- pca_annotated %>%
-  mutate(ClusterName_new = ifelse(
-    ClusterName %in% c("Landrace", "Improved"),
-    mapply(assign_to_sap, PC1, PC2, MoreArgs = list(centroids = sap_centroids)),
-    ClusterName
-  )) %>%
-  mutate(ClusterName_new = str_to_title(ClusterName_new)) # Capitalize
-
-# --- Colors for 7 final groups (capitalized keys) ---
-color_vec <- c(
-  "Durra" = "#FF7F00", "Kafir" = "#ebff33", "Caudatum" = "#984EA3",
-  "Milo/durra-bicolor" = "#F781BF", "Mixed/bicolor" = "#A6A6A6", 
-  "Guinea" = "#FF5733", "Wild Sorghum" = "#4DAF4A"
-)
-
-# --- Order factor levels for legend ---
-pca_annotated$ClusterName_new <- factor(
-  pca_annotated$ClusterName_new,
-  levels = c("Durra", "Kafir", "Caudatum", "Milo/durra-bicolor", 
-             "Mixed/bicolor", "Guinea", "Wild Sorghum")
-)
-
-# --- PCA variance ---
-eigenvalues <- scan("/Users/subhashmahamkali/Downloads/pca.eigenval")
-variance_explained <- eigenvalues / sum(eigenvalues) * 100
-PC1_var <- variance_explained[1]
-PC2_var <- variance_explained[2]
-
-# --- PCA plot ---
-pca_plot <- ggplot(pca_annotated, aes(x = PC1, y = PC2, color = ClusterName_new)) +
-  geom_point(size = 2.5, alpha = 0.5) + # 50% transparency
-  scale_color_manual(values = color_vec) +
-  theme_minimal(base_size = 11) +
-  labs(
-    x = paste0("PC1 (", round(PC1_var, 1), "%)"),
-    y = paste0("PC2 (", round(PC2_var, 1), "%)"),
-    color = "Subpopulations"
-  ) +
-  theme(
-    plot.title = element_blank(),
-    axis.title = element_text(size = 12),
-    axis.text = element_text(size = 12),
-    legend.title = element_blank(),
-    legend.text = element_text(size = 10),
-    legend.position = "right",
-    panel.grid = element_blank()
+    axis.text  = element_text(size = 11),
+    axis.title = element_text(size = 12),     # not bold
+    #legend.position = "bottom",
+    #legend.text  = element_text(size = 11),
+    plot.margin = margin(6, 8, 6, 6)
   )
 
-# --- Map pie chart ---
+# ---------- Map pie chart (no legend here) ----------
 world <- map_data("world")
 centroids <- world %>%
   group_by(region) %>%
@@ -289,39 +132,57 @@ pie_data <- map_df %>%
   group_by(Country, long, lat, ClusterName_new) %>%
   summarise(n = n(), .groups = "drop") %>%
   group_by(Country) %>%
-  mutate(prop = n / sum(n),
+  mutate(prop  = n / sum(n),
          angle = 2 * pi * cumsum(prop),
          start = lag(angle, default = 0),
-         end = angle,
-         mid = (start + end)/2,
-         r = 3)
+         end   = angle,
+         r     = 5)
 
 map_plot <- ggplot() +
-  geom_polygon(data = world, aes(x = long, y = lat, group = group),
-               fill = "white", color = "gray70") +
+  geom_polygon(data = world, aes(long, lat, group = group),
+               fill = "white", color = "gray70", linewidth = 0.2) +
   geom_arc_bar(data = pie_data,
                aes(x0 = long, y0 = lat, r0 = 0, r = r,
                    start = start, end = end, fill = ClusterName_new),
-               alpha = 0.5, color = "black", size = 0.1) +
-  scale_fill_manual(values = color_vec) +
-  theme_minimal(base_size = 11) +
+               alpha = 0.55, color = "black", linewidth = 0.1) +
+  scale_fill_manual(values = color_vec, name = NULL, guide = "none") +
+  coord_quickmap(xlim = c(-178, 178), ylim = c(-58, 83), expand = FALSE) +
+  labs(x = "Longitude", y = "Latitude") +
+  theme_minimal(base_size = 12) +
   theme(
     panel.grid = element_blank(),
     panel.background = element_rect(fill = "white", color = NA),
-    plot.background = element_rect(fill = "white", color = NA),
+    axis.text  = element_text(size = 11),
     axis.title = element_text(size = 12),
-    axis.text = element_text(size = 12),
-    legend.position = "none"
-  ) +
-  labs(x = "Longitude", y = "Latitude")
+    legend.position = "none",
+    plot.margin = margin(6, 6, 6, 8)
+  )
 
-# --- Combine ---
-combined <- map_plot + pca_plot +
-  plot_layout(ncol = 2, widths = c(1, 1), heights = c(1.2, 1))
+# ---------- Combine (Option A): build, then add theme + guides to the patchwork object ----------
+combined <- (map_plot | pca_plot) +
+  plot_layout(widths = c(1, 1), guides = "collect")
 
-# Save high-res
-ggsave("/Users/subhashmahamkali/Documents/gwas_sap/graphs/Figure1_7subpops.png", combined, width = 12, height = 6, dpi = 600)
-ggsave("/Users/subhashmahamkali/Documents/gwas_sap/graphs/Figure1_7subpops.pdf", combined, width = 12, height = 6)
+# center the single legend and keep it one row
+combined <- combined &
+  theme(
+    legend.position = "bottom",
+    legend.justification = "center",
+    legend.box.just = "center",
+    legend.box.margin = margin(0),
+    legend.margin = margin(0),
+    plot.background = element_rect(fill = "white", color = NA),
+    plot.margin = margin(6, 6, 6, 6)
+  )
+
+combined <- combined & guides(colour = guide_legend(nrow = 1, byrow = TRUE))
+
+# ---------- Save ----------
+ggsave(out_png, combined, width = 12, height = 4.5, dpi = 600, bg = "white")
+ggsave(out_pdf, combined, width = 12, height = 4.5)
+
+ggsave("/Users/subhashmahamkali/Documents/gwas_sap/graphs/map_plot.pdf", map_plot, width = 12, height = 4.5)
+ggsave("/Users/subhashmahamkali/Documents/gwas_sap/graphs/pca_plot.pdf", pca_plot, width = 12, height = 4.5)
 
 ```
+
 

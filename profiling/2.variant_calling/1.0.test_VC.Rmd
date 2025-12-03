@@ -25,7 +25,7 @@ cat ERR8092974_1.fastq.gz ERR8093223_1.fastq.gz ERR8093245_1.fastq.gz > PI_56416
 cat ERR8092974_2.fastq.gz ERR8093223_2.fastq.gz ERR8093245_2.fastq.gz > PI_564163_2.fastq.gz
 ```
 
-#quality control 
+#quality control    
 
 ```{bash}
 #used fastqc to generate quality report
@@ -35,6 +35,84 @@ fastqc *.fastq.gz
 #used fastp to filter the low quality reads and adapter sequences 
 ml fastp
 fastp -i PI_564163_1.fastq.gz -I PI_564163_2.fastq.gz  -o PI_564163_1_trim.fastq.gz -O PI_564163_2_trim.fastq.gz -c --thread=4 -Q > fastp.log
+
+
+
+
+cd /work/jyanglab/subhash/ex_pvp/fastq
+
+# fresh folders
+mkdir -p manifest trimmed reports logs
+
+# build (or rebuild) the manifest
+: > manifest/samples.txt
+for r1 in *_R1.fastq.gz; do
+  base="${r1%_R1.fastq.gz}"
+  r2="${base}_R2.fastq.gz"
+  if [[ -f "$r2" ]]; then
+    echo "$base" >> manifest/samples.txt
+  else
+    echo "WARNING: missing R2 for $base" >&2
+  fi
+done
+
+# count and quick peek
+wc -l manifest/samples.txt
+head manifest/samples.txt
+
+
+#!/usr/bin/env bash
+#SBATCH --job-name=fastp_trim
+#SBATCH --partition=jclarke,batch,guest
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=10G
+#SBATCH --time=24:00:00
+#SBATCH --array=1-$(wc -l < manifest/samples.txt)
+#SBATCH --output=logs/fastp_%A_%a.out.txt
+#SBATCH --error=logs/fastp_%A_%a.err.txt
+
+set -euo pipefail
+
+module purge
+module load fastp
+
+PREFIX=$(sed -n "${SLURM_ARRAY_TASK_ID}p" manifest/samples.txt)
+
+R1="${PREFIX}_R1.fastq.gz"
+R2="${PREFIX}_R2.fastq.gz"
+
+OUTDIR_TRIM="trimmed"
+OUTDIR_REP="reports"
+mkdir -p "$OUTDIR_TRIM" "$OUTDIR_REP" logs
+
+OUT_R1="${OUTDIR_TRIM}/$(basename "$PREFIX")_R1.trim.fastq.gz"
+OUT_R2="${OUTDIR_TRIM}/$(basename "$PREFIX")_R2.trim.fastq.gz"
+HTML="${OUTDIR_REP}/$(basename "$PREFIX").fastp.html"
+JSON="${OUTDIR_REP}/$(basename "$PREFIX").fastp.json"
+LOG="logs/$(basename "$PREFIX").fastp.log"
+
+echo "[$(date)] START $PREFIX"
+echo "Threads: ${SLURM_CPUS_PER_TASK}"
+
+# Skip if outputs already exist and look healthy
+if [[ -s "$OUT_R1" && -s "$OUT_R2" ]]; then
+  if zcat -t "$OUT_R1" >/dev/null 2>&1 && zcat -t "$OUT_R2" >/dev/null 2>&1; then
+    echo "Outputs exist and are valid, skipping: $PREFIX"
+    exit 0
+  else
+    echo "Existing outputs appear corrupted—recomputing: $PREFIX"
+    rm -f "$OUT_R1" "$OUT_R2"
+  fi
+fi
+
+fastp \
+  -i "$R1" -I "$R2" \
+  -o "$OUT_R1" -O "$OUT_R2" \
+  -c -Q --thread="${SLURM_CPUS_PER_TASK}" \
+  -h "$HTML" -j "$JSON" \
+  > "$LOG" 2>&1
+
+echo "[$(date)] DONE $PREFIX"
 
 ```
 

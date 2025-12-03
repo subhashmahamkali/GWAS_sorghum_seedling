@@ -1,5 +1,5 @@
 ---
-title: "bal_previous_pubs"
+title: "bal_previous_pubs_genes_zoom_in plot"
 author: "subhash"
 date: "2025-09-09"
 output: html_document
@@ -19,7 +19,7 @@ library(data.table); library(ggplot2)
 
 # one tiny function
 plot_simple <- function(file, chr, gene_start, gene_end,
-                        cut1, cut5,
+                        cut1, #cut5,
                         pos_col, chr_col, lr_col,
                         flank = 1e5, highlight_pad = 1e4,
                         title = "", out = "plot.png") {
@@ -101,6 +101,26 @@ plot_simple(imp_file, chr=5, gene_start=8638062, gene_end=8740146,
             cut1=cut_i1, cut5=cut_i5,
             pos_col=1, chr_col=7, lr_col=3,
             title="Improved · RPM1 NLR cluster", out="imp_OSR.png")
+
+```
+
+```{r}
+d=fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/all_chr_merged_with_chr.B2.txt.gz", header=T,data.table=F)# cols: pos=1, chr=7, LR=3
+la=fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/B2/Sorghum_landrace.AGPV5.B2_stat.txt", header=T,data.table=F)# cols: pos=2, chr=1, LR=4
+im=fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/imp_chr_merged_with_chr.B2.txt.gz", header=T,data.table=F)# cols: pos=1, chr=7, LR=3
+
+# Thresholds you already computed
+cut_w1 <- 831.4060859770689 ; cut_w5 <- 326.8956947085826
+cut_l1 <- 1111.4600565187793; cut_l5 <- 467.338518762117
+cut_i1 <- 1682.5056527436806; cut_i5 <- 750.3304563977654
+
+# (A) Ma1 / PRR37  chr1: 2,158,579–2,164,845
+plot_simple(d, chr=2, gene_start=2158579, gene_end=2164845,
+            cut1=cut_w1, #cut5=cut_w5,
+            pos_col=1, chr_col=7, lr_col=3,
+            title="Wild · Ma1/PRR37", out="wild_Ma1.png")
+```
+```{r}
 
 ```
 

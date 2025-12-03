@@ -139,7 +139,7 @@ sapply(PI_numbers, generate_script)
 # Write sbatch commands to a txt file
 writeLines(picard, con = "picard.txt")
 
-sbatch picard.txt
+#sbatch picard.txt
 ```
 
 #step - 3

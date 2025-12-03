@@ -1,5 +1,5 @@
 ---
-title: "misch_bal"
+title: "misch_balancing_selection_analysis"
 author: "subhash"
 date: "2025-09-08"
 output: html_document
@@ -9,16 +9,23 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+
+#citeation: mace et al 2014, BMC plant Biology
+(https://bmcplantbiol.biomedcentral.com/articles/10.1186/s12870-014-0253-z)
+# i have identified the cutoffs for balancing selection score (LR) at 0.5%, 1%, and 5% levels, and also determined the maximum LR values within the NLR (disease resistance) gene span as well as within ±10 kb and ±50 kb around the NLR gene span.
+
 ```{bash}
 # === settings ===
-
 cd /work/jyanglab/subhash/sorgsd/bal_s/3.input/wild
 
 FILE="wild_merged_chr.B2.txt"   # columns: physPos genPos LR xhat Ahat numSites chr
-CHR=5
-OSR_L=8638062
-OSR_U=8740146
-
+#FILE="imp_merged_chr.B2.txt"
+Ma1 / PRR37 → Chr1: 2,158,579–2,164,845 (Sobic.001G027600)
+#ma1 span max LR: 976.7863907447681 (pos 2164784)
+#CHR=5 OSR_L=8638062 OSR_U=8740146
+CHR=2
+OSR_L=2158579
+OSR_U=2164845
 # === cutoffs (0.5%, 1%, 5%) ===
 N=$(awk 'NR>1{print $3}' "$FILE" | wc -l)
 p05=$(( N/200 ))
@@ -66,6 +73,45 @@ awk -v CHR=$CHR -v L=$OSR_L -v U=$OSR_U '
     if(max=="") print "OSR ±50kb max LR: NA"
     else printf("OSR ±50kb max LR: %s (pos %s)\n", max, pos)
   }' "$FILE"
+
+```
+
+```{bash}
+FILE="/mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/Sorghum_landrace.AGPV5.B2_stat.txt"
+
+# total rows (exclude header)
+N=$(awk -v FS='\t' 'NR>1{print $4}' "$FILE" | wc -l)
+p05=$(( N/200 )); p1=$(( N/100 )); p5=$(( N/20 ))
+
+echo "Total SNPs: $N"
+echo "Ranks -> 0.5%: $p05 | 1%: $p1 | 5%: $p5"
+
+awk -v FS='\t' 'NR>1{print $4}' "$FILE" | sort -nr | \
+awk -v p05=$p05 -v p1=$p1 -v p5=$p5 '
+  NR==p05{printf("0.5%% cutoff LR: %s\n",$1)}
+  NR==p1 {printf("1%% cutoff LR:   %s\n",$1)}
+  NR==p5 {printf("5%% cutoff LR:   %s\n",$1)}'
+
+#CHR=5; OSR_L=8638062; OSR_U=8740146
+CHR=2; OSR_L=2158579; OSR_U=2164845
+Ma1 / PRR37 → Chr1: 2,158,579–2,164,845 (Sobic.001G027600)
+
+# Inside gene span
+awk -v FS='\t' -v CHR=$CHR -v L=$OSR_L -v U=$OSR_U '
+  NR>1 && $1==CHR && $2>=L && $2<=U { if($4>m){m=$4;p=$2} }
+  END{ if(m=="") print "OSR span max LR: NA"; else printf("OSR span max LR: %s (pos %s)\n", m, p) }' "$FILE"
+
+# ±10 kb
+awk -v FS='\t' -v CHR=$CHR -v L=$OSR_L -v U=$OSR_U '
+  BEGIN{L10=L-10000; if(L10<0)L10=0; U10=U+10000}
+  NR>1 && $1==CHR && $2>=L10 && $2<=U10 { if($4>m){m=$4;p=$2} }
+  END{ if(m=="") print "OSR ±10kb max LR: NA"; else printf("OSR ±10kb max LR: %s (pos %s)\n", m, p) }' "$FILE"
+
+# ±50 kb
+awk -v FS='\t' -v CHR=$CHR -v L=$OSR_L -v U=$OSR_U '
+  BEGIN{L50=L-50000; if(L50<0)L50=0; U50=U+50000}
+  NR>1 && $1==CHR && $2>=L50 && $2<=U50 { if($4>m){m=$4;p=$2} }
+  END{ if(m=="") print "OSR ±50kb max LR: NA"; else printf("OSR ±50kb max LR: %s (pos %s)\n", m, p) }' "$FILE"
 
 ```
 

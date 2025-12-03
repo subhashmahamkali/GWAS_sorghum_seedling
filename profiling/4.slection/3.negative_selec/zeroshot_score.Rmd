@@ -221,6 +221,6 @@ cd /work/jyanglab/subhash/sorgsd/filterfed_vcf/0.vcf_chunk/0.unziped/tsv_out/0.z
 #all .tsv files are named like `chunk_991916_score.tsv`etc.
 #This will merge all files into `merged_output.tsv`
 
-awk 'NR==1 || FNR > 1' chunk_*_score.tsv > merged_score.tsv
+awk 'NR==1 || FNR > 1' cahunk_*_score.tsv > merged_score.tsv
 ```
 

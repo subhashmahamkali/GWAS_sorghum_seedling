@@ -1,0 +1,340 @@
+---
+title: "TajimasD"
+author: "subhash"
+date: "2025-09-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{bash}
+#!/bin/bash
+#SBATCH -J tajD_wild
+#SBATCH --array=1-10
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --time=24:00:00
+#SBATCH --mem=16G
+#SBATCH --partition=jclarke,batch,guest
+#SBATCH --output=/work/jyanglab/subhash/sorgsd/bal_s/tajD/wild_%A_%a.out
+#SBATCH --error=/work/jyanglab/subhash/sorgsd/bal_s/tajD/wild_%A_%a.err
+
+module load vcftools
+#set -euo pipefail
+
+VCF=/work/jyanglab/subhash/sorgsd/bal_s/wild_50_samples.recode.vcf
+OUTDIR=/work/jyanglab/subhash/sorgsd/bal_s/tajimasD/wild
+
+CHR=${SLURM_ARRAY_TASK_ID}
+vcftools --vcf ${VCF} \
+  --chr ${CHR} \
+  --TajimaD 10000 \
+  --out ${OUTDIR}/wild.tajD.chr${CHR}
+```
+
+
+```{bash}
+# Go to your output directory
+cd /work/jyanglab/subhash/sorgsd/bal_s/tajimasD/wild
+
+# Keep header from chr1, drop headers from the rest
+head -n 1 wild.tajD.chr1.Tajima.D > wild.tajD.all.Tajima.D
+tail -n +2 -q wild.tajD.chr*.Tajima.D >> wild.tajD.all.Tajima.D
+
+```
+
+
+
+
+```{bash}
+#!/bin/bash
+#SBATCH -J tajD_land
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --time=24:00:00
+#SBATCH --mem=16G
+#SBATCH --partition=jclarke,batch,guest
+#SBATCH --output=/work/jyanglab/subhash/sorgsd/bal_s/tajimasD/land/land_%j.out
+#SBATCH --error=/work/jyanglab/subhash/sorgsd/bal_s/tajimasD/land/land_%j.err
+
+module load vcftools
+
+VCF=/work/jyanglab/subhash/sorgsd/bal_s/landraces.recode.vcf
+OUTDIR=/work/jyanglab/subhash/sorgsd/bal_s/tajimasD/land
+#mkdir -p "$OUTDIR"
+
+vcftools --vcf ${VCF} \
+  --TajimaD 10000 \
+  --out ${OUTDIR}/land.tajD
+```
+
+```{bash}
+#!/bin/bash
+#SBATCH -J tajD_imp
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --time=24:00:00
+#SBATCH --mem=16G
+#SBATCH --partition=jclarke,batch,guest
+#SBATCH --output=/work/jyanglab/subhash/sorgsd/bal_s/tajimasD/imp/imp_%j.out
+#SBATCH --error=/work/jyanglab/subhash/sorgsd/bal_s/tajimasD/imp/imp_%j.err
+
+module load vcftools
+
+VCF=/work/jyanglab/subhash/sorgsd/bal_s/imp_129_samples.recode.vcf
+OUTDIR=/work/jyanglab/subhash/sorgsd/bal_s/tajimasD/imp
+#mkdir -p "$OUTDIR"
+
+vcftools --vcf ${VCF} \
+  --TajimaD 10000 \
+  --out ${OUTDIR}/imp.tajD
+```
+
+
+
+```{bash}
+W_IN=/work/jyanglab/subhash/sorgsd/bal_s/tajimasD/wild/wild.tajD.all.Tajima.D
+L_IN=/work/jyanglab/subhash/sorgsd/bal_s/tajimasD/land/land.tajD.Tajima.D
+I_IN=/work/jyanglab/subhash/sorgsd/bal_s/tajimasD/imp/imp.tajD.Tajima.D
+
+W_PEAK=/work/jyanglab/subhash/sorgsd/bal_s/3.input/wild/wild.top1.ext5k.bed
+L_PEAK=/mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/land.top1.ext5k.bed
+I_PEAK=/work/jyanglab/subhash/sorgsd/bal_s/3.input/imp/imp.top1.ext5k.bed
+
+OUTDIR=/work/jyanglab/subhash/sorgsd/bal_s/tajimasD
+```
+
+```{bash}
+# Wild
+awk 'NR>1 && $4!="nan" && $4!="NaN" {
+  s = $2 - 1; if (s < 0) s = 0;
+  print $1, s, $2 + 10000, $4
+}' OFS="\t" "$W_IN" > "$OUTDIR/wild.tajD.10kb.bed"
+
+# Landrace
+awk 'NR>1 && $4!="nan" && $4!="NaN" {
+  s = $2 - 1; if (s < 0) s = 0;
+  print $1, s, $2 + 10000, $4
+}' OFS="\t" "$L_IN" > "$OUTDIR/land.tajD.10kb.bed"
+# Improved
+awk 'NR>1 && $4!="nan" && $4!="NaN" {
+  s = $2 - 1; if (s < 0) s = 0;
+  print $1, s, $2 + 10000, $4
+}' OFS="\t" "$I_IN" > "$OUTDIR/imp.tajD.10kb.bed"
+
+```
+
+
+
+```{bash}
+module load bedtools
+
+# Wild
+bedtools intersect -wa -a "$OUTDIR/wild.tajD.10kb.bed" -b "$W_PEAK" \
+  | awk 'BEGIN{OFS="\t"}{print $0,"PEAK","Wild"}' > "$OUTDIR/wild.peak.tsv"
+bedtools intersect -v  -a "$OUTDIR/wild.tajD.10kb.bed" -b "$W_PEAK" \
+  | awk 'BEGIN{OFS="\t"}{print $0,"BACKGROUND","Wild"}' > "$OUTDIR/wild.bg.tsv"
+cat "$OUTDIR/wild.peak.tsv" "$OUTDIR/wild.bg.tsv" > "$OUTDIR/wild_labeled_tajD.txt"
+
+
+# Landrace
+bedtools intersect -wa -a "$OUTDIR/land.tajD.10kb.bed" -b "$L_PEAK" \
+ | awk 'BEGIN{OFS="\t"}{print $0,"PEAK","Landrace"}' > "$OUTDIR/land.peak.tsv"
+bedtools intersect -v  -a "$OUTDIR/land.tajD.10kb.bed" -b "$L_PEAK" \
+ | awk 'BEGIN{OFS="\t"}{print $0,"BACKGROUND","Landrace"}' > "$OUTDIR/land.bg.tsv"
+cat "$OUTDIR/land.peak.tsv" "$OUTDIR/land.bg.tsv" > "$OUTDIR/land_labeled_tajD.txt"
+
+# Improved
+bedtools intersect -wa -a "$OUTDIR/imp.tajD.10kb.bed" -b "$I_PEAK" \
+ | awk 'BEGIN{OFS="\t"}{print $0,"PEAK","Improved"}' > "$OUTDIR/imp.peak.tsv"
+bedtools intersect -v  -a "$OUTDIR/imp.tajD.10kb.bed" -b "$I_PEAK" \
+ | awk 'BEGIN{OFS="\t"}{print $0,"BACKGROUND","Improved"}' > "$OUTDIR/imp.bg.tsv"
+cat "$OUTDIR/imp.peak.tsv" "$OUTDIR/imp.bg.tsv" > "$OUTDIR/imp_labeled_tajD.txt"
+
+```
+
+```{r}
+library(readr); library(dplyr); library(ggplot2)
+
+OUTDIR <- "/work/jyanglab/subhash/sorgsd/bal_s/tajimasD/"
+
+colspec <- cols(
+  chr = col_character(),
+  start = col_integer(),
+  end = col_integer(),
+  TajimaD = col_double(),
+  class = col_character(),
+  pop = col_character()
+)
+
+# read
+w <- read_tsv(file.path(OUTDIR, "wild_labeled_tajD.txt"),
+              col_names=c("chr","start","end","TajimaD","class","pop"),
+              col_types=colspec)
+l <- read_tsv(file.path(OUTDIR, "land_labeled_tajD.txt"),
+              col_names=c("chr","start","end","TajimaD","class","pop"),
+              col_types=colspec)
+i <- read_tsv(file.path(OUTDIR, "imp_labeled_tajD.txt"),
+              col_names=c("chr","start","end","TajimaD","class","pop"),
+              col_types=colspec)
+
+dat <- bind_rows(w,l,i) %>%
+  filter(is.finite(TajimaD)) %>%
+  mutate(
+    class = factor(class, levels = c("BACKGROUND","PEAK")),
+    # put panels in the order you want
+    pop   = factor(pop,   levels = c("Wild","Landrace","Improved"))
+  )
+
+# medians for labels
+meds <- dat %>%
+  group_by(pop, class) %>%
+  summarise(med = median(TajimaD, na.rm = TRUE), .groups = "drop")
+
+# same y for all facets: use global max and give headroom for the star bracket
+ymax <- max(dat$TajimaD, na.rm = TRUE)
+ystar <- ymax * 0.95  # where to draw the significance bracket
+ylims <- c(min(dat$TajimaD, na.rm = TRUE), ymax * 1.05)
+
+stats <- dat %>%
+  group_by(pop) %>%
+  summarise(
+    n_peak   = sum(class=="PEAK"),
+    n_bg     = sum(class=="BACKGROUND"),
+    med_peak = median(TajimaD[class=="PEAK"], na.rm=TRUE),
+    med_bg   = median(TajimaD[class=="BACKGROUND"], na.rm=TRUE),
+    p_wilcox = wilcox.test(TajimaD[class=="PEAK"], TajimaD[class=="BACKGROUND"])$p.value,
+    .groups  = "drop"
+  )
+stats
+
+# plot
+p <- ggplot(dat, aes(x = class, y = TajimaD, fill = class)) +
+  geom_violin(width = 0.9, trim = TRUE, color = "black", alpha = 0.9) +
+  geom_boxplot(width = 0.12, outlier.shape = NA, color = "black") +
+  # median text
+  geom_text(data = meds,
+            aes(x = class, y = med, label = sprintf("%.2f", med)),
+            vjust = -0.8, size = 3, fontface = "bold", inherit.aes = FALSE) +
+  # significance stars (Wilcoxon) for each facet
+  geom_signif(
+    comparisons = list(c("BACKGROUND","PEAK")),
+    test = "wilcox.test",
+    map_signif_level = TRUE,
+    y_position = ystar,
+    tip_length = 0.01
+  ) +
+  facet_wrap(~ pop, nrow = 1, scales = "fixed") +  # same y across panels
+  coord_cartesian(ylim = ylims) +
+  scale_fill_manual(values = c(BACKGROUND = "grey75", PEAK = "#ffb000")) +
+  labs(x = NULL, y = "Tajima's D", title = "") +
+  theme_minimal(base_size = 12) +
+  theme(
+    legend.position = "none",
+    strip.text = element_text(face = "bold", size = 14),
+    axis.text.x = element_text(face = "bold")
+  )
+
+ggsave("tajimasD_violin_allpops_with_stars.png",
+       p, width = 10, height = 3.8, dpi = 600)
+
+# Wilcoxon stats table (unchanged)
+#write.csv(stats, file.path(OUTDIR, "tajimasD_peak_vs_bg_wilcoxon.csv"), row.names=FALSE)
+```
+# A tibble: 3 × 6
+  pop      n_peak  n_bg med_peak med_bg  p_wilcox
+  <fct>     <int> <int>    <dbl>  <dbl>     <dbl>
+1 Wild       1582 63360    0.770 -1.36  0        
+2 Landrace   1126 63432    1.17  -1.07  2.14e-307
+3 Improved    953 63413    1.60  -0.617 1.47e-215
+
+
+```{r}
+library(dplyr)
+
+read_lab <- function(path) {
+  read.table(path, header = FALSE, sep = "\t",
+             col.names = c("chr","start","end","tajD","SET","POP"),
+             stringsAsFactors = FALSE)
+}
+
+# load your three labeled files
+wild <- read_lab("/work/jyanglab/subhash/sorgsd/bal_s/tajimasD/wild_labeled_tajD.txt")
+lan  <- read_lab("/work/jyanglab/subhash/sorgsd/bal_s/tajimasD/land_labeled_tajD.txt")
+imp  <- read_lab("/work/jyanglab/subhash/sorgsd/bal_s/tajimasD/imp_labeled_tajD.txt")
+all3 <- bind_rows(wild, lan, imp)
+
+# Downsampled background = sample n_peak windows from BACKGROUND per population
+set.seed(42)
+ds <- all3 %>%
+  group_by(POP) %>%
+  mutate(n_peak = sum(SET=="PEAK")) %>%
+  group_modify(~{
+    pk  <- filter(.x, SET=="PEAK")
+    bg  <- filter(.x, SET=="BACKGROUND")
+    bgS <- if (nrow(bg) >= unique(pk$n_peak)) bg %>% slice_sample(n = unique(pk$n_peak)) else bg
+    bind_rows(pk, bgS)
+  }) %>% ungroup()
+
+# Stats (Wilcoxon) per pop
+stats_ds <- ds %>%
+  group_by(POP) %>%
+  summarise(
+    n_peak = sum(SET=="PEAK"),
+    n_bg   = sum(SET=="BACKGROUND"),
+    med_peak = median(tajD[SET=="PEAK"], na.rm=TRUE),
+    med_bg   = median(tajD[SET=="BACKGROUND"], na.rm=TRUE),
+    p_wilcox = wilcox.test(tajD[SET=="PEAK"], tajD[SET=="BACKGROUND"])$p.value,
+    .groups="drop"
+  )
+stats_ds
+
+
+# ---- Plot Tajima's D: Peak vs Downsampled Background (Plan B) ----
+library(ggplot2)
+library(dplyr)
+
+# Ensure nice ordering/labels
+ds_plot <- ds %>%
+  mutate(
+    SET = factor(SET, levels = c("BACKGROUND","PEAK")),
+    POP = factor(POP, levels = c("Improved","Landrace","Wild"))
+  )
+
+p <- ggplot(ds_plot, aes(x = SET, y = tajD, fill = SET)) +
+  geom_violin(trim = TRUE, width = 0.9, alpha = 0.9, color = "black") +
+  geom_boxplot(width = 0.15, outlier.shape = NA, color = "black", alpha = 1) +
+  facet_wrap(~ POP, nrow = 1, scales = "free_y") +
+  scale_fill_manual(values = c(BACKGROUND = "grey75", PEAK = "#f7a600")) +
+  labs(
+    title = "Tajima's D in B2 peak windows vs downsampled background (10 kb)",
+    x = NULL, y = "Tajima's D"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "none",
+    strip.text = element_text(face = "bold", size = 16),
+    plot.title = element_text(face = "bold", size = 18, hjust = 0.5),
+    axis.text.x = element_text(face = "bold")
+  )
+
+# Show in R
+p
+
+# Save a high-res PNG (edit path as you like)
+ggsave("tajD_violin_planB.png", p, width = 11, height = 4, dpi = 300)
+
+
+meds <- ds_plot %>%
+  group_by(POP, SET) %>%
+  summarise(med = median(tajD, na.rm = TRUE), .groups = "drop")
+
+p + geom_text(
+  data = meds,
+  aes(x = SET, y = med, label = sprintf("median = %.2f", med)),
+  vjust = -1.0, size = 4
+)
+```
+

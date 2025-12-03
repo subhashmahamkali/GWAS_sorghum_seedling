@@ -338,3 +338,6 @@ wc -l imp.top1.txt
 #(head -n 1 imp_merged_chr.B2.txt && tail -n +2 imp_merged_chr.B2.txt | sort -k3,3nr | head -n $(( ($(wc -l < imp_merged_chr.B2.txt) - 1) / 100 )) ) > imp.top1.txt
 ```
 
+
+
+

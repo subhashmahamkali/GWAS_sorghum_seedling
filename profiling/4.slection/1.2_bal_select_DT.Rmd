@@ -81,6 +81,54 @@ wc -l W_L_I_overlap.bed
 ###These are loci where genetic diversity is actively maintained across evolutionary and breeding processes.
 ```
 
+# to find unique peaks, I am looking at wild and landrace, improved individually
+
+
+```{bash}
+cd /work/jyanglab/subhash/sorgsd/bal_s/3.input
+
+ml bedtools
+
+bedtools intersect -a /work/jyanglab/subhash/sorgsd/bal_s/3.input/wild.40kb.merged.bed -b /mnt/nrdstor/jyanglab/subhash/datasets/3.results/6.BT623_gene.V5_up_dw_2k.bed -wa -wb > Wild_only_with_gene_overlap.bed
+
+bedtools intersect -a /work/jyanglab/subhash/sorgsd/bal_s/3.input/land.40kb.merged.bed -b /mnt/nrdstor/jyanglab/subhash/datasets/3.results/6.BT623_gene.V5_up_dw_2k.bed -wa -wb > Landrace_only_with_gene_overlap.bed
+
+bedtools intersect -a /work/jyanglab/subhash/sorgsd/bal_s/3.input/imp.40kb.sorted.bed -b /mnt/nrdstor/jyanglab/subhash/datasets/3.results/6.BT623_gene.V5_up_dw_2k.bed -wa -wb > Improved_only_with_gene_overlap.bed
+
+```
+
+
+# Finding the gene description for the overlapping loci 
+
+```{r}
+library(readxl)
+library(data.table)
+library(dplyr)
+library(writexl)
+
+#d = fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/B2/Wild_only_with_gene_overlap.bed")
+
+#d = fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/B2/Landrace_only_with_gene_overlap.bed")
+
+d = fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/B2/Improved_only_with_gene_overlap.bed")
+
+dim(d)
+a = read_excel("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/7.sorghum.annotations.xlsx", sheet = 2)
+dim(a)
+a_unique <- a %>%
+  distinct(Gene, .keep_all = TRUE)
+
+merged <- d %>%
+  left_join(a_unique, by = c("V9" = "Gene"))
+dim(merged)
+writexl::write_xlsx(merged, "/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/B2/Improved_only_bal_description.xlsx")
+
+#writexl::write_xlsx(merged, "/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/B2/Landrace_only_bal_description.xlsx")
+
+#writexl::write_xlsx(merged, "/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/B2/Wild_only_bal_description.xlsx")
+
+```
+
 
 # seeing the overlap between the bal and pos
 
@@ -294,7 +342,6 @@ merged <- d %>%
   left_join(a_unique, by = c("V20" = "Gene"))
 dim(merged)
 writexl::write_xlsx(merged, "/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/B2/W_L_I_5kb_description.xlsx")
-
 ```
 # Finding genes overlapping with top 1% B2 scores
 date: 2025-09-08
@@ -357,6 +404,21 @@ bedtools intersect -a /work/jyanglab/subhash/sorgsd/bal_s/3.input/wild/wild.top1
 wc -l W_I_5kb.bed 
 #74
 bedtools intersect -a /work/jyanglab/subhash/sorgsd/bal_s/3.input/W_I_5kb.bed -b /mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/land.top1.ext5k.bed -wa -wb > W_L_I_5kb.bed
+# df = one of dd_filt (wild), la_filt (land), ii_filt (improved)
+# Assumes df has columns: physPos (Mb) and B2 in column 3
+
+peak_y <- function(df, pos_mb, window_mb = 0.20) {   # 0.20 Mb = ±200 kb (tune as needed)
+  lo <- pos_mb - window_mb
+  hi <- pos_mb + window_mb
+  idx <- df$physPos >= lo & df$physPos <= hi
+  if (!any(idx)) return(NA_real_)
+  max(df[idx, 3], na.rm = TRUE)
+}
+
+# For your selected points:
+red_points1$y_peak <- vapply(red_points1$pos, peak_y, numeric(1), df = dd_filt)  # wild
+red_points2$y_peak <- vapply(red_points2$pos, peak_y, numeric(1), df = la_filt)  # land
+red_points3$y_peak <- vapply(red_points3$pos, peak_y, numeric(1), df = ii_filt)  # improved
 
 wc -l W_L_I_5kb.bed 
 #57
@@ -364,6 +426,10 @@ bedtools intersect -a /work/jyanglab/subhash/sorgsd/bal_s/3.input/W_L_I_5kb.bed 
 
 wc -l W_L_I_with_gene_5kb.bed
 #159
-
 ```
+
+
+
+
+
 
