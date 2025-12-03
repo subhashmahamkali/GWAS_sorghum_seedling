@@ -10,13 +10,11 @@ knitr::opts_knit$set(root.dir=normalizePath('/Users/subhashmahamkali/Documents/g
 ```
 
 ```{r}
-suppressPackageStartupMessages({
   library(tidyverse)
   library(readxl)
   library(maps)
   library(ggforce)
   library(patchwork)
-})
 
 # ---------- Inputs ----------
 sap_csv   <- "data/01.pca_geo/tpj15853-sup-0001-files1 (1).csv"
@@ -27,7 +25,7 @@ pca_val   <- "data/01.pca_geo/pca.eigenval"
 #out_png   <- "graphs/01_publication/pca_geo_subpops.png"
 out_pdf   <- "graphs/01_publication/pca_geo_subpops.pdf"
 
-# ---------- Load metadata: SAP ----------
+# ---------- Load data: SAP ----------
 sap_data <- read.csv(sap_csv)[, c(1, 2, 5)]
 colnames(sap_data) <- c("Pinumber", "cluster", "Country")
 sap_cluster_names <- c("1" = "durra", "2" = "kafir", "3" = "caudatum",
@@ -39,7 +37,7 @@ sap_data <- sap_data %>%
   filter(!is.na(ClusterName)) %>%
   select(Pinumber, ClusterName, Set, Country)
 
-# ---------- Load metadata: SorGSD ----------
+# ---------- Load data: SorGSD ----------
 sorgsd_data <- read_excel(sorgsd_xl)
 colnames(sorgsd_data) <- sorgsd_data[1, ]
 sorgsd_data <- sorgsd_data[-1, c(1, 5, 6)]  # PI, Country, cluster
@@ -56,15 +54,14 @@ sorgsd_data <- sorgsd_data %>%
   Set = "SorGSD") %>%
   filter(!is.na(ClusterName)) %>%
   select(Pinumber, ClusterName, Set, Country)
-
-# ---------- Combine metadata ----------
+# ---------- Combine data ----------
 all_meta <- bind_rows(sap_data, sorgsd_data)
 
 # ---------- Load PCA ----------
 merged_pca <- read.table(pca_vec, header = FALSE)
 colnames(merged_pca) <- c("FID", "IID", paste0("PC", 1:(ncol(merged_pca) - 2)))
 
-# ---------- Merge with metadata ----------
+# ---------- Merge ----------
 pca_annotated <- inner_join(merged_pca, all_meta, by = c("IID" = "Pinumber"))
 
 # ---------- Reassign Landrace/Improved to nearest SAP centroid ----------
@@ -93,12 +90,12 @@ color_vec <- c(
   "guinea" = "#FF5733", "Wild sorghum" = "#4DAF4A"
 )
 
-# ---------- Variance explained ----------
+# ---------- Variance ----------
 eigenvalues <- scan(pca_val)
 variance_explained <- eigenvalues / sum(eigenvalues) * 100
 PC1_var <- variance_explained[1]; PC2_var <- variance_explained[2]
 
-# ---------- PCA plot (non-bold titles, single legend) ----------
+# ---------- PCA plot ----------
 pca_plot <- ggplot(pca_annotated, aes(PC1, PC2, color = ClusterName_new)) +
   geom_point(size = 2, alpha = 0.6) +
   scale_color_manual(values = color_vec, name = NULL) +
@@ -118,7 +115,7 @@ pca_plot <- ggplot(pca_annotated, aes(PC1, PC2, color = ClusterName_new)) +
     plot.margin = margin(6, 8, 6, 6)
   )
 
-# ---------- Map pie chart (no legend here) ----------
+# ---------- Map pie chart ----------
 world <- map_data("world")
 centroids <- world %>%
   group_by(region) %>%
@@ -158,11 +155,11 @@ map_plot <- ggplot() +
     plot.margin = margin(6, 6, 6, 8)
   )
 
-# ---------- Combine (Option A): build, then add theme + guides to the patchwork object ----------
+# ---------- Combine ----------
 combined <- (map_plot | pca_plot) +
   plot_layout(widths = c(1, 1), guides = "collect")
 
-# center the single legend and keep it one row
+# center the single legend
 combined <- combined &
   theme(
     legend.position = "bottom",
@@ -179,9 +176,8 @@ combined <- combined & guides(colour = guide_legend(nrow = 1, byrow = TRUE))
 # ---------- Save ----------
 #ggsave(out_png, combined, width = 12, height = 4.5, dpi = 600, bg = "white")
 ggsave(out_pdf, combined, width = 12, height = 4.5)
-
-ggsave("graphs/01_publication/map_plot.pdf", map_plot, width = 12, height = 4.5)
-ggsave("graphs/01_publication/pca_plot.pdf", pca_plot, width = 12, height = 4.5)
+ggsave("graphs/01_publication/map_plot.pdf", map_plot, width = 9, height = 5)
+ggsave("graphs/01_publication/pca_plot.pdf", pca_plot, width = 9, height = 5)
 
 ```
 
