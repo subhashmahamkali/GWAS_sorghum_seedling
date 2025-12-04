@@ -17,10 +17,10 @@ knitr::opts_knit$set(root.dir=normalizePath('/Users/subhashmahamkali/Documents/g
   library(patchwork)
 
 # ---------- Inputs ----------
-sap_csv   <- "data/01.pca_geo/tpj15853-sup-0001-files1 (1).csv"
-sorgsd_xl <- "data/01.pca_geo/13068_2021_2016_MOESM1_ESM (1).xlsx"
-pca_vec   <- "data/01.pca_geo/pca.eigenvec"
-pca_val   <- "data/01.pca_geo/pca.eigenval"
+sap_csv   <- "data/1.pca_geo/tpj15853-sup-0001-files1 (1).csv"
+sorgsd_xl <- "data/1.pca_geo/13068_2021_2016_MOESM1_ESM (1).xlsx"
+pca_vec   <- "data/1.pca_geo/pca.eigenvec"
+pca_val   <- "data/1.pca_geo/pca.eigenval"
 # ---------- Outputs ----------
 #out_png   <- "graphs/01_publication/pca_geo_subpops.png"
 out_pdf   <- "graphs/01_publication/pca_geo_subpops.pdf"

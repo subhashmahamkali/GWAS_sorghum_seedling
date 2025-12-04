@@ -19,17 +19,6 @@ library(ggplot2)
 library(ggsignif)
 
 #OUTDIR <- "/work/jyanglab/subhash/sorgsd/bal_s/tajimasD/"
-
-# read
-w <- read_tsv(("data/2.TajimasD_PI/wild_labeled_tajD.txt"),
-              col_names=c("chr","start","end","TajimaD","class","pop"),
-              col_types=colspec)
-l <- read_tsv(("data/2.TajimasD_PI/land_labeled_tajD.txt"),
-              col_names=c("chr","start","end","TajimaD","class","pop"),
-              col_types=colspec)
-i <- read_tsv(("data/2.TajimasD_PI/imp_labeled_tajD.txt"),
-              col_names=c("chr","start","end","TajimaD","class","pop"),
-              col_types=colspec)
 # column specifications
 colspec <- cols(
   chr = col_character(),
@@ -39,6 +28,18 @@ colspec <- cols(
   class = col_character(),
   pop = col_character()
 )
+# read
+w <- read_tsv(("data/2.1_TajimasD_PI/wild_labeled_tajD.txt"),
+              col_names=c("chr","start","end","TajimaD","class","pop"),
+              col_types=colspec)
+l <- read_tsv(("data/2.1_TajimasD_PI/land_labeled_tajD.txt"),
+              col_names=c("chr","start","end","TajimaD","class","pop"),
+              col_types=colspec)
+i <- read_tsv(("data/2.1_TajimasD_PI/imp_labeled_tajD.txt"),
+              col_names=c("chr","start","end","TajimaD","class","pop"),
+              col_types=colspec)
+
+
 
 dat <- bind_rows(w,l,i) %>%
   filter(is.finite(TajimaD)) %>%
@@ -111,9 +112,9 @@ read_pi <- function(path){
   read_tsv(path, col_names = c("chr","start","end","pi","n_vars","SET","POP"), show_col_types = FALSE)
 }
 pi_all <- bind_rows(
-  read_pi("data/2.TajimasD_PI/wild_labeled_pi_withN.txt"),
-  read_pi("data/2.TajimasD_PI/land_labeled_pi_withN.txt"),
-  read_pi("data/2.TajimasD_PI/imp_labeled_pi_withN.txt")
+  read_pi("data/2.1_TajimasD_PI/wild_labeled_pi_withN.txt"),
+  read_pi("data/2.1_TajimasD_PI/land_labeled_pi_withN.txt"),
+  read_pi("data/2.1_TajimasD_PI/imp_labeled_pi_withN.txt")
 ) %>% filter(is.finite(pi)) %>%
   mutate(SET=factor(SET, levels=c("BACKGROUND","PEAK")),
          POP=factor(POP, levels=c("Improved","Landrace","Wild")))
