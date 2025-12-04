@@ -1,0 +1,163 @@
+---
+title: "genetic_load in sunflower"
+author: "subhash"
+date: "2025-12-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE) 
+knitr::opts_knit$set(root.dir=normalizePath('/Users/subhashmahamkali/Documents/gwas_sap')) 
+```
+
+
+#remember more negative values menas meore deleterious load
+#we have used Plant CAD DNA language model (zero shot score) to calulate deleteriousness
+
+# plotting genetic load and number of deleterious in sunflower between wild, landrace and moderen across different threholds with missing rate filters
+thresholds: 5%, 10%, 25%
+missing filters: 30%, 50%
+
+```{r}
+library(data.table)
+library(ggplot2)
+
+outdir      <- "data/3.2_genetic_load_sunflower/"
+miss_level  <- 50
+groups      <- c("wild","landrace","modern")      
+cut_levels  <- c(0.25, 0.10, 0.05, 0.01)                  
+cut_labels  <- c("25%","10%","5%","1%")
+chr_filter  <- NULL                                      
+
+read_group <- function(outdir, group, miss, chr = NULL) {
+  pattern <- if (is.null(chr)) {
+    file.path(outdir, sprintf("raw_%s_miss%02d_chr*.csv", group, miss))
+  } else {
+    file.path(outdir, sprintf("raw_%s_miss%02d_chr%s.csv", group, miss, chr))
+  }
+  files <- Sys.glob(pattern)
+  if (!length(files)) return(data.table())
+  DT <- rbindlist(lapply(files, function(f) {
+    df <- tryCatch(fread(f), error = function(e) data.table())
+    need <- c("sample","Genetic_load","N_del","cutoff","sub")
+    miss_cols <- setdiff(need, names(df))
+    if (length(miss_cols)) for (mc in miss_cols) df[[mc]] <- NA
+    df[, cutoff := as.numeric(cutoff)]
+    df
+  }), use.names = TRUE, fill = TRUE)
+  if (nrow(DT)) DT[, sub := factor(sub, levels = groups)]
+  DT
+}
+
+dfs <- lapply(groups, read_group,
+              outdir = outdir, miss = miss_level, chr = chr_filter)
+df  <- rbindlist(dfs, use.names = TRUE, fill = TRUE)
+stopifnot(nrow(df) > 0)
+df <- df[!is.na(cutoff) & cutoff %in% cut_levels]
+df[, cutoff := factor(cutoff, levels = cut_levels, labels = cut_labels)]
+df[, sub    := factor(sub, levels = groups)]
+keep_cuts2 <- c("5%","10%","25%")
+df2 <- df[cutoff %in% keep_cuts2]
+df2[, cutoff := factor(cutoff, levels = keep_cuts2)]   # x-axis order: 1, 5, 10
+
+#N_del
+df2[, Ndel_plot := N_del] 
+print(df2[, .N, by = .(cutoff, sub)][order(cutoff, sub)])
+df_box <- copy(df2)
+df_box[, cutoff := factor(cutoff, levels = c("5%", "10%","25%"))]
+
+fsize <- 16
+# Number of deleterious alleles 
+pN_sf <- ggplot(df_box, aes(x = sub, y = N_del, fill = cutoff)) +
+  geom_boxplot(outlier.size = 0.5) +
+  scale_fill_brewer(palette = "Set2") +
+  labs(
+    x     = "",
+    y     = "Number of deleterious alleles",
+    title = sprintf("Sunflower – Missing \u2264 %d%%", miss_level)
+  ) +
+  theme_bw(base_size = fsize) +
+  theme(
+    axis.text    = element_text(size = fsize),
+    axis.title   = element_text(size = fsize, face = "bold"),
+    legend.title = element_text(size = fsize, face = "bold"),
+    legend.text  = element_text(size = fsize)
+  )
+
+#Genetic load
+pW_sf <- ggplot(df_box, aes(x = sub, y = Genetic_load, fill = cutoff)) +
+  geom_boxplot(outlier.size = 0.5) +
+  scale_fill_brewer(palette = "Set2") +
+  labs(
+    x     = "",
+    y     = "Genetic load",
+    title = sprintf("Sunflower – Missing \u2264 %d%%", miss_level)
+  ) +
+  theme_bw(base_size = fsize) +
+  theme(
+    axis.text    = element_text(size = fsize),
+    axis.title   = element_text(size = fsize, face = "bold"),
+    legend.title = element_text(size = fsize, face = "bold"),
+    legend.text  = element_text(size = fsize)
+  )
+
+ggsave(sprintf("graphs/01_publication/3.genetic_load/Ndel_sunflower_miss%02d.png", miss_level), plot   = pN_sf, width  = 10, height = 7, dpi    = 200)
+ggsave(sprintf("graphs/01_publication/3.genetic_load/GenLoad_sunflower_miss%02d.png", miss_level), plot   = pW_sf, width  = 10, height = 7, dpi    = 200)
+```
+
+
+#genetic load in top 1% cutoff only in sunflower between wild, landrace and improved
+
+```{r}
+library(data.table)
+library(ggplot2)
+
+outdir <- "data/3.2_genetic_load_sunflower/"
+
+read_group <- function(outdir, group, miss = 50) {
+  pats  <- file.path(outdir, sprintf("raw_%s_miss%02d_chr*.csv", group, miss))
+  files <- unique(unlist(lapply(pats, Sys.glob)))
+  if (length(files) == 0)
+    stop(sprintf("No files found for group=%s miss=%d in %s", group, miss, outdir))
+  rbindlist(lapply(files, fread), use.names = TRUE, fill = TRUE)
+}
+
+miss_level <- 50
+df_wild  <- read_group(outdir, "wild",     miss_level)
+df_land  <- read_group(outdir, "landrace", miss_level)
+df_mod   <- read_group(outdir, "modern",   miss_level)
+
+df <- rbindlist(list(df_wild, df_land, df_mod), use.names = TRUE, fill = TRUE)
+
+df[, sub := factor(
+  sub,
+  levels = c("wild", "landrace", "modern"),
+  labels = c("wild", "landrace", "improved")
+)]
+## cutoff = 0.01 top 1%
+df[, cutoff := as.numeric(as.character(cutoff))]
+df001 <- df[cutoff == 0.01]
+
+message("Rows per group at cutoff 0.01:")
+print(df001[, .N, by = sub])
+
+# plot for genetic load at 1% cutoff
+p <- ggplot(df001, aes(x = sub, y = Genetic_load)) +
+  geom_boxplot(
+    width        = 0.7,
+    outlier.size = 0.7,
+    fill         = NA,
+    color        = "black"
+  ) +
+  labs(
+    title = sprintf("Sunflower – Genetic load at top 1%%, missing \u2264 %d%%", miss_level),
+    x = "",
+    y = "Genetic load"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(legend.position = "none")
+
+ggsave(sprintf("graphs/01_publication/3.genetic_load/GenLoad_sunflower_cut001_miss%02d.png", miss_level), plot   = p, width  = 10, height = 7, dpi    = 200)
+
+```
+

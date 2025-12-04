@@ -1,0 +1,140 @@
+---
+title: "genetic_load in maize"
+author: "subhash"
+date: "2025-12-04"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE) 
+knitr::opts_knit$set(root.dir=normalizePath('/Users/subhashmahamkali/Documents/gwas_sap')) 
+```
+
+#remember more negative values menas meore deleterious load
+#we have used Plant CAD DNA language model (zero shot score) to calulate deleteriousness
+
+# plotting genetic load and number of deleterious in maize between wild, landrace and improved across different threholds with missing rate filters
+thresholds: 5%, 10%, 25%
+missing filters: 30%, 50%
+```{r}
+library(data.table)
+library(ggplot2)
+
+outdir     <- "data/3.3_genetic_load_maize/"  
+miss_level <- 50
+groups     <- c("wild", "landrace", "improved")
+cut_levels <- c(0.25, 0.10, 0.05)
+cut_labels <- c("25%", "10%", "5%")
+
+read_group <- function(outdir, group) {
+  pats  <- file.path(outdir, sprintf("raw_%s_chr*.csv", group))
+  files <- unique(unlist(lapply(pats, Sys.glob)))
+  if (length(files) == 0)
+    stop(sprintf("No files found for group=%s in %s", group, outdir))
+  rbindlist(lapply(files, fread), use.names = TRUE, fill = TRUE)
+}
+
+df_wild <- read_group(outdir, "wild")
+df_land <- read_group(outdir, "landrace")
+df_imp  <- read_group(outdir, "improved")
+
+df <- rbindlist(list(df_wild, df_land, df_imp), use.names = TRUE, fill = TRUE)
+
+# cutoffs 0.25, 0.10, 0.05
+df[, cutoff := as.numeric(as.character(cutoff))]
+df <- df[!is.na(cutoff) & cutoff %in% cut_levels]
+df[, cutoff := factor(cutoff, levels = cut_levels, labels = cut_labels)]
+df[, sub    := factor(sub, levels = groups)]
+message("Rows per cutoff & group (maize 5/10/25%):")
+print(df[, .N, by = .(cutoff, sub)][order(cutoff, sub)])
+
+df_box <- copy(df)
+fsize  <- 16
+
+# Number of deleterious alleles
+pN_mz <- ggplot(df_box, aes(x = sub, y = N_del, fill = cutoff)) +
+  geom_boxplot(outlier.size = 0.5) +
+  scale_fill_brewer(palette = "Set2") +
+  labs(
+    x     = "",
+    y     = "Number of deleterious alleles",
+    title = sprintf("Maize – Missing \u2264 %d%%", miss_level)
+  ) +
+  theme_bw(base_size = fsize) +
+  theme(
+    axis.text    = element_text(size = fsize),
+    axis.title   = element_text(size = fsize, face = "bold"),
+    legend.title = element_text(size = fsize, face = "bold"),
+    legend.text  = element_text(size = fsize)
+  )
+
+# Genetic load
+pW_mz <- ggplot(df_box, aes(x = sub, y = Genetic_load, fill = cutoff)) +
+  geom_boxplot(outlier.size = 0.5) +
+  scale_fill_brewer(palette = "Set2") +
+  labs(
+    x     = "",
+    y     = "Genetic load",
+    title = sprintf("Maize – Missing \u2264 %d%%", miss_level)
+  ) +
+  theme_bw(base_size = fsize) +
+  theme(
+    axis.text    = element_text(size = fsize),
+    axis.title   = element_text(size = fsize, face = "bold"),
+    legend.title = element_text(size = fsize, face = "bold"),
+    legend.text  = element_text(size = fsize)
+  )
+
+ggsave(sprintf("graphs/01_publication/3.genetic_load/Ndel_maize_miss%02d.png", miss_level), plot   = pN_mz, width  = 10, height = 7, dpi    = 200)
+ggsave(sprintf("graphs/01_publication/3.genetic_load/GenLoad_maize_miss%02d.png", miss_level), plot   = pW_mz, width  = 10, height = 7, dpi    = 200)
+
+```
+
+```{r}
+library(data.table)
+library(ggplot2)
+
+outdir     <- "data/3.3_genetic_load_maize/"
+miss_level <- 50
+groups     <- c("wild", "landrace", "improved")
+
+read_group <- function(outdir, group) {
+  pats  <- file.path(outdir, sprintf("raw_%s_chr*.csv", group))
+  files <- unique(unlist(lapply(pats, Sys.glob)))
+  if (length(files) == 0)
+    stop(sprintf("No files found for group=%s in %s", group, outdir))
+  rbindlist(lapply(files, fread), use.names = TRUE, fill = TRUE)
+}
+
+df_wild <- read_group(outdir, "wild")
+df_land <- read_group(outdir, "landrace")
+df_imp  <- read_group(outdir, "improved")
+
+df <- rbindlist(list(df_wild, df_land, df_imp), use.names = TRUE, fill = TRUE)
+df[, sub := factor(sub, levels = groups)]
+
+#cutoff = 0.01 top 1%
+df[, cutoff := as.numeric(as.character(cutoff))]
+df001 <- df[cutoff == 0.01]
+message("Rows per group at top 1% cutoff (0.01, maize):")
+print(df001[, .N, by = sub])
+p_top1_mz <- ggplot(df001, aes(x = sub, y = Genetic_load)) +
+  geom_boxplot(
+    width        = 0.7,
+    outlier.size = 0.7,
+    fill         = NA,
+    color        = "black"
+  ) +
+  labs(
+    title = sprintf("Maize – Genetic load at top 1%%, missing \u2264 %d%%", miss_level),
+    x     = "",
+    y     = "Genetic load"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(legend.position = "none")
+
+ggsave(sprintf("graphs/01_publication/3.genetic_load/GenLoad_maize_cut001_miss%02d.png", miss_level), plot   = p_top1_mz, width  = 10, height = 7, dpi    = 200)
+
+```
+

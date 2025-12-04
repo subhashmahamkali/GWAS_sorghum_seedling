@@ -1,0 +1,148 @@
+---
+title: "genetic load"
+author: "subhash"
+date: "2025-12-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE) 
+knitr::opts_knit$set(root.dir=normalizePath('/Users/subhashmahamkali/Documents/gwas_sap')) 
+```
+
+
+#remember more negative values menas meore deleterious load
+#we have used Plant CAD DNA language model (zero shot score) to calulate deleteriousness
+
+# plotting genetic load and number of deleterious in sorghum between wild, landrace and improved across different threholds with missing rate filters
+thresholds: 5%, 10%, 25%
+missing filters: 30%, 50%
+
+```{r}
+library(data.table)
+library(ggplot2)
+
+#outdir <- "/work/jyanglab/subhash/sorgsd/out_raw_full"
+outdir <- "data/3.1_genetic_load_sorghum/"
+miss_levels <- c(30, 50)  
+for (m in miss_levels) {
+  files <- list.files(outdir, pattern = sprintf("miss%02d_chr", m), full.names = TRUE)
+  if (!length(files)) next
+  df <- rbindlist(lapply(files, fread), use.names = TRUE, fill = TRUE)
+  df[, cutoff := factor(cutoff, levels = c(0.05, 0.10, 0.25))]
+  df <- df[!is.na(cutoff)]
+  fsize <- 16
+
+  ## ---------- Plots ----------
+  pN <- ggplot(df, aes(x = sub, y = N_del, fill = cutoff)) +
+    geom_boxplot(outlier.size = 0.5) +
+    scale_fill_brewer(palette = "Set2") +
+    labs(
+      x = "",
+      y = "Number of deleterious alleles",
+      title = sprintf("Missing ≤ %d%%", m)
+    ) +
+    theme(
+      axis.text   = element_text(size = fsize),
+      axis.title  = element_text(size = fsize, face = "bold"),
+      legend.title = element_text(size = fsize, face = "bold"),
+      legend.text  = element_text(size = fsize)
+    )
+
+  pW <- ggplot(df, aes(x = sub, y = Genetic_load, fill = cutoff)) +
+    geom_boxplot(outlier.size = 0.5) +
+    scale_fill_brewer(palette = "Set2") +
+    labs(
+      x = "",
+      y = "Genetic load",
+      title = sprintf("Missing ≤ %d%%", m)
+    ) +
+    theme(
+      axis.text   = element_text(size = fsize),
+      axis.title  = element_text(size = fsize, face = "bold"),
+      legend.title = element_text(size = fsize, face = "bold"),
+      legend.text  = element_text(size = fsize)
+    )
+
+ggsave(sprintf("graphs/01_publication/3.genetic_load/Ndel_sorghum_miss%02d.png", m), plot   = pN, width  = 10, height = 7, dpi    = 200)
+ggsave(sprintf("graphs/01_publication/3.genetic_load/GenLoad_sorghum_miss%02d.png", m),plot   = pW, width  = 10, height = 7, dpi    = 200)
+
+#Wilcoxon tests
+  cat("\n== Wilcoxon tests (missing <=", m, "%) ==\n")
+  for (c in levels(df$cutoff)) {d <- df[cutoff == c]
+    if (nrow(d) == 0) next
+    cat("cutoff", c, "\n")
+    pair_tests <- list(
+      "wild vs landrace" = list(
+        x = d[sub == "wild", Genetic_load],
+        y = d[sub == "landrace", Genetic_load]),
+      "wild vs improved" = list(
+        x = d[sub == "wild", Genetic_load],
+        y = d[sub == "improved", Genetic_load]),
+      "landrace vs improved" = list(
+        x = d[sub == "landrace", Genetic_load],
+        y = d[sub == "improved", Genetic_load]
+      ))
+    for (nm in names(pair_tests)) {
+      x <- pair_tests[[nm]]$x
+      y <- pair_tests[[nm]]$y
+      x <- x[!is.na(x)]
+      y <- y[!is.na(y)]
+      if (length(x) < 2 || length(y) < 2) {
+        cat("  ", nm, ": skipped (not enough observations)\n")
+      } else {cat("  ", nm, ":\n")
+        print(wilcox.test(x, y))
+      }}}}
+```
+
+#genetic load in top 1% cutoff only in sorghum between wild, landrace and improved
+
+```{r}
+library(data.table)
+library(ggplot2)
+
+outdir <- "data/3.1_genetic_load_sorghum/"
+
+read_group <- function(outdir, group, miss = 50) {
+  pats <- c(
+    file.path(outdir, sprintf("raw_%s_miss%d_ALL.csv", group, miss)),
+    file.path(outdir, sprintf("raw_%s_miss%d_*.csv", group, miss))   # per-chr
+  )
+  files <- unique(unlist(lapply(pats, Sys.glob)))
+  if (length(files) == 0)
+    stop(sprintf("No files found for group=%s miss=%d in %s", group, miss, outdir))
+  rbindlist(lapply(files, fread), use.names = TRUE, fill = TRUE)
+}
+
+miss_level <- 50
+df_impr <- read_group(outdir, "improved", miss_level)
+df_wild <- read_group(outdir, "wild",     miss_level)
+df_land <- read_group(outdir, "landrace", miss_level)
+
+df <- rbindlist(list(df_impr, df_wild, df_land), use.names = TRUE, fill = TRUE)
+## cutoff = 0.01 top 1%
+df[, cutoff := as.numeric(as.character(cutoff))]
+df001 <- df[cutoff == 0.01]
+message("Rows per group at cutoff 0.01:")
+print(df001[, .N, by = sub])
+
+#plot for genetic load at 1% cutoff
+p <- ggplot(df001, aes(x = sub, y = Genetic_load)) +
+  geom_boxplot(
+    width        = 0.7,
+    outlier.size = 0.7,
+    fill         = NA,
+    color        = "black"
+  ) +
+  labs(
+    title = sprintf("Genetic load at top 1%,missing ≤ %d%%", miss_level),
+    x = "",
+    y = "Genetic load"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(legend.position = "none")
+
+ggsave(sprintf("graphs/01_publication/3.genetic_load/GenLoad_sorghum_cut001_miss%02d.png", miss_level), plot   = p, width  = 10, height = 7, dpi    = 200)
+
+```
+
