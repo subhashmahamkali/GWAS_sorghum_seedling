@@ -1,0 +1,159 @@
+---
+title: "TajimasD_pi"
+author: "subhash"
+date: "2025-12-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE) 
+knitr::opts_knit$set(root.dir=normalizePath('/Users/subhashmahamkali/Documents/gwas_sap')) 
+```
+
+#plotting TajimasD
+
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(ggsignif)
+
+#OUTDIR <- "/work/jyanglab/subhash/sorgsd/bal_s/tajimasD/"
+
+# read
+w <- read_tsv(("data/2.TajimasD_PI/wild_labeled_tajD.txt"),
+              col_names=c("chr","start","end","TajimaD","class","pop"),
+              col_types=colspec)
+l <- read_tsv(("data/2.TajimasD_PI/land_labeled_tajD.txt"),
+              col_names=c("chr","start","end","TajimaD","class","pop"),
+              col_types=colspec)
+i <- read_tsv(("data/2.TajimasD_PI/imp_labeled_tajD.txt"),
+              col_names=c("chr","start","end","TajimaD","class","pop"),
+              col_types=colspec)
+# column specifications
+colspec <- cols(
+  chr = col_character(),
+  start = col_integer(),
+  end = col_integer(),
+  TajimaD = col_double(),
+  class = col_character(),
+  pop = col_character()
+)
+
+dat <- bind_rows(w,l,i) %>%
+  filter(is.finite(TajimaD)) %>%
+  mutate(
+    class = factor(class, levels = c("BACKGROUND","PEAK")),
+    # order populations
+    pop   = factor(pop,   levels = c("Wild","Landrace","Improved"))
+  )
+
+# medians for labels
+meds <- dat %>%
+  group_by(pop, class) %>%
+  summarise(med = median(TajimaD, na.rm = TRUE), .groups = "drop")
+
+# same y limits for all facets
+ymax <- max(dat$TajimaD, na.rm = TRUE)
+ystar <- ymax * 0.95  # where to draw the significance bracket
+ylims <- c(min(dat$TajimaD, na.rm = TRUE), ymax * 1.05)
+
+stats <- dat %>%
+  group_by(pop) %>%
+  summarise(
+    n_peak   = sum(class=="PEAK"),
+    n_bg     = sum(class=="BACKGROUND"),
+    med_peak = median(TajimaD[class=="PEAK"], na.rm=TRUE),
+    med_bg   = median(TajimaD[class=="BACKGROUND"], na.rm=TRUE),
+    p_wilcox = wilcox.test(TajimaD[class=="PEAK"], TajimaD[class=="BACKGROUND"])$p.value,
+    .groups  = "drop"
+  )
+stats
+
+
+p <- ggplot(dat, aes(x = class, y = TajimaD, fill = class)) +
+  geom_violin(width = 0.9, trim = TRUE, color = "black", alpha = 0.9) +
+  geom_boxplot(width = 0.12, outlier.shape = NA, color = "black") +
+  # median text
+  geom_text(data = meds,
+            aes(x = class, y = med, label = sprintf("%.2f", med)),
+            vjust = -0.8, size = 3, fontface = "bold", inherit.aes = FALSE) +
+  # significance stars (Wilcoxon) for each facet
+  geom_signif(
+    comparisons = list(c("BACKGROUND","PEAK")),
+    test = "wilcox.test",
+    map_signif_level = TRUE,
+    y_position = ystar,
+    tip_length = 0.01
+  ) +
+  facet_wrap(~ pop, nrow = 1, scales = "fixed") +  # same y across panels
+  coord_cartesian(ylim = ylims) +
+  scale_fill_manual(values = c(BACKGROUND = "grey75", PEAK = "#ffb000")) +
+  labs(x = NULL, y = "Tajima's D", title = "") +
+  theme_minimal(base_size = 12) +
+  theme(
+    legend.position = "none",
+    strip.text = element_text(face = "bold", size = 14),
+    axis.text.x = element_text(face = "bold")
+  )
+ggsave("graphs/01_publication/2.bal_pos_taj_pi/tajD_violin.png", p, width = 11, height = 4, dpi = 300)
+```
+```{r}
+library(ggsignif)  
+library(dplyr)
+library(ggplot2)
+library(readr)
+#getwd()
+#"/work/jyanglab/subhash/sorgsd/bal_s/pi/plot"
+
+read_pi <- function(path){
+  # chr start end pi n_vars SET POP
+  read_tsv(path, col_names = c("chr","start","end","pi","n_vars","SET","POP"), show_col_types = FALSE)
+}
+pi_all <- bind_rows(
+  read_pi("data/2.TajimasD_PI/wild_labeled_pi_withN.txt"),
+  read_pi("data/2.TajimasD_PI/land_labeled_pi_withN.txt"),
+  read_pi("data/2.TajimasD_PI/imp_labeled_pi_withN.txt")
+) %>% filter(is.finite(pi)) %>%
+  mutate(SET=factor(SET, levels=c("BACKGROUND","PEAK")),
+         POP=factor(POP, levels=c("Improved","Landrace","Wild")))
+
+meds_pi <- pi_all %>% group_by(POP, SET) %>% summarise(med=median(pi), .groups="drop")
+stats_pi <- pi_all %>%
+  group_by(POP) %>%
+  summarise(
+    n_peak   = sum(SET == "PEAK"),
+    n_bg     = sum(SET == "BACKGROUND"),
+    med_peak = median(pi[SET == "PEAK"], na.rm = TRUE),
+    med_bg   = median(pi[SET == "BACKGROUND"], na.rm = TRUE),
+    p_wilcox = wilcox.test(pi[SET == "PEAK"],
+                           pi[SET == "BACKGROUND"])$p.value,
+    .groups = "drop"
+  )
+stats_pi
+pi_all$POP <- factor(pi_all$POP, levels = c("Wild", "Landrace", "Improved"))
+# medians computed as meds_pi
+p_pi <- ggplot(pi_all, aes(SET, pi, fill=SET)) +
+  geom_violin(trim=TRUE, width=.9, alpha=.9, color="black") +
+  geom_boxplot(width=.15, outlier.shape=NA, color="black") +
+  geom_text(data=meds_pi, aes(SET, med, label=sprintf("%.3g", med)),
+            vjust=-0.8, size=3, fontface="bold", inherit.aes=FALSE) +
+  facet_wrap(~POP, nrow=1, scales="fixed") +
+  scale_fill_manual(values=c(BACKGROUND="grey75", PEAK="#f7a600")) +
+  labs(x=NULL, y="Nucleotide diversity (π)") +
+  theme_minimal(base_size=14) +
+  theme(
+    legend.position="none",
+    strip.text=element_text(face="bold", size=16),
+    axis.text.x=element_text(face="bold")
+  ) +
+  geom_signif(
+    comparisons=list(c("BACKGROUND","PEAK")),
+    map_signif_level=TRUE,
+    test="wilcox.test",
+    step_increase=0.1
+  )
+p_pi
+ggsave("graphs/01_publication/2.bal_pos_taj_pi/pi_violin_signif.png", p_pi, width=11, height=4, dpi=600)
+```
+
