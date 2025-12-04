@@ -1,0 +1,130 @@
+---
+title: "GWAS and selection integration"
+author: "subhash"
+date: "2025-12-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE) 
+knitr::opts_knit$set(root.dir=normalizePath('/Users/subhashmahamkali/Documents/gwas_sap')) 
+```
+
+# here we visualizes how GWAS ancestor allele effect sizes are distributed for SNPs inside high B2 balancing-selection sweeps, for each trait category and population (Improved, Landrace, Wild). 
+
+ we have 4 different trait categories: Developmental, Architecture, Panicle, Seed under nitrogen resposne.
+ 
+```{r}
+#GWAS B2 integration
+library(data.table)
+library(ggplot2)
+
+#BASE_DIR <- "/work/jyanglab/subhash/variant_calling/9.gvcf_to_vcf/4.filtering/1.annotate/1.plink/1.stat_filter/1.het_filter/0.rmvp_full"
+#OUTDIR   <- file.path(BASE_DIR, "4B_integration")
+
+BASE_DIR <- "data/4.GWAS_selection/A.balancing_selection"
+OUTDIR   <- BASE_DIR
+cats <- c("Developmental", "Architecture", "Panicle", "Seed")
+cols <- c(
+  Wild     = "#1b9e77",  
+  Landrace = "#d95f02",  
+  Improved = "#7570b3"   
+)
+
+for (cat in cats) {
+  prefix <- file.path(OUTDIR, paste0("NR_", cat, "_B2_top1"))
+  curves_file <- paste0(prefix, "_pooled_curves.tsv")
+  if (!file.exists(curves_file)) {
+    warning("Missing file: ", curves_file)
+    next
+  }
+  
+  d <- fread(curves_file)
+  d[, population := factor(population, levels = c("Improved","Landrace","Wild"))]
+  
+  p <- ggplot(d, aes(x = anc_effect, y = rank, color = population)) +
+    geom_line(linewidth = 0.8) +
+    geom_point(size = 1.6, alpha = 0.6) +
+    scale_color_manual(values = cols) +
+    geom_vline(xintercept = 0, linetype = "dashed") +
+    theme_bw(base_size = 13) +
+    labs(
+      title = paste0("B2_NR ", cat),
+      x     = "Ancestorallele effect size",
+      y     = "SNPs within B2 sweeps",
+      color = "Population"
+    )
+ out_pdf <- file.path(
+    "graphs/01_publication/4.GWAS_selection_integration",
+    paste0("NR_", cat, "_B2_top1_plot.pdf")
+  )
+  ggsave(out_pdf, p, width = 4.3, height = 3.5, dpi = 300)
+  message("Saved: ", out_pdf)
+}
+
+```
+
+
+#how GWAS ancestor allele effect sizes are distributed for SNPs inside high positive selection sweeps, for each trait category.
+
+
+```{r}
+library(data.table)
+library(ggplot2)
+
+## Folder where those PosSel files live
+BASE_DIR  <- "data/4.GWAS_selection/B.positive_selection"  # <- change if needed
+OUT_FIGS  <- "graphs/01_publication/4.GWAS_selection_integration"
+dir.create(OUT_FIGS, recursive = TRUE, showWarnings = FALSE)
+
+# Trait categories (must match the "NR_<cat>_PosSel_top1_..." naming)
+cats <- c("Developmental", "Architecture", "Panicle", "Seed")
+
+# Colors for the two populations in PosSel
+cols <- c(
+  Landrace = "#E69F00",
+  Improved = "#009E73"
+)
+
+for (CATEGORY in cats) {
+
+  # ---------- 1) Read pooled curve file ----------
+  prefix      <- file.path(BASE_DIR, paste0("NR_", CATEGORY, "_PosSel_top1"))
+  curves_file <- paste0(prefix, "_pooled_curves.tsv")
+
+  if (!file.exists(curves_file)) {
+    warning("Missing file: ", curves_file)
+    next
+  }
+
+  curve <- fread(curves_file)
+
+  # (optional) set population factor order
+  curve[, population := factor(population, levels = c("Landrace", "Improved"))]
+
+  # ---------- 2) Plot (same as in your generation script) ----------
+  p <- ggplot(curve, aes(x = anc_effect, y = rank, color = population)) +
+    geom_line(linewidth = 0.8) +
+    geom_point(size = 1.6, alpha = 0.6) +
+    scale_color_manual(values = cols) +
+    geom_vline(xintercept = 0, linetype = "dashed") +
+    theme_bw(base_size = 13) +
+    labs(
+      title = paste0("Positive Selection (top1%) – NR ", CATEGORY),
+      x     = "Ancestral-allele effect size (beta)",
+      y     = "SNPs within selection sweeps",
+      color = "Population"
+    )
+
+  # ---------- 3) Save figure ----------
+  out_pdf <- file.path(
+    OUT_FIGS,
+    paste0("NR_", CATEGORY, "_PosSel_top1_plot.pdf")
+  )
+
+  ggsave(out_pdf, p, width = 4.3, height = 3.5, dpi = 300)
+  message("Saved: ", out_pdf)
+}
+
+```
+
