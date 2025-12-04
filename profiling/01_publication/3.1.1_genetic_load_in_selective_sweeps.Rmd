@@ -1,0 +1,329 @@
+---
+title: "genetic load in selective sweeps"
+author: "subhash"
+date: "2025-12-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE) 
+knitr::opts_knit$set(root.dir=normalizePath('/Users/subhashmahamkali/Documents/gwas_sap')) 
+```
+
+I overlap zero shot deleteriousness scores (ZSS) with the top 1% FSt positive selection peaks in wild, landrace, and improved sorghum. 
+For each ZSS cutoff (top 1%, 5%, 10%), sites are classified as inside FSt peaks (“PEAK”) or outside (“BACKGROUND”)
+
+```{r}
+
+library(data.table)
+library(ggplot2)
+
+#Inputs
+ZSS_BED <- "/work/jyanglab/subhash/sorgsd/1.genetic_load/zeroscore.bed"
+#on HCC
+
+# FST files for both comparisons (top 1% windows)
+#FST_FILES <- list(
+  #"wild vs landrace"   = "/work/jyanglab/subhash/sorgsd/2.pos/sorg_wild_vs_landrace.windowed.weir.fst",
+  #"landrace vs improved" = "/work/jyanglab/subhash/sorgsd/2.pos/landrace_vs_improved.windowed.weir.fst")
+
+FST_FILES <- list(
+  "wild vs landrace"   = "data/2.2_positive_selec/sorg_wild_vs_landrace.windowed.weir.fst",
+  "landrace vs improved" = "data/2.2_positive_selec/landrace_vs_improved.windowed.weir.fst"
+)
+
+cuts <- c("1%"=-7.016113, "5%"=-5.150879, "10%"=-3.637695)
+
+OUTDIR <- "graphs/01_publication/3.genetic_load/"
+dir.create(OUTDIR, recursive = TRUE, showWarnings = FALSE)
+
+to_num_chr <- function(x){
+  x <- sub("^chr|^Chr","",as.character(x))
+  x <- sub("^0+","",x); x[nchar(x)==0] <- "0"; x}
+p_to_stars <- function(p){
+  if (is.na(p)) "ns" else if (p < 1e-4) "****" else if (p < 1e-3) "***"
+  else if (p < 1e-2) "**" else if (p < 5e-2) "*" else "ns"}
+merge_overlaps_onechr <- function(dt){
+  if (nrow(dt) == 0L) return(dt)
+  setorder(dt, start, end)
+  out_s <- integer(); out_e <- integer()
+  s <- dt$start[1]; e <- dt$end[1]
+  for(i in seq_len(nrow(dt))[-1]){
+    if (dt$start[i] <= e) e <- max(e, dt$end[i])
+    else { out_s <- c(out_s, s); out_e <- c(out_e, e); s <- dt$start[i]; e <- dt$end[i] }
+  }
+  data.table(start = c(out_s, s), end = c(out_e, e))}
+
+Z_all <- fread(ZSS_BED, header = FALSE)
+setnames(Z_all, paste0("V", seq_len(ncol(Z_all))))
+Z_all <- Z_all[, .(chr = to_num_chr(V1), pos = as.integer(V4), zss = as.numeric(V5))]
+Z_all <- Z_all[is.finite(zss)]
+setkey(Z_all, chr, pos)
+
+pieces <- list()
+
+for (comp in names(FST_FILES)){
+  fst_path <- FST_FILES[[comp]]
+  FST <- fread(fst_path)
+  stopifnot(all(c("CHROM","BIN_START","BIN_END") %in% names(FST)))
+  fst_col <- if ("WEIGHTED_FST" %in% names(FST)) "WEIGHTED_FST" else "WEIR_AND_COCKERHAM_FST"
+  FST <- FST[, .(chr = to_num_chr(CHROM),
+                 start = as.integer(BIN_START),
+                 end   = as.integer(BIN_END),
+                 fst   = as.numeric(get(fst_col)))]
+  FST <- FST[is.finite(fst) & end > start]
+
+  thr <- quantile(FST$fst, 0.99, na.rm = TRUE)
+  peaks_raw <- FST[fst >= thr, .(chr, start, end)]
+  # If 0-based: peaks_raw[, start := start + 1L]
+  PEAKS <- peaks_raw[, merge_overlaps_onechr(.SD), by = chr]
+  setkey(PEAKS, chr, start, end)
+
+  Zrng <- Z_all[, .(chr, start=pos, end=pos, pos, zss)]
+  setkey(Zrng, chr, start, end)
+  ov <- foverlaps(Zrng, PEAKS, nomatch=0L)
+  Z_tag <- copy(Z_all)
+  Z_tag[, region := "BACKGROUND"]
+  if (nrow(ov)) Z_tag[pos %in% ov$pos, region := "PEAK"]
+  Z_tag[, region := factor(region, levels=c("BACKGROUND","PEAK"))]
+
+  for (lab in names(cuts)){
+    cutv <- cuts[[lab]]
+    Z <- Z_tag[zss <= cutv]
+    if (nrow(Z) < 2) next
+    pval <- if (any(Z$region=="PEAK") && any(Z$region=="BACKGROUND"))
+              wilcox.test(Z[region=="PEAK", zss],
+                          Z[region=="BACKGROUND", zss],
+                          alternative="less")$p.value else NA_real_
+    Z[, `:=`(GROUP = comp, CUTOFF = lab, stars = p_to_stars(pval))]
+    pieces[[paste(comp, lab, sep="_")]] <- Z
+  }
+}
+df <- rbindlist(pieces, fill=TRUE)
+stopifnot(nrow(df) > 0)
+
+cuts_levels  <- c("1%","5%","10%")
+group_levels <- names(FST_FILES)
+id_levels <- as.vector(outer(cuts_levels, group_levels, paste, sep=" • "))
+
+df[, id    := factor(paste(CUTOFF, GROUP, sep=" • "), levels=id_levels)]
+df[, xnum  := as.numeric(id)]
+df[, region := factor(region, levels=c("BACKGROUND","PEAK"))]
+
+summ <- df[, .(y_star = quantile(zss, 0.995, na.rm=TRUE) + 0.15,
+               stars  = unique(stars)), by=id]
+
+block_df <- data.table(
+  xmin = c(0.5, 3.5),
+  xmax = c(3.5, 6.5),
+  fill = c("#00000007", "#00000000"))
+
+pop_labels <- data.table(
+  x = c(2, 5),
+  pop = group_levels)
+
+y_bottom <- -12
+y_top    <- max(df$zss, na.rm=TRUE)
+reg_cols <- c(BACKGROUND = "#7f8c8d", PEAK = "#f7a600")
+
+
+p <- ggplot(df, aes(x=id, y=zss)) +
+  geom_rect(data=block_df, inherit.aes=FALSE,
+            aes(xmin=xmin, xmax=xmax, ymin=-Inf, ymax=Inf),
+            fill=block_df$fill, color=NA) +
+  #geom_split_violin(aes(fill=region), scale="width", alpha=0.90) +
+  geom_boxplot(data=df,
+               aes(x=xnum + ifelse(region=="PEAK", +0.14, -0.14),
+                   y=zss, group=interaction(id, region), fill=region),
+               inherit.aes=FALSE, width=0.20, outlier.shape=NA,
+               color="black", alpha=0.6, size=0.3) +
+  stat_summary(data=df,
+               aes(x=xnum + ifelse(region=="PEAK", +0.14, -0.14),
+                   y=zss, color=region, group=interaction(id, region)),
+               inherit.aes=FALSE, fun=median, geom="point",
+               size=2, stroke=0.6) +
+  geom_text(data=summ, inherit.aes=FALSE,
+            aes(x=id, y=y_star, label=stars), size=5) +
+  annotate("text", x=pop_labels$x, y=y_top + 0.45,
+           label=pop_labels$pop, fontface=2, size=5) +
+  scale_fill_manual(values=reg_cols) +
+  scale_color_manual(values=reg_cols, guide="none") +
+  scale_x_discrete(labels=rep(c("1%","5%","10%"), times=length(group_levels))) +
+  coord_cartesian(ylim=c(y_bottom, y_top + 0.75), clip="off") +
+  scale_y_continuous(expand=expansion(mult=c(0,0.03))) +
+  labs(x=NULL, y="Zero-shot score (ZSS)") +
+  theme_bw(base_size=12) +
+  theme(
+    legend.position="right",
+    legend.title=element_blank(),
+    panel.grid=element_blank(),
+    axis.text.x=element_text(vjust=0.9),
+    plot.margin=margin(6,18,4,6)
+  )
+
+ggsave(file.path(OUTDIR, "genetic_load_in_positive_selection_sorghum.tiff"),
+       p, width=12, height=4, dpi=600, compression="lzw")
+
+ggsave(
+  file.path(OUTDIR, "genetic_load_in_positive_selection_sorghum.pdf"),
+  p,
+  width  = 32,
+  height = 8,
+  units  = "cm"
+)
+```
+
+
+I overlap zero shot deleteriousness scores (ZSS) with the top 1% B2 balancing selection peaks in wild, landrace, and improved sorghum. 
+For each ZSS cutoff (top 1%, 5%, 10%), sites are classified as inside B2 peaks (“PEAK”) or outside (“BACKGROUND”)
+
+
+
+```{r}
+library(data.table)
+library(ggplot2)
+
+#Inputs
+ZSS_BED <- "/work/jyanglab/subhash/sorgsd/1.genetic_load/zeroscore.bed"
+
+#B2_files <- list(
+#wild     = "/work/jyanglab/subhash/sorgsd/bal_s/3.input/wild/wild.top1.ext5k.bed",
+#landrace = "/mnt/nrdstor/jyanglab/subhash/datasets/3.results/B2/land.top1.ext5k.bed",
+#improved = "/work/jyanglab/subhash/sorgsd/bal_s/3.input/imp/imp.top1.ext5k.bed")
+
+B2_files <- list(
+wild     = "data/3.1.1_sorghum_genetic_load_in_selection_sweeps/wild.top1.bed",
+landrace = "data/3.1.1_sorghum_genetic_load_in_selection_sweeps/land.top1.bed",
+improved = "data/3.1.1_sorghum_genetic_load_in_selection_sweeps/imp.top1.bed")
+
+cuts   <- c("1%"=-7.016113, "5%"=-5.150879, "10%"=-3.637695)
+OUTDIR <- "graphs/01_publication/3.genetic_load/"
+dir.create(OUTDIR, showWarnings = FALSE, recursive = TRUE)
+
+to_num_chr <- function(x){
+  x <- sub("^chr|^Chr","",as.character(x))
+  x <- sub("^0+","",x); x[nchar(x)==0] <- "0"; x
+}
+p_to_stars <- function(p){
+  if (is.na(p)) "ns" else if (p < 1e-4) "****" else if (p < 1e-3) "***"
+  else if (p < 1e-2) "**" else if (p < 5e-2) "*" else "ns"
+}
+Z_all <- fread(ZSS_BED, header = FALSE)[, .(
+  chr = to_num_chr(V1), pos = as.integer(V4), zss = as.numeric(V5)
+)]
+setkey(Z_all, chr, pos)
+
+ok <- vapply(B2_files, file.exists, logical(1))
+if (!all(ok)) {
+  message("Skipping missing files: ", paste(names(B2_files)[!ok], collapse=", "))
+  B2_files <- B2_files[ok]
+}
+stopifnot(length(B2_files) > 0)
+
+pieces <- list()
+for (GROUP in names(B2_files)){
+  B2 <- fread(B2_files[[GROUP]], header=FALSE)[, .(
+    chr = to_num_chr(V1), start = as.integer(V2), end = as.integer(V3)
+  )]
+  setkey(B2, chr, start, end)
+  for (lab in names(cuts)){
+    cutv <- cuts[[lab]]
+    Z <- Z_all[zss <= cutv]
+    if (nrow(Z) < 2) next
+    Zrng <- Z[, .(chr, start=pos, end=pos, pos, zss)]; setkey(Zrng, chr, start, end)
+    ov <- foverlaps(Zrng, B2, nomatch=0L)
+    
+    Z[, region := "BACKGROUND"]
+    if (nrow(ov)) Z[pos %in% ov$pos, region := "PEAK"]
+    
+    pval <- if (any(Z$region=="PEAK") && any(Z$region=="BACKGROUND"))
+      wilcox.test(Z[region=="PEAK", zss], Z[region=="BACKGROUND", zss],
+                  alternative="less")$p.value else NA_real_
+    
+    Z[, `:=`(GROUP = GROUP, CUTOFF = lab, stars = p_to_stars(pval))]
+    pieces[[paste(GROUP, lab, sep="_")]] <- Z
+    }}
+df <- rbindlist(pieces, fill=TRUE)
+stopifnot(nrow(df) > 0)
+cuts_levels  <- c("1%","5%","10%")
+group_levels <- c("wild","landrace","improved")
+id_levels    <- as.vector(outer(cuts_levels, group_levels, paste, sep=" • "))
+
+df[, id    := factor(paste(CUTOFF, GROUP, sep=" • "), levels = id_levels)]
+df[, xnum  := as.numeric(id)]
+df[, region := factor(region, levels = c("BACKGROUND","PEAK"))]
+
+summ <- df[, .(
+  y_star = quantile(zss, 0.995, na.rm=TRUE) + 0.15,
+  stars  = unique(stars)
+), by = id]
+
+block_df <- data.table(
+  xmin = c(0.5, 3.5, 6.5),
+  xmax = c(3.5, 6.5, 9.5),
+  fill = c("#00000007", "#00000000", "#00000007"))
+
+pop_labels <- data.table(
+  x = c(2, 5, 8),
+  pop = c("wild", "landrace", "improved"))
+
+reg_cols <- c(BACKGROUND = "#7f8c8d", PEAK = "#f7a600")
+y_bottom <- -12                     
+y_top    <- max(df$zss, na.rm=TRUE)
+
+p <- ggplot(df, aes(x = id, y = zss)) +
+    geom_rect(data = block_df, inherit.aes = FALSE,
+            aes(xmin = xmin, xmax = xmax, ymin = -Inf, ymax = Inf),
+            fill = block_df$fill, color = NA) +
+ # geom_split_violin(aes(fill = region), scale = "width",
+                    #color = "black", size = 0.3, alpha = 0.90) +
+  
+  geom_boxplot(
+    data = df,
+    aes(x = xnum + ifelse(region=="PEAK", +0.14, -0.14),
+        y = zss, group = interaction(id, region), fill = region),
+    inherit.aes = FALSE, width = 0.20, outlier.shape = NA,
+    color = "black", alpha = 0.60, size = 0.3
+  ) +
+    stat_summary(
+    data = df,
+    aes(x = xnum + ifelse(region=="PEAK", +0.14, -0.14),
+        y = zss, color = region, group = interaction(id, region)),
+    inherit.aes = FALSE, fun = median, geom = "point",
+    size = 2.1, stroke = 0.6
+  ) +
+  
+  geom_text(data = summ, inherit.aes = FALSE,
+            aes(x = id, y = y_star, label = stars),
+            size = 5) +
+  annotate("text", x = pop_labels$x, y = y_top + 0.45,
+           label = pop_labels$pop, fontface = 2, size = 5) +
+  scale_fill_manual(values = reg_cols) +
+  scale_color_manual(values = reg_cols, guide = "none") +
+
+  scale_x_discrete(labels = rep(c("1%","5%","10%"), times = length(group_levels))) +
+
+  coord_cartesian(ylim = c(y_bottom, y_top + 0.75), clip = "off") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.03))) +
+  labs(x = NULL, y = "Zero-shot score (ZSS)") +
+  theme_bw(base_size = 12) +
+  theme(
+    legend.position = "right",
+    legend.title = element_blank(),
+    panel.grid = element_blank(),
+    axis.text.x = element_text(vjust = 0.9),
+    plot.margin = margin(6, 18, 4, 6)
+  )
+
+ggsave(file.path(OUTDIR, "genetic_load_in_balancing_sweeps.tiff"),
+       p, width = 16, height = 4, dpi = 600, compression = "lzw")
+
+ggsave(
+  file.path(OUTDIR, "genetic_load_in_balancing_sweeps.pdf"),
+  p,                 # plot with 3 conditions
+  width  = 48,       # cm
+  height = 8,
+  units  = "cm"
+)
+```
+
