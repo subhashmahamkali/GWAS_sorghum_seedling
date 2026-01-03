@@ -7,7 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE) 
-knitr::opts_knit$set(root.dir=normalizePath('/Users/subhashmahamkali/Documents/gwas_sap')) 
+knitr::opts_knit$set(root.dir=normalizePath('..//..//')) 
 ```
 
 I overlap zero shot deleteriousness scores (ZSS) with the top 1% FSt positive selection peaks in wild, landrace, and improved sorghum. 
@@ -19,7 +19,8 @@ library(data.table)
 library(ggplot2)
 
 #Inputs
-ZSS_BED <- "/work/jyanglab/subhash/sorgsd/1.genetic_load/zeroscore.bed"
+#ZSS_BED <- "/work/jyanglab/subhash/sorgsd/1.genetic_load/zeroscore.bed"
+ZSS_BED <- "/mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/zeroscore.bed"
 #on HCC
 
 # FST files for both comparisons (top 1% windows)
@@ -184,7 +185,8 @@ library(data.table)
 library(ggplot2)
 
 #Inputs
-ZSS_BED <- "/work/jyanglab/subhash/sorgsd/1.genetic_load/zeroscore.bed"
+#ZSS_BED <- "/work/jyanglab/subhash/sorgsd/1.genetic_load/zeroscore.bed"
+ZSS_BED <- "/mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/zeroscore.bed"
 
 #B2_files <- list(
 #wild     = "/work/jyanglab/subhash/sorgsd/bal_s/3.input/wild/wild.top1.ext5k.bed",
