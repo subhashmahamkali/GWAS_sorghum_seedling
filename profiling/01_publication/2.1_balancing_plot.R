@@ -6,18 +6,24 @@ library(writexl)
 library(dplyr)
 
 #d=fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/all_chr_merged_with_chr.B2.txt.gz", header=T,data.table=F)
-d=fread("/work/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/wild_merged_chr.B2.txt", header=T,data.table=F)
+#d=fread("/work/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/wild_merged_chr.B2.txt", header=T,data.table=F)
+d=fread("/mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/wild_merged_chr.B2.txt", header=T,data.table=F)
+
 
 d=d[,c(7,1,3)]
-ch=fread("/work/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/sorg.chr_length_V5.txt", header=T,data.table=F)
+#ch=fread("/work/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/sorg.chr_length_V5.txt", header=T,data.table=F)
 #ch=fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/positive_selection/sorg.chr_length_V5.txt", header=T,data.table=F)
+ch=fread("/mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/sorg.chr_length_V5.txt", header=T,data.table=F)
+
 d[,1]  <- as.numeric(d[,1])   # chromosome column
 d[,2]  <- as.numeric(d[,2])   # position column
 d[,3]  <- as.numeric(d[,3])
 ch[,4] <- as.numeric(ch[,4])
 
 #gene = read_excel("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/B2/W_L_I_5kb_description.xlsx", sheet = 2)
-gene = read_excel("/work/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/W_L_I_5kb_description.xlsx", sheet = 2)
+#gene = read_excel("/work/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/W_L_I_5kb_description.xlsx", sheet = 2)
+gene = read_excel("/mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/W_L_I_5kb_description.xlsx", sheet = 2)
+
 
 gene$pos <- as.integer(gene$pos)
 colnames(gene)[1] <- "chr" 
@@ -48,7 +54,8 @@ thr
 #831.5203
 
 #la=fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/B2/Sorghum_landrace.AGPV5.B2_stat.txt", header=T,data.table=F)
-la=fread("/work/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/Sorghum_landrace.AGPV5.B2_stat.txt", header=T,data.table=F)
+#la=fread("/work/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/Sorghum_landrace.AGPV5.B2_stat.txt", header=T,data.table=F)
+la=fread("/mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/Sorghum_landrace.AGPV5.B2_stat.txt", header=T,data.table=F)
 
 
 la=la[,c(1,2,4)] 
@@ -69,7 +76,8 @@ thr_l
 #1111.447
 
 #im=fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/imp_chr_merged_with_chr.B2.txt.gz", header=T,data.table=F)
-im=fread("/work/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/imp_merged_chr.B2.txt", header=T,data.table=F)
+#im=fread("/work/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/imp_merged_chr.B2.txt", header=T,data.table=F)
+im=fread("/mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/imp_merged_chr.B2.txt", header=T,data.table=F)
 
 im=im[,c(7,1,3)]
 im[,3] <- as.numeric(im[,3])
@@ -96,7 +104,8 @@ thr_i
 #1682.746
 
 #c = fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/B2/W_L_I_5kb.bed")
-c = fread("/work/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/W_L_I_5kb.bed")
+#c = fread("/work/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/W_L_I_5kb.bed")
+c = fread("/mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/W_L_I_5kb.bed")
 
 w = c[,c(1:5)]
 w$V6 <- (w$V2 + w$V3)/2 
@@ -144,7 +153,9 @@ win_loMb <- 601.68708
 win_hiMb <- 10913953/1e6
 win_mid  <- 607.14406
 #gene = read_excel("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/B2/W_L_I_5kb_description.xlsx", sheet = 1)
-gene = read_excel("/work/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/W_L_I_5kb_description.xlsx", sheet = 1)
+#gene = read_excel("/work/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/W_L_I_5kb_description.xlsx", sheet = 1)
+gene = read_excel("/mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/W_L_I_5kb_description.xlsx", sheet = 1)
+
 gene$pos <- gene$V17+gene$V18/2
 gene$V18 <- as.integer(gene$V18)
 colnames(gene)[1] <- "chr" 
