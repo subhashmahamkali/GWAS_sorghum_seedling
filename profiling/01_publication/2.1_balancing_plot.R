@@ -187,6 +187,13 @@ if (length(gdsl_pos_candidates) > 1) {
 
 SHOW_GENE_LABELS <- FALSE  # keep dots, hide gene name text
 png("graphs/01_publication/2.bal_pos_taj_pi/balancing_plot.png", height = 7, width = 14, res = 600, units = "in")
+
+tiff(
+  "graphs/01_publication/2.bal_pos_taj_pi/balancing_plot.tiff",
+  width = 14, height = 7, units = "in", res = 600,
+  compression = "lzw"
+)
+
 par(mar = c(2, 3.5, 2, 2), mfrow = c(3,1), oma = c(2, 2, 2, 1))
 # Shared X range (Mb) used by ALL panels
 xlim_all <- c(0, 717)
@@ -220,25 +227,26 @@ plot(
   col = col_filt, pch = 16, cex = 0.4,
   bty = "l",
   xlim = xlim_all,                         # <- SAME xlim for all panels
-  axes = FALSE, xlab = "", ylab = "", font.lab = 2
+  axes = FALSE, xlab = "", ylab = "", font.lab = 1
 )
 
-legend("top",
-       legend = c("Ion signalling", "Nitrogen-related", "Stress-related"),
-       col    = cat_cols[c("ion","nitrogen","stressrelated")],
-       pch    = 16,
-       bty    = "o", box.lwd=1.2, box.col="grey30",
-       bg     = adjustcolor("white", 0.9),
-       cex    = 1.0, horiz=TRUE, inset = c(0, -0.2), xpd = NA)
+#legend("top",
+       #legend = c("Ion signalling", "Nitrogen-related", "Stress-related"),
+       #col    = cat_cols[c("ion","nitrogen","stressrelated")],
+       #pch    = 16,
+       #bty    = "o", box.lwd=1.2, box.col="grey30",
+       #bg     = adjustcolor("white", 0.9),
+       #cex    = 1.0, horiz=TRUE, inset = c(0, -0.2), xpd = NA)
 
-axis(2, las=2, tck=-.03, cex.axis=1, font.axis=2)
+axis(2, las=2, tck=-.03, labels = FALSE) #cex.axis=1, font.axis=1)
 chr_breaks <- seq(xlim_all[1], xlim_all[2], length.out=11)
 midpoints  <- (head(chr_breaks,-1) + tail(chr_breaks,-1)) / 2
-axis(1, at=midpoints, labels=1:10, cex.axis=1.2, font.axis=2)
+#axis(1, at=midpoints, labels=1:10, cex.axis=1.2, font.axis=1)
+axis(1, at=midpoints, labels = FALSE, tck=-.03)
 
 segments(x0=xlim_all[1], x1=xlim_all[2], y0=thr, y1=thr, col="red", lty=2, lwd=2)
-mtext("wild sorghum (n=50)", side=3, line=0.5, font=2, cex=1, adj=1)
-
+#mtext("wild sorghum", side=3, line=0.5, font=1, cex=1, adj=1)
+#(n=50)
 points(red_points1$pos, red_points1$y_peak,
        col = cat_cols[as.character(red_points1$GROUP)], pch = 16, cex = 1)
 
@@ -284,14 +292,17 @@ plot(
   la_filt[,3],
   col = col_la, pch = 16, cex = 0.4,
   bty = "l", xlim = xlim_all,
-  axes = FALSE, xlab = "", ylab = "", font.lab = 2
+  axes = FALSE, xlab = "", ylab = "", font.lab = 1
 )
-axis(2, las=2, tck=-.03, cex.axis=1, font.axis=2)
+axis(2, las=2, tck=-.03, labels = FALSE)#cex.axis=1, font.axis=1)
 midpoints_l <- (head(chr_breaks,-1) + tail(chr_breaks,-1)) / 2
-axis(1, at=midpoints_l, labels=1:10, cex.axis=1.2, font.axis=2)
+#axis(1, at=midpoints_l, labels=1:10, cex.axis=1.2, font.axis=1)
+axis(1, at=midpoints, labels = FALSE, tck=-.03)
+
 segments(x0=xlim_all[1], x1=xlim_all[2], y0=thr_l, y1=thr_l, col="red", lty=2, lwd=2)
-mtext("B2", side=2, line=3, font=2, cex=1.5)
-mtext("landraces (n=107)", side=3, line=0.5, font=2, cex=1, adj=1)
+#mtext("B2", side=2, line=3, font=1, cex=1.5)
+#mtext("landrace", side=3, line=0.5, font=1, cex=1, adj=1)
+#(n=107)
 plt2 <- par("plt")
 ## ---------- PANEL 3: IMPROVED ----------
 col_ii <- ifelse(ii_filt[,1] %% 2 == 1, "#00000066", "#BEBEBE99")
@@ -300,15 +311,17 @@ plot(
   ii_filt[,3],
   col = col_ii, pch = 16, cex = 0.4,
   bty = "l", xlim = xlim_all,
-  axes = FALSE, xlab = "", ylab = "", font.lab = 2
+  axes = FALSE, xlab = "", ylab = "", font.lab = 1
 )
-axis(2, las=2, tck=-.03, cex.axis=1, font.axis=2)
+axis(2, las=2, tck=-.03, labels = FALSE) #cex.axis=1, font.axis=1)
 midpoints_i <- (head(chr_breaks,-1) + tail(chr_breaks,-1)) / 2
-axis(1, at=midpoints_i, labels=1:10, cex.axis=1.2, font.axis=2)
-segments(x0=xlim_all[1], x1=xlim_all[2], y0=thr_i, y1=thr_i, col="red", lty=2, lwd=2)
-mtext("Chromosome", side=1, line=2.8, font=2, cex=1.5)
-mtext("improved (n=129)", side=3, line=0.5, font=2, cex=1, adj=1)
+#axis(1, at=midpoints_i, labels=1:10, cex.axis=1.2, font.axis=1)
+axis(1, at=midpoints, labels = FALSE, tck=-.03)
 
+segments(x0=xlim_all[1], x1=xlim_all[2], y0=thr_i, y1=thr_i, col="red", lty=2, lwd=2)
+#mtext("Chromosome", side=1, line=2.8, font=1, cex=1.5)
+#mtext("improved", side=3, line=0.5, font=1, cex=1, adj=1)
+#(n=129)
 plt3 <- par("plt")
 
 ## ---------- DEVICE-LEVEL OVERLAY: continuous dotted rails ----------

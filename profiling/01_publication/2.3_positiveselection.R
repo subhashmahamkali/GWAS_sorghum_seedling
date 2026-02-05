@@ -77,10 +77,14 @@ ann$pos_mb <- (ann$mid_bp + offset_bp) / 1e6
 tiff("graphs/01_publication/2.bal_pos_taj_pi/positive_selection.tiff", height = 7, width = 14, res = 600, units = "in", compression = "lzw", type = "cairo", bg = "white")
 par(mar = c(2, 3.5, 2, 2), mfrow = c(2,1), oma = c(2, 2, 1, 1)) #outer margin area -BLTR
 plot(dp1[,2],dp1[,3],col=col1,pch=16,cex=0.4,bty="l",xlim=c(0,717),axes=F,cex.lab=0.6,xlab="",ylab="", font.lab=2)
-mtext("Fst", side=2, line=3.5, font=2, cex=1.2)
-mtext("Wildtype vs. Landrace", side=3, line=0.4, font=2, cex=1,adj=1)
-axis(2,las=2,tck=-.03,cex.axis=1.5, font.axis=2)
-axis(1,at=(ch[,3]-ch[,2]/2)/1e6,labels=1:10,tck=-0.03,cex.axis=1.2) 
+#mtext("Fst", side=2, line=3.5, font=2, cex=1.2)
+#mtext("Wildtype vs. Landrace", side=3, line=0.4, font=2, cex=1,adj=1)
+#axis(2,las=2,tck=-.03,cex.axis=1.5, font.axis=2)
+#axis(1,at=(ch[,3]-ch[,2]/2)/1e6,labels=1:10,tck=-0.03,cex.axis=1.2) 
+
+axis(2, las = 2, tck = -0.03, cex.axis = 1.5, font.axis = 1, labels = FALSE)
+axis(1, at = (ch[,3] - ch[,2]/2)/1e6, tck = -0.03, cex.axis = 1.2, labels = FALSE)
+
 #abline(h=thr,col="red",lty=2)
 segments(x0=0, x1=720, y0=thr1, y1=thr1, col="red", lty=2, lwd=2)
 
@@ -91,10 +95,12 @@ points(tb1$pos_mb, y_tb1, pch = 21, bg = "dodgerblue2", col = "black", cex = 1)
 #text(tb1$pos_mb, max(dp1[,3], na.rm = TRUE) * 0.95, labels = "TB1", font = 3, cex = 1.2)
 
 plot(dp2[,2],dp2[,3],col=col2,pch=16,cex=0.4,bty="l",xlim=c(0,717),axes=F,cex.lab=0.6,xlab="",ylab="", font.lab=2)
-mtext("Fst", side=2, line=3.5, font=2, cex=1.2)
-mtext("Landrace vs. Improved", side=3, line=0.4, font=2, cex=1,adj=1)
-axis(2,las=2,tck=-.03,cex.axis=1.5, font.axis=2)
-axis(1,at=(ch[,3]-ch[,2]/2)/1e6,labels=1:10,tck=-0.03,cex.axis=1.2) 
+#mtext("Fst", side=2, line=3.5, font=2, cex=1.2)
+#mtext("Landrace vs. Improved", side=3, line=0.4, font=2, cex=1,adj=1)
+#axis(2,las=2,tck=-.03,cex.axis=1.5, font.axis=2)
+axis(2, las = 2, tck = -0.03, cex.axis = 1.5, font.axis = 1, labels = FALSE)
+axis(1, at = (ch[,3] - ch[,2]/2)/1e6, tck = -0.03, cex.axis = 1.2, labels = FALSE)
+#axis(1,at=(ch[,3]-ch[,2]/2)/1e6,labels=1:10,tck=-0.03,cex.axis=1.2) 
 #abline(h=thr,col="red",lty=2)
 segments(x0=0, x1=720, y0=thr2, y1=thr2, col="red", lty=2, lwd=2)
 sh1 <- subset(ann, annotation == "sh1")[1, ]
@@ -102,5 +108,5 @@ abline(v = sh1$pos_mb, col = "black", lty = 3)
 y_sh1 <- max(dp2[,3], na.rm = TRUE) * 0.97   # place dot near panel top
 points(sh1$pos_mb, y_sh1, pch = 21, bg = "dodgerblue2", col = "black", cex = 1)
 #text(sh1$pos_mb, max(dp2[,3], na.rm = TRUE) * 0.95, labels = "sh1", font = 3, cex = 1.2)
-mtext("Chromosome", side=1, line=2, font=2, cex=1.2)
+#mtext("Chromosome", side=1, line=2, font=2, cex=1.2)
 dev.off()

@@ -2,8 +2,6 @@ library(data.table)
 library(readxl)
 
 
-
-
 ch=fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/positive_selection/sorg.chr_length_V5.txt", header=T,data.table=F)
 
 gene = read_excel("/Users/subhashmahamkali/Downloads/1.miscellaneous/sorghum_project/pos_bal_loci_gene_annot.xlsx", sheet = 5)

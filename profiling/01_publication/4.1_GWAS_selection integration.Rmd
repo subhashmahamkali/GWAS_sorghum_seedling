@@ -61,7 +61,7 @@ for (cat in cats) {
   ggsave(out_pdf, p, width = 4.3, height = 3.5, dpi = 300)
   message("Saved: ", out_pdf)
 }
-
+p
 ```
 
 
@@ -73,7 +73,7 @@ library(data.table)
 library(ggplot2)
 
 ## Folder where those PosSel files live
-BASE_DIR  <- "data/4.GWAS_selection/B.positive_selection"  # <- change if needed
+BASE_DIR  <- "data/4.GWAS_selection/B.positive_selection"  
 OUT_FIGS  <- "graphs/01_publication/4.GWAS_selection_integration"
 dir.create(OUT_FIGS, recursive = TRUE, showWarnings = FALSE)
 
@@ -125,6 +125,67 @@ for (CATEGORY in cats) {
   ggsave(out_pdf, p, width = 4.3, height = 3.5, dpi = 300)
   message("Saved: ", out_pdf)
 }
+
+```
+
+
+# violin plots showing the distribution of ancestral-allele effect sizes for SNPs within balancing selection sweeps (B2) and positive selection sweeps (PosSel), faceted by trait category.
+
+
+
+```{r}
+library(data.table)
+library(ggplot2)
+
+read_curves <- function(base_dir, sweep_tag, cats) {
+  rbindlist(lapply(cats, function(cat) {
+    f <- file.path(base_dir, paste0("NR_", cat, "_", sweep_tag, "_top1_pooled_curves.tsv"))
+    if (!file.exists(f)) return(NULL)
+    d <- fread(f)
+    d[, category := cat]
+    d[, sweep := sweep_tag]
+    d
+  }), fill = TRUE)
+}
+
+cats <- c("Developmental","Architecture","Panicle","Seed")
+
+# -------- Balancing selection (B2) --------
+b2_dir <- "data/4.GWAS_selection/A.balancing_selection"
+b2 <- read_curves(b2_dir, "B2", cats)
+
+# Example: magnitude view (tails)
+b2[, abs_eff := anc_effect]
+b2[, population := factor(population, levels = c("Wild","Landrace","Improved"))]
+
+p_b2 <- ggplot(b2, aes(x = population, y = abs_eff, fill = population)) +
+  geom_violin(trim = FALSE, alpha = 0.6) +
+  geom_boxplot(width = 0.15, outlier.shape = NA, alpha = 0.7) +
+  facet_wrap(~category, scales = "free_y", nrow = 1) +
+  theme_bw(base_size = 12) +
+  labs(x = NULL, y = "|Ancestral-allele effect|", title = "Balancing selection (B2): effect magnitude in sweep SNPs")
+
+ggsave("graphs/01_publication/4.GWAS_selection_integration/B2_violin_abs_effect.pdf",
+       p_b2, width = 12, height = 3.5, dpi = 300)
+
+# -------- Positive selection (PosSel) --------
+ps_dir <- "data/4.GWAS_selection/B.positive_selection"
+ps <- read_curves(ps_dir, "PosSel", cats)
+
+ps[, abs_eff := anc_effect]
+ps[, population := factor(population, levels = c("Wd_vs_Ld","Ld_vs_Imp","Landrace","Improved"))] 
+# ^ pick the correct levels based on what "population" actually contains in your PosSel files
+
+p_ps <- ggplot(ps, aes(x = population, y = abs_eff, fill = population)) +
+  geom_violin(trim = FALSE, alpha = 0.6) +
+  geom_boxplot(width = 0.15, outlier.shape = NA, alpha = 0.7) +
+  facet_wrap(~category, scales = "free_y", nrow = 1) +
+  theme_bw(base_size = 12) +
+  labs(x = NULL, y = "|Ancestral-allele effect|", title = "Positive selection: effect magnitude in sweep SNPs")
+
+ggsave("graphs/01_publication/4.GWAS_selection_integration/PosSel_violin_abs_effect.pdf",
+       p_ps, width = 12, height = 3.5, dpi = 300)
+
 
 ```
 
