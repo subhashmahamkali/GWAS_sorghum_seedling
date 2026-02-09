@@ -111,6 +111,13 @@ ggsave(sprintf("graphs/01_publication/3.genetic_load/GenLoad_sunflower_miss%02d.
 ```{r}
 library(data.table)
 library(ggplot2)
+library(ggpubr)
+
+cols <- c(
+  wild     = "#1B9E77",
+  landrace = "#D95F02",
+  improved = "#7570B3"
+)
 
 outdir <- "data/3.2_genetic_load_sunflower/"
 
@@ -134,30 +141,50 @@ df[, sub := factor(
   levels = c("wild", "landrace", "modern"),
   labels = c("wild", "landrace", "improved")
 )]
-## cutoff = 0.01 top 1%
+
+# cutoff = 0.01 top 1%
 df[, cutoff := as.numeric(as.character(cutoff))]
 df001 <- df[cutoff == 0.01]
 
 message("Rows per group at cutoff 0.01:")
 print(df001[, .N, by = sub])
 
-# plot for genetic load at 1% cutoff
-p <- ggplot(df001, aes(x = sub, y = Genetic_load)) +
+# ABS genetic load
+df001[, Genetic_load_abs := abs(Genetic_load)]
+
+comparisons <- list(
+  c("wild", "landrace"),
+  c("wild", "improved"),
+  c("landrace", "improved")
+)
+
+# plot for abs genetic load at 1% cutoff + stars
+p <- ggplot(df001, aes(x = sub, y = Genetic_load_abs, fill = sub)) +
   geom_boxplot(
     width        = 0.7,
     outlier.size = 0.7,
-    fill         = NA,
     color        = "black"
   ) +
+  scale_fill_manual(values = cols) +
+  stat_compare_means(
+    comparisons = comparisons,
+    method = "wilcox.test",
+    label = "p.signif",
+    hide.ns = TRUE,
+    tip.length = 0.01,
+    size = 5
+  ) +
   labs(
-    title = sprintf("Sunflower – Genetic load at top 1%%, missing \u2264 %d%%", miss_level),
+    title = "Sunflower top 1%",
     x = "",
-    y = "Genetic load"
+    y = "Abs genetic load"
   ) +
   theme_bw(base_size = 14) +
   theme(legend.position = "none")
 
-ggsave(sprintf("graphs/01_publication/3.genetic_load/GenLoad_sunflower_cut001_miss%02d.png", miss_level), plot   = p, width  = 10, height = 7, dpi    = 200)
-
+ggsave(
+  sprintf("graphs/01_publication/3.genetic_load/Abs_GenLoad_sunflower_cut001_miss%02d.pdf", miss_level),
+  plot = p, width = 10, height = 7, useDingbats = FALSE
+)
 ```
 

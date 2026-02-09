@@ -94,6 +94,13 @@ ggsave(sprintf("graphs/01_publication/3.genetic_load/GenLoad_maize_miss%02d.png"
 ```{r}
 library(data.table)
 library(ggplot2)
+library(ggpubr)
+
+cols <- c(
+  wild     = "#1B9E77",
+  landrace = "#D95F02",
+  improved = "#7570B3"
+)
 
 outdir     <- "data/3.3_genetic_load_maize/"
 miss_level <- 50
@@ -112,29 +119,55 @@ df_land <- read_group(outdir, "landrace")
 df_imp  <- read_group(outdir, "improved")
 
 df <- rbindlist(list(df_wild, df_land, df_imp), use.names = TRUE, fill = TRUE)
+
+# Ensure correct ordering
 df[, sub := factor(sub, levels = groups)]
 
-#cutoff = 0.01 top 1%
+# cutoff = 0.01 top 1%
 df[, cutoff := as.numeric(as.character(cutoff))]
 df001 <- df[cutoff == 0.01]
+
 message("Rows per group at top 1% cutoff (0.01, maize):")
 print(df001[, .N, by = sub])
-p_top1_mz <- ggplot(df001, aes(x = sub, y = Genetic_load)) +
+
+# ABS genetic load
+df001[, Genetic_load_abs := abs(Genetic_load)]
+
+# Pairwise comparisons (same as sorghum)
+comparisons <- list(
+  c("wild", "landrace"),
+  c("wild", "improved"),
+  c("landrace", "improved")
+)
+
+p_top1_mz <- ggplot(df001, aes(x = sub, y = Genetic_load_abs, fill = sub)) +
   geom_boxplot(
     width        = 0.7,
     outlier.size = 0.7,
-    fill         = NA,
     color        = "black"
   ) +
+  scale_fill_manual(values = cols) +
+  stat_compare_means(
+    comparisons = comparisons,
+    method = "wilcox.test",
+    label = "p.signif",
+    hide.ns = TRUE,
+    tip.length = 0.01,
+    size = 5
+  ) +
   labs(
-    title = sprintf("Maize – Genetic load at top 1%%, missing \u2264 %d%%", miss_level),
+    title = "Maize top 1%",
     x     = "",
-    y     = "Genetic load"
+    y     = "Abs genetic load"
   ) +
   theme_bw(base_size = 14) +
   theme(legend.position = "none")
 
-ggsave(sprintf("graphs/01_publication/3.genetic_load/GenLoad_maize_cut001_miss%02d.png", miss_level), plot   = p_top1_mz, width  = 10, height = 7, dpi    = 200)
+ggsave(
+  sprintf("graphs/01_publication/3.genetic_load/Abs_GenLoad_maize_cut001_miss%02d.pdf", miss_level),
+  plot = p_top1_mz, width = 10, height = 7, useDingbats = FALSE
+)
+
 
 ```
 

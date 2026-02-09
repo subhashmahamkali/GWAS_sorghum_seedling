@@ -1,0 +1,77 @@
+---
+title: "absolute_genetic_load"
+author: "subhash"
+date: "2026-02-04"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE) 
+knitr::opts_knit$set(root.dir=normalizePath('/Users/subhashmahamkali/Documents/gwas_sap')) 
+```
+
+# calculating of absolute genetic load for ease of understanding
+
+```{r}
+library(data.table)
+library(ggplot2)
+library(ggpubr)
+
+outdir <- "data/3.1_genetic_load_sorghum/"
+
+files <- list.files(outdir, pattern = "miss50_chr", full.names = TRUE)
+if (!length(files)) files <- list.files(outdir, pattern = "miss50", full.names = TRUE)
+stopifnot(length(files) > 0)
+
+dt <- rbindlist(lapply(files, fread), use.names = TRUE, fill = TRUE)
+
+# cutoff 
+if (all(na.omit(unique(dt$cutoff)) %in% c(1, 5, 10))) dt[, cutoff := cutoff/100]
+dt <- dt[cutoff %in% c(0.01, 0.05, 0.10)]
+dt <- dt[!is.na(Genetic_load) & !is.na(sub)]
+
+# factor orders
+dt[, sub := factor(sub, levels = c("wild", "landrace", "improved"))]
+dt[, cutoff_fac := factor(cutoff,
+                          levels = c(0.01, 0.05, 0.10),
+                          labels = c("1%", "5%", "10%"))]
+
+#calculate absolute genetic load
+dt[, Genetic_load_abs := abs(Genetic_load)]
+
+cols <- c(
+  wild     = "#1B9E77",
+  landrace = "#D95F02",
+  improved = "#7570B3"
+)
+
+comparisons <- list(c("wild","landrace"), c("wild","improved"), c("landrace","improved"))
+
+p_abs <- ggplot(dt, aes(x = sub, y = Genetic_load_abs, fill = sub)) +
+  geom_boxplot(width = 0.65, outlier.size = 1.2) +
+  facet_wrap(~ cutoff_fac, nrow = 1, scales = "free_y") +
+  scale_fill_manual(values = cols) +
+  stat_compare_means(comparisons = comparisons,
+                     method = "wilcox.test",
+                     label = "p.signif",
+                     hide.ns = TRUE,
+                     tip.length = 0.01,
+                     size = 4.5) +
+  labs(
+    title = "Genetic load (absolute) at 1%, 5% and 10% cutoffs (missing <= 50%)",
+    x = NULL,
+    y = "Absolute genetic load",
+    fill = NULL
+  ) +
+  theme_bw(base_size = 14) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    strip.background = element_blank(),
+    strip.text = element_text(face = "bold"),
+    axis.text.x = element_text(face = "bold")
+  )
+p_abs
+ggsave("graphs/01_publication/3.genetic_load/Abs_GenLoad_sorghum_miss50.pdf", p_abs, width = 10, height = 3.2, units = "in")
+
+```
+
