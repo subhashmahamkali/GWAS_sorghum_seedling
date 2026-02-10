@@ -1,0 +1,341 @@
+---
+title: "pos genetic load"
+author: "subhash"
+date: "2025-10-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+#!/usr/bin/env Rscript
+suppressPackageStartupMessages({ library(data.table); library(ggplot2) })
+
+# ---------- Inputs ----------
+ZSS_BED <- "/work/jyanglab/subhash/sorgsd/1.genetic_load/zeroscore.bed"
+#FST_WIN <- "/work/jyanglab/subhash/sorgsd/2.pos/landrace_vs_improved.windowed.weir.fst"
+FST_WIN <- "/work/jyanglab/subhash/sorgsd/2.pos/sorg_wild_vs_landrace.windowed.weir.fst"
+OUTDIR  <- "/work/jyanglab/subhash/sorgsd/2.pos/genload_pos"
+#GROUP   <- "FST_LvI"
+GROUP   <- "FST_WvL"
+# ZSS cutoffs to loop (you can change/remove)
+cuts <- c("1%"=-7.016113, "5%"=-5.150879, "10%"=-3.637695, "25%"=-1.095825)
+
+dir.create(OUTDIR, recursive = TRUE, showWarnings = FALSE)
+
+to_num_chr <- function(x){
+  x <- as.character(x)
+  x <- sub("^chr","",x, ignore.case=TRUE)
+  x <- sub("^Chr","",x, ignore.case=TRUE)
+  x <- sub("^0+","",x)
+  x[nchar(x)==0] <- "0"
+  x
+}
+p_to_stars <- function(p){
+  if (is.na(p)) "ns" else if (p < 1e-4) "****"
+  else if (p < 1e-3) "***" else if (p < 1e-2) "**"
+  else if (p < 5e-2) "*" else "ns"
+}
+# ---- helper: merge overlapping intervals on one chromosome (no extra pkgs) ----
+merge_overlaps_onechr <- function(dt){
+  # dt: data.table with start,end; must be sorted
+  if (nrow(dt) == 0L) return(dt)
+  setorder(dt, start, end)
+  out_start <- integer(); out_end <- integer()
+  s <- dt$start[1]; e <- dt$end[1]
+  if (nrow(dt) > 1L) {
+    for(i in 2:nrow(dt)){
+      if (dt$start[i] <= e) {
+        e <- max(e, dt$end[i])         # extend current merged interval
+      } else {
+        out_start <- c(out_start, s); out_end <- c(out_end, e)
+        s <- dt$start[i]; e <- dt$end[i]
+      }
+    }
+  }
+  out_start <- c(out_start, s); out_end <- c(out_end, e)
+  data.table(start = out_start, end = out_end)
+}
+# ---------- 1) Read FST windows & select top 1% ----------
+FST <- fread(FST_WIN)
+# Keep the needed columns; rename to standard names if necessary
+# Expecting columns: CHROM, BIN_START, BIN_END, WEIGHTED_FST (weir-fst)
+stopifnot(all(c("CHROM","BIN_START","BIN_END") %in% names(FST)))
+fst_col <- if ("WEIGHTED_FST" %in% names(FST)) "WEIGHTED_FST" else "WEIR_AND_COCKERHAM_FST"
+FST <- FST[, .(chr = to_num_chr(CHROM),
+               start = as.integer(BIN_START),
+               end = as.integer(BIN_END),
+               fst = as.numeric(get(fst_col)))]
+FST <- FST[is.finite(fst) & end > start]
+
+thr <- quantile(FST$fst, 0.99, na.rm = TRUE)   # top 1%
+peaks_raw <- FST[fst >= thr, .(chr, start, end)]
+
+# If your FST tool emitted 0-based half-open windows, uncomment this line:
+# peaks_raw[, start := start + 1L]  # -> 1-based closed to match 1-bp site intervals
+
+# ---------- 2) Merge overlapping/adjacent peak windows ----------
+PEAKS <- peaks_raw[, merge_overlaps_onechr(.SD), by = chr]
+setkey(PEAKS, chr, start, end)
+
+# ---------- 3) Read ZSS sites ----------
+Zraw <- fread(ZSS_BED, header = FALSE)
+stopifnot(ncol(Zraw) >= 5)
+setnames(Zraw, paste0("V", seq_len(ncol(Zraw))))
+Z_all <- Zraw[, .(chr = to_num_chr(V1), pos = as.integer(V4), zss = as.numeric(V5))]
+Z_all <- Z_all[!is.na(chr) & !is.na(pos) & is.finite(zss)]
+setkey(Z_all, chr, pos)
+
+# ---------- 4) Run Plot A for each cutoff (PEAK vs BACKGROUND on ZSS) ----------
+make_plot_A <- function(cut_label, cutoff){
+  Z <- Z_all[zss <= cutoff]
+  if (nrow(Z) < 2L) {
+    message(sprintf("[%s] Too few sites after cutoff %.6f; skipping.", cut_label, cutoff))
+    return(invisible(NULL))
+  }
+  # tag SNPs as PEAK/BACKGROUND by overlap with merged FST peaks
+  Zrng <- Z[, .(chr, start = pos, end = pos, pos, zss)]
+  setkey(Zrng, chr, start, end)
+  ov <- foverlaps(Zrng, PEAKS, nomatch = 0L)
+
+  Z[, region := "BACKGROUND"]
+  if (nrow(ov)) Z[pos %in% ov$pos, region := "PEAK"]
+  Z[, region := factor(region, levels = c("BACKGROUND","PEAK"))]
+  Z[, zss_val := zss]
+
+  # test: are PEAK values lower (more negative) than BACKGROUND?
+  pval <- if (any(Z$region=="PEAK") && any(Z$region=="BACKGROUND")) {
+    wilcox.test(Z[region=="PEAK", zss_val],
+                Z[region=="BACKGROUND", zss_val],
+                alternative = "less")$p.value
+  } else NA_real_
+  stars <- p_to_stars(pval)
+
+  # y-zoom and bracket placement
+  q <- quantile(Z$zss_val, c(0.01, 0.99), na.rm = TRUE)
+  ylims <- if (all(is.finite(q)) && diff(q) > 0) q else range(Z$zss_val, na.rm=TRUE)
+  span  <- diff(ylims)
+  ybar  <- ylims[2] - 0.05 * span
+
+  pdfA <- file.path(OUTDIR, sprintf("%s_FSTpeaks_rawZSS_box_%s.pdf",
+                                    GROUP, gsub("%","pct", cut_label)))
+  pA <- ggplot(Z, aes(region, zss_val, fill = region)) +
+    geom_boxplot(outlier.shape = NA, color = "grey20") +
+    coord_cartesian(ylim = ylims) +
+    scale_y_continuous(expand = expansion(mult = c(0.02, 0.06))) +
+    scale_fill_manual(values = c(BACKGROUND = "grey75", PEAK = "#f7a600")) +
+    theme_bw() +
+    labs(
+      title = sprintf("%s %s",
+                      GROUP, cut_label, ifelse(is.na(pval), "NA", sprintf("%.2e", pval))),
+      y = "zero shot score",
+      x = NULL
+    ) +
+    annotate("text", x=1.5, y=ybar + 0.03*span, label = stars, vjust=0) +
+    theme(legend.position = "none")
+
+  ggsave(pdfA, pA, width = 4.6, height = 4.6, useDingbats = FALSE)
+  message(sprintf("[%s] Wrote: %s", cut_label, pdfA))
+}
+invisible(mapply(make_plot_A, names(cuts), unname(cuts)))
+# ---------- (Optional) also save a BED-like file of merged top1% FST peaks ----------
+fwrite(PEAKS, file.path(OUTDIR, sprintf("%s_top1pct_FST_peaks_merged.bed", GROUP)),
+       sep = "\t", col.names = FALSE)
+
+```
+
+
+
+
+```{r}
+#!/usr/bin/env Rscript
+suppressPackageStartupMessages({ library(data.table); library(ggplot2) })
+
+## ====== Inputs ======
+ZSS_BED <- "/work/jyanglab/subhash/sorgsd/1.genetic_load/zeroscore.bed"
+
+# FST files for both comparisons (top 1% windows)
+FST_FILES <- list(
+  "wild vs landrace"   = "/work/jyanglab/subhash/sorgsd/2.pos/sorg_wild_vs_landrace.windowed.weir.fst",
+  "landrace vs improved" = "/work/jyanglab/subhash/sorgsd/2.pos/landrace_vs_improved.windowed.weir.fst"
+)
+
+cuts <- c("1%"=-7.016113, "5%"=-5.150879, "10%"=-3.637695)
+
+OUTDIR <- "/work/jyanglab/subhash/sorgsd/2.pos/genload_pos/combined"
+dir.create(OUTDIR, recursive = TRUE, showWarnings = FALSE)
+
+## ====== Helpers ======
+to_num_chr <- function(x){
+  x <- sub("^chr|^Chr","",as.character(x))
+  x <- sub("^0+","",x); x[nchar(x)==0] <- "0"; x
+}
+p_to_stars <- function(p){
+  if (is.na(p)) "ns" else if (p < 1e-4) "****" else if (p < 1e-3) "***"
+  else if (p < 1e-2) "**" else if (p < 5e-2) "*" else "ns"
+}
+merge_overlaps_onechr <- function(dt){
+  if (nrow(dt) == 0L) return(dt)
+  setorder(dt, start, end)
+  out_s <- integer(); out_e <- integer()
+  s <- dt$start[1]; e <- dt$end[1]
+  for(i in seq_len(nrow(dt))[-1]){
+    if (dt$start[i] <= e) e <- max(e, dt$end[i])
+    else { out_s <- c(out_s, s); out_e <- c(out_e, e); s <- dt$start[i]; e <- dt$end[i] }
+  }
+  data.table(start = c(out_s, s), end = c(out_e, e))
+}
+
+## ====== Load ZSS once ======
+Z_all <- fread(ZSS_BED, header = FALSE)
+setnames(Z_all, paste0("V", seq_len(ncol(Z_all))))
+Z_all <- Z_all[, .(chr = to_num_chr(V1), pos = as.integer(V4), zss = as.numeric(V5))]
+Z_all <- Z_all[is.finite(zss)]
+setkey(Z_all, chr, pos)
+
+## ====== Collect PEAK/BACKGROUND zss for each FST comparison × cutoff ======
+pieces <- list()
+
+for (comp in names(FST_FILES)){
+  fst_path <- FST_FILES[[comp]]
+  FST <- fread(fst_path)
+  stopifnot(all(c("CHROM","BIN_START","BIN_END") %in% names(FST)))
+  fst_col <- if ("WEIGHTED_FST" %in% names(FST)) "WEIGHTED_FST" else "WEIR_AND_COCKERHAM_FST"
+  FST <- FST[, .(chr = to_num_chr(CHROM),
+                 start = as.integer(BIN_START),
+                 end   = as.integer(BIN_END),
+                 fst   = as.numeric(get(fst_col)))]
+  FST <- FST[is.finite(fst) & end > start]
+
+  # Top 1% and merge overlaps
+  thr <- quantile(FST$fst, 0.99, na.rm = TRUE)
+  peaks_raw <- FST[fst >= thr, .(chr, start, end)]
+  # If 0-based: peaks_raw[, start := start + 1L]
+  PEAKS <- peaks_raw[, merge_overlaps_onechr(.SD), by = chr]
+  setkey(PEAKS, chr, start, end)
+
+  # tag once
+  Zrng <- Z_all[, .(chr, start=pos, end=pos, pos, zss)]
+  setkey(Zrng, chr, start, end)
+  ov <- foverlaps(Zrng, PEAKS, nomatch=0L)
+  Z_tag <- copy(Z_all)
+  Z_tag[, region := "BACKGROUND"]
+  if (nrow(ov)) Z_tag[pos %in% ov$pos, region := "PEAK"]
+  Z_tag[, region := factor(region, levels=c("BACKGROUND","PEAK"))]
+
+  # split by cutoff
+  for (lab in names(cuts)){
+    cutv <- cuts[[lab]]
+    Z <- Z_tag[zss <= cutv]
+    if (nrow(Z) < 2) next
+    pval <- if (any(Z$region=="PEAK") && any(Z$region=="BACKGROUND"))
+              wilcox.test(Z[region=="PEAK", zss],
+                          Z[region=="BACKGROUND", zss],
+                          alternative="less")$p.value else NA_real_
+    Z[, `:=`(GROUP = comp, CUTOFF = lab, stars = p_to_stars(pval))]
+    pieces[[paste(comp, lab, sep="_")]] <- Z
+  }
+}
+df <- rbindlist(pieces, fill=TRUE)
+stopifnot(nrow(df) > 0)
+
+## ====== Build one-panel structure ======
+cuts_levels  <- c("1%","5%","10%")
+group_levels <- names(FST_FILES)
+id_levels <- as.vector(outer(cuts_levels, group_levels, paste, sep=" • "))
+
+df[, id    := factor(paste(CUTOFF, GROUP, sep=" • "), levels=id_levels)]
+df[, xnum  := as.numeric(id)]
+df[, region := factor(region, levels=c("BACKGROUND","PEAK"))]
+
+summ <- df[, .(y_star = quantile(zss, 0.995, na.rm=TRUE) + 0.15,
+               stars  = unique(stars)), by=id]
+
+block_df <- data.table(
+  xmin = c(0.5, 3.5),
+  xmax = c(3.5, 6.5),
+  fill = c("#00000007", "#00000000")
+)
+
+pop_labels <- data.table(
+  x = c(2, 5),
+  pop = group_levels
+)
+
+y_bottom <- -12
+y_top    <- max(df$zss, na.rm=TRUE)
+reg_cols <- c(BACKGROUND = "#7f8c8d", PEAK = "#f7a600")
+
+## ====== Split-violin geom ======
+GeomSplitViolin <- ggplot2::ggproto("GeomSplitViolin", ggplot2::GeomViolin,
+  draw_group = function(self, data, ..., draw_quantiles = NULL){
+    data <- transform(data,
+      xminv = x - violinwidth * (x - xmin),
+      xmaxv = x + violinwidth * (xmax - x))
+    grp <- ifelse(data$group %% 2 == 1L, 1, -1)
+    data$x <- ifelse(grp == 1, data$xminv, data$xmaxv)
+    ggplot2:::ggname("geom_split_violin",
+      grid::polygonGrob(data$x, data$y,
+        gp = grid::gpar(col="black", fill=scales::alpha(data$fill, data$alpha), lwd=0.3)))
+  })
+geom_split_violin <- function(mapping = NULL, data = NULL, stat = "ydensity",
+                              position = "identity", ..., draw_quantiles = NULL,
+                              trim = TRUE, scale = "area", na.rm = FALSE,
+                              show.legend = NA, inherit.aes = TRUE){
+  ggplot2::layer(data = data, mapping = mapping, stat = stat, geom = GeomSplitViolin,
+    position = position, show.legend = show.legend, inherit.aes = inherit.aes,
+    params = list(trim=trim, scale=scale, draw_quantiles=draw_quantiles, na.rm=na.rm, ...))
+}
+
+## ====== Plot ======
+p <- ggplot(df, aes(x=id, y=zss)) +
+  geom_rect(data=block_df, inherit.aes=FALSE,
+            aes(xmin=xmin, xmax=xmax, ymin=-Inf, ymax=Inf),
+            fill=block_df$fill, color=NA) +
+  geom_split_violin(aes(fill=region), scale="width", alpha=0.90) +
+  geom_boxplot(data=df,
+               aes(x=xnum + ifelse(region=="PEAK", +0.14, -0.14),
+                   y=zss, group=interaction(id, region), fill=region),
+               inherit.aes=FALSE, width=0.20, outlier.shape=NA,
+               color="black", alpha=0.6, size=0.3) +
+  stat_summary(data=df,
+               aes(x=xnum + ifelse(region=="PEAK", +0.14, -0.14),
+                   y=zss, color=region, group=interaction(id, region)),
+               inherit.aes=FALSE, fun=median, geom="point",
+               size=2, stroke=0.6) +
+  geom_text(data=summ, inherit.aes=FALSE,
+            aes(x=id, y=y_star, label=stars), size=5) +
+  annotate("text", x=pop_labels$x, y=y_top + 0.45,
+           label=pop_labels$pop, fontface=2, size=5) +
+  scale_fill_manual(values=reg_cols) +
+  scale_color_manual(values=reg_cols, guide="none") +
+  scale_x_discrete(labels=rep(c("1%","5%","10%"), times=length(group_levels))) +
+  coord_cartesian(ylim=c(y_bottom, y_top + 0.75), clip="off") +
+  scale_y_continuous(expand=expansion(mult=c(0,0.03))) +
+  labs(x=NULL, y="Zero-shot score (ZSS)") +
+  theme_bw(base_size=12) +
+  theme(
+    legend.position="right",
+    legend.title=element_blank(),
+    panel.grid=element_blank(),
+    axis.text.x=element_text(vjust=0.9),
+    plot.margin=margin(6,18,4,6)
+  )
+
+ggsave(file.path(OUTDIR, "Positive_FST_ZSS_splitViolin_ONEPANEL.tiff"),
+       p, width=12, height=4, dpi=600, compression="lzw")
+
+ggsave(
+  file.path(OUTDIR, "Positive_FST_ZSS_splitViolin_ONEPANEL.pdf"),
+  p,
+  width  = 32,
+  height = 8,
+  units  = "cm"
+)
+
+```
+
