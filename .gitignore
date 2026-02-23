@@ -5,3 +5,12 @@
 .DS_Store
 largedata/
 *.git
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# large data outputs
+large_data/
+Large_data/
+largeData/

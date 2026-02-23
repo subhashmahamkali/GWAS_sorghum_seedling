@@ -23,7 +23,7 @@ pca_vec   <- "data/1.pca_geo/pca.eigenvec"
 pca_val   <- "data/1.pca_geo/pca.eigenval"
 # ---------- Outputs ----------
 #out_png   <- "graphs/01_publication/pca_geo_subpops.png"
-out_pdf   <- "graphs/01_publication/pca_geo_subpops.pdf"
+out_pdf   <- "graphs/01_publication/1.pca_geo/pca_geo_subpops.pdf"
 
 # ---------- Load data: SAP ----------
 sap_data <- read.csv(sap_csv)[, c(1, 2, 5)]
@@ -85,11 +85,10 @@ pca_annotated <- pca_annotated %>%
 
 # ---------- Colors ----------
 color_vec <- c(
-  "durra" = "#FF7F00", "kafir" = "#EBFF33", "caudatum" = "#984EA3",
+  "durra" = "#FF7F00", "kafir" = "#E69F00", "caudatum" = "#984EA3",
   "milo/durra-bicolor" = "#F781BF", "mixed/bicolor" = "#A6A6A6",
-  "guinea" = "#FF5733", "Wild sorghum" = "#4DAF4A"
+  "guinea" = "#56B4E9", "Wild sorghum" = "#4DAF4A"
 )
-
 # ---------- Variance ----------
 eigenvalues <- scan(pca_val)
 variance_explained <- eigenvalues / sum(eigenvalues) * 100
@@ -97,7 +96,7 @@ PC1_var <- variance_explained[1]; PC2_var <- variance_explained[2]
 
 # ---------- PCA plot ----------
 pca_plot <- ggplot(pca_annotated, aes(PC1, PC2, color = ClusterName_new)) +
-  geom_point(size = 2, alpha = 0.6) +
+  geom_point(size = 2, alpha = 0.8) +
   scale_color_manual(values = color_vec, name = NULL) +
   scale_x_continuous(expand = expansion(mult = 0.02)) +
   scale_y_continuous(expand = expansion(mult = 0.02)) +
@@ -176,8 +175,8 @@ combined <- combined & guides(colour = guide_legend(nrow = 1, byrow = TRUE))
 # ---------- Save ----------
 #ggsave(out_png, combined, width = 12, height = 4.5, dpi = 600, bg = "white")
 ggsave(out_pdf, combined, width = 12, height = 4.5)
-ggsave("graphs/01_publication/map_plot.pdf", map_plot, width = 9, height = 5)
-ggsave("graphs/01_publication/pca_plot.pdf", pca_plot, width = 9, height = 5)
+ggsave("graphs/01_publication/1.pca_geo/map_plot.pdf", map_plot, width = 9, height = 5)
+ggsave("graphs/01_publication/1.pca_geo/pca_plot.pdf", pca_plot, width = 9, height = 5)
 
 ```
 
