@@ -18,6 +18,7 @@ knitr::opts_knit$set(root.dir=normalizePath('..//..//'))
 
 # ---------- Inputs ----------
 sap_csv   <- "data/1.pca_geo/tpj15853-sup-0001-files1.csv"
+dim(sap_csv)
 sorgsd_xl <- "data/1.pca_geo/13068_2021_2016_MOESM1_ESM.xlsx"
 pca_vec   <- "data/1.pca_geo/pca.eigenvec"
 pca_val   <- "data/1.pca_geo/pca.eigenval"
