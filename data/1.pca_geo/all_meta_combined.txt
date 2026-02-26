@@ -1,0 +1,687 @@
+Pinumber	ClusterName	Set	Country
+PI152651	guinea	SAP	NA
+PI17548	guinea	SAP	NA
+PI24969	mixed/bicolor	SAP	NA
+PI276837	caudatum	SAP	NA
+PI329435	caudatum	SAP	NA
+PI329440	kafir	SAP	NA
+PI34911	caudatum	SAP	NA
+PI35038	kafir	SAP	NA
+PI48770	kafir	SAP	NA
+PI533750	mixed/bicolor	SAP	India
+PI533752	caudatum	SAP	S. Africa
+PI533754	guinea	SAP	Sudan
+PI533755	guinea	SAP	Sudan
+PI533757	caudatum	SAP	Sudan
+PI533758	caudatum	SAP	Sudan
+PI533759	caudatum	SAP	Sudan
+PI533760	caudatum	SAP	Sudan
+PI533761	caudatum	SAP	Ethiopia
+PI533762	caudatum	SAP	Sudan
+PI533766	milo/durra-bicolor	SAP	W. Volta
+PI533769	caudatum	SAP	Sudan
+PI533776	milo/durra-bicolor	SAP	Nigeria
+PI533785	milo/durra-bicolor	SAP	Nigeria
+PI533788	guinea	SAP	Sudan
+PI533789	caudatum	SAP	Sudan
+PI533792	milo/durra-bicolor	SAP	Ethiopia
+PI533794	caudatum	SAP	Ethiopia
+PI533799	caudatum	SAP	Ethiopia
+PI533800	caudatum	SAP	Ethiopia
+PI533807	caudatum	SAP	Nigeria
+PI533810	guinea	SAP	India
+PI533814	guinea	SAP	India
+PI533821	durra	SAP	Tanzania
+PI533822	caudatum	SAP	Tanzania
+PI533824	durra	SAP	Nigeria
+PI533830	guinea	SAP	Sudan
+PI533831	caudatum	SAP	Sudan
+PI533833	caudatum	SAP	Uganda
+PI533838	guinea	SAP	Nigeria
+PI533839	durra	SAP	Nigeria
+PI533841	milo/durra-bicolor	SAP	Nigeria
+PI533842	guinea	SAP	India
+PI533843	durra	SAP	India
+PI533845	durra	SAP	NA
+PI533852	guinea	SAP	India
+PI533855	durra	SAP	India
+PI533856	guinea	SAP	India
+PI533863	guinea	SAP	Chad
+PI533866	milo/durra-bicolor	SAP	NA
+PI533869	durra	SAP	Tanzania
+PI533871	milo/durra-bicolor	SAP	Nigeria
+PI533876	caudatum	SAP	Nigeria
+PI533877	milo/durra-bicolor	SAP	Nigeria
+PI533878	milo/durra-bicolor	SAP	Nigeria
+PI533882	milo/durra-bicolor	SAP	Nigeria
+PI533901	caudatum	SAP	Japan
+PI533902	guinea	SAP	Ethiopia
+PI533903	durra	SAP	Ethiopia
+PI533910	caudatum	SAP	Sudan
+PI533911	caudatum	SAP	Sudan
+PI533912	guinea	SAP	NA
+PI533913	durra	SAP	Sudan
+PI533915	guinea	SAP	Kenya
+PI533919	guinea	SAP	Ethiopia
+PI533921	guinea	SAP	Ethiopia
+PI533924	durra	SAP	Ethiopia
+PI533927	durra	SAP	Ethiopia
+PI533936	kafir	SAP	Tanzania
+PI533937	kafir	SAP	Zambia
+PI533938	durra	SAP	Zaire
+PI533939	guinea	SAP	Mozambique
+PI533940	kafir	SAP	Tanzania
+PI533943	guinea	SAP	India
+PI533948	kafir	SAP	USA
+PI533949	caudatum	SAP	Sudan
+PI533954	kafir	SAP	S. Africa
+PI533955	kafir	SAP	S. Africa
+PI533956	guinea	SAP	Congo
+PI533957	guinea	SAP	USA
+PI533961	caudatum	SAP	S. Africa
+PI533962	caudatum	SAP	Sudan
+PI533964	caudatum	SAP	Sudan
+PI533965	caudatum	SAP	Uganda
+PI533967	caudatum	SAP	Uganda
+PI533970	caudatum	SAP	Uganda
+PI533972	caudatum	SAP	Uganda
+PI533976	caudatum	SAP	S. Africa
+PI533979	kafir	SAP	S. Africa
+PI533980	caudatum	SAP	China
+PI533985	caudatum	SAP	Sudan
+PI533986	caudatum	SAP	Sudan
+PI533987	caudatum	SAP	Sudan
+PI533989	caudatum	SAP	Sudan
+PI533991	caudatum	SAP	Sudan
+PI533996	guinea	SAP	Sudan
+PI533997	durra	SAP	Arabia
+PI534009	guinea	SAP	India
+PI534021	guinea	SAP	India
+PI534028	guinea	SAP	India
+PI534037	guinea	SAP	Chad
+PI534046	durra	SAP	Sudan
+PI534047	caudatum	SAP	Sudan
+PI534053	caudatum	SAP	Uganda
+PI534054	kafir	SAP	Kenya
+PI534063	milo/durra-bicolor	SAP	Nigeria
+PI534070	milo/durra-bicolor	SAP	Nigeria
+PI534075	milo/durra-bicolor	SAP	Nigeria
+PI534079	guinea	SAP	Nigeria
+PI534088	milo/durra-bicolor	SAP	Nigeria
+PI534092	milo/durra-bicolor	SAP	Nigeria
+PI534096	durra	SAP	Kenya
+PI534097	kafir	SAP	Japan
+PI534099	caudatum	SAP	Japan
+PI534101	caudatum	SAP	Japan
+PI534105	caudatum	SAP	Uganda
+PI534108	caudatum	SAP	Uganda
+PI534112	caudatum	SAP	Uganda
+PI534114	caudatum	SAP	Pakistan
+PI534115	caudatum	SAP	Ethiopia
+PI534116	durra	SAP	Ethiopia
+PI534117	durra	SAP	Uganda
+PI534123	durra	SAP	Ethiopia
+PI534124	durra	SAP	Ethiopia
+PI534127	guinea	SAP	Ethiopia
+PI534128	mixed/bicolor	SAP	Ethiopia
+PI534132	mixed/bicolor	SAP	Ethiopia
+PI534133	mixed/bicolor	SAP	Ethiopia
+PI534135	mixed/bicolor	SAP	Ethiopia
+PI534137	guinea	SAP	Sudan
+PI534138	durra	SAP	NA
+PI534139	guinea	SAP	NA
+PI534144	guinea	SAP	Uganda
+PI534145	milo/durra-bicolor	SAP	Zimbabwe
+PI534148	mixed/bicolor	SAP	Ethiopia
+PI534155	mixed/bicolor	SAP	Ethiopia
+PI534157	caudatum	SAP	Ethiopia
+PI534163	caudatum	SAP	USA
+PI534167	mixed/bicolor	SAP	Unknown
+PI540816	guinea	SAP	NA
+PI542406	caudatum	SAP	NA
+PI542718	guinea	SAP	NA
+PI548797	caudatum	SAP	NA
+PI552856	caudatum	SAP	NA
+PI552861	kafir	SAP	NA
+PI561071	guinea	SAP	NA
+PI561072	kafir	SAP	NA
+PI561073	caudatum	SAP	NA
+PI561472	caudatum	SAP	NA
+PI562730	durra	SAP	NA
+PI564163	kafir	SAP	NA
+PI564164	mixed/bicolor	SAP	NA
+PI564165	caudatum	SAP	NA
+PI565121	caudatum	SAP	NA
+PI566819	kafir	SAP	NA
+PI576130	caudatum	SAP	NA
+PI576332	kafir	SAP	China
+PI576333	kafir	SAP	USA
+PI576337	guinea	SAP	Uganda
+PI576339	kafir	SAP	Zimbabwe
+PI576340	kafir	SAP	S. Africa
+PI576345	kafir	SAP	S. Africa
+PI576347	guinea	SAP	USA
+PI576348	guinea	SAP	USA
+PI576349	durra	SAP	USA
+PI576350	guinea	SAP	USA
+PI576352	kafir	SAP	Botswana
+PI576359	guinea	SAP	India
+PI576364	kafir	SAP	India
+PI576366	guinea	SAP	India
+PI576373	guinea	SAP	Japan
+PI576375	mixed/bicolor	SAP	Ethiopia
+PI576376	mixed/bicolor	SAP	Ethiopia
+PI576380	caudatum	SAP	Ethiopia
+PI576381	mixed/bicolor	SAP	Ethiopia
+PI576385	milo/durra-bicolor	SAP	Nigeria
+PI576386	caudatum	SAP	Uganda
+PI576387	caudatum	SAP	Sudan
+PI576390	guinea	SAP	India
+PI576391	guinea	SAP	India
+PI576393	caudatum	SAP	Ethiopia
+PI576394	kafir	SAP	Sudan
+PI576396	caudatum	SAP	Uganda
+PI576399	durra	SAP	Sudan
+PI576401	guinea	SAP	India
+PI576418	milo/durra-bicolor	SAP	Nigeria
+PI576422	kafir	SAP	S. Africa
+PI576425	mixed/bicolor	SAP	Ethiopia
+PI576426	mixed/bicolor	SAP	Ethiopia
+PI576428	caudatum	SAP	Ethiopia
+PI576434	caudatum	SAP	Nigeria
+PI576435	caudatum	SAP	Uganda
+PI576437	durra	SAP	Brazil
+PI585291	guinea	SAP	NA
+PI585295	guinea	SAP	NA
+PI595699	guinea	SAP	India
+PI595702	kafir	SAP	Zimbabwe
+PI595714	caudatum	SAP	Sudan
+PI595718	caudatum	SAP	Chad
+PI595720	mixed/bicolor	SAP	Ethiopia
+PI595739	caudatum	SAP	Sudan
+PI595740	caudatum	SAP	Uganda
+PI595741	guinea	SAP	Senegal
+PI595743	guinea	SAP	?
+PI595744	guinea	SAP	Guatemala
+PI595745	caudatum	SAP	NA
+PI597945	guinea	SAP	Egypt
+PI597946	guinea	SAP	Prob. China
+PI597949	durra	SAP	India
+PI597950	durra	SAP	India
+PI597951	milo/durra-bicolor	SAP	W. Volta
+PI597952	guinea	SAP	Sudan
+PI597957	mixed/bicolor	SAP	Ethiopia
+PI597958	guinea	SAP	South Africa
+PI597960	milo/durra-bicolor	SAP	Nigeria
+PI597961	caudatum	SAP	NA
+PI597964	caudatum	SAP	Ethiopia
+PI597965	caudatum	SAP	Senegal
+PI597966	caudatum	SAP	Venezuela
+PI597967	caudatum	SAP	NA
+PI597968	guinea	SAP	Sudan
+PI597971	caudatum	SAP	Sudan
+PI597972	guinea	SAP	Sudan
+PI597973	guinea	SAP	Sudan
+PI597976	milo/durra-bicolor	SAP	Mali
+PI597980	caudatum	SAP	Mali
+PI597982	caudatum	SAP	Sudan
+PI598069	guinea	SAP	NA
+PI598070	guinea	SAP	NA
+PI601816	caudatum	SAP	NA
+PI607931	caudatum	SAP	NA
+PI609456	durra	SAP	NA
+PI613536	guinea	SAP	NA
+PI629034	caudatum	SAP	NA
+PI629040	mixed/bicolor	SAP	NA
+PI629059	kafir	SAP	NA
+PI641824	kafir	SAP	NA
+PI641836	kafir	SAP	NA
+PI641849	kafir	SAP	NA
+PI641874	mixed/bicolor	SAP	NA
+PI642791	caudatum	SAP	NA
+PI642793	guinea	SAP	NA
+PI642992	caudatum	SAP	NA
+PI642998	guinea	SAP	NA
+PI651492	caudatum	SAP	NA
+PI651496	caudatum	SAP	NA
+PI653616	guinea	SAP	NA
+PI653617	guinea	SAP	NA
+PI655970	kafir	SAP	NA
+PI655971	mixed/bicolor	SAP	NA
+PI655972	kafir	SAP	NA
+PI655973	guinea	SAP	NA
+PI655974	kafir	SAP	NA
+PI655975	kafir	SAP	NA
+PI655976	kafir	SAP	NA
+PI655977	caudatum	SAP	NA
+PI655978	milo/durra-bicolor	SAP	NA
+PI655979	guinea	SAP	NA
+PI655980	guinea	SAP	NA
+PI655981	milo/durra-bicolor	SAP	NA
+PI655982	kafir	SAP	NA
+PI655983	kafir	SAP	NA
+PI655984	kafir	SAP	NA
+PI655985	mixed/bicolor	SAP	NA
+PI655986	mixed/bicolor	SAP	NA
+PI655987	kafir	SAP	NA
+PI655988	kafir	SAP	NA
+PI655989	kafir	SAP	NA
+PI655990	mixed/bicolor	SAP	NA
+PI655991	kafir	SAP	NA
+PI655992	kafir	SAP	NA
+PI655993	kafir	SAP	NA
+PI655994	guinea	SAP	NA
+PI655995	guinea	SAP	NA
+PI655996	milo/durra-bicolor	SAP	NA
+PI655997	guinea	SAP	NA
+PI655998	milo/durra-bicolor	SAP	NA
+PI655999	guinea	SAP	NA
+PI656000	caudatum	SAP	NA
+PI656001	caudatum	SAP	NA
+PI656002	kafir	SAP	NA
+PI656003	kafir	SAP	NA
+PI656004	milo/durra-bicolor	SAP	NA
+PI656005	kafir	SAP	NA
+PI656006	guinea	SAP	NA
+PI656007	kafir	SAP	NA
+PI656008	caudatum	SAP	NA
+PI656009	caudatum	SAP	NA
+PI656010	milo/durra-bicolor	SAP	NA
+PI656011	caudatum	SAP	NA
+PI656012	mixed/bicolor	SAP	NA
+PI656013	guinea	SAP	NA
+PI656014	guinea	SAP	NA
+PI656015	guinea	SAP	NA
+PI656016	guinea	SAP	NA
+PI656017	mixed/bicolor	SAP	NA
+PI656018	kafir	SAP	NA
+PI656019	kafir	SAP	NA
+PI656020	kafir	SAP	NA
+PI656021	mixed/bicolor	SAP	NA
+PI656022	kafir	SAP	NA
+PI656023	kafir	SAP	NA
+PI656024	caudatum	SAP	NA
+PI656025	guinea	SAP	NA
+PI656026	caudatum	SAP	NA
+PI656027	caudatum	SAP	NA
+PI656028	kafir	SAP	NA
+PI656029	mixed/bicolor	SAP	NA
+PI656031	caudatum	SAP	NA
+PI656032	guinea	SAP	NA
+PI656033	mixed/bicolor	SAP	NA
+PI656034	caudatum	SAP	NA
+PI656035	caudatum	SAP	NA
+PI656036	caudatum	SAP	NA
+PI656037	caudatum	SAP	NA
+PI656038	kafir	SAP	NA
+PI656039	caudatum	SAP	NA
+PI656040	milo/durra-bicolor	SAP	NA
+PI656041	mixed/bicolor	SAP	NA
+PI656042	kafir	SAP	NA
+PI656043	caudatum	SAP	NA
+PI656044	caudatum	SAP	NA
+PI656046	guinea	SAP	NA
+PI656047	guinea	SAP	NA
+PI656048	caudatum	SAP	NA
+PI656049	kafir	SAP	NA
+PI656050	caudatum	SAP	NA
+PI656051	caudatum	SAP	NA
+PI656052	guinea	SAP	NA
+PI656053	caudatum	SAP	NA
+PI656054	milo/durra-bicolor	SAP	NA
+PI656055	caudatum	SAP	NA
+PI656056	caudatum	SAP	NA
+PI656057	caudatum	SAP	NA
+PI656058	kafir	SAP	NA
+PI656059	caudatum	SAP	NA
+PI656060	kafir	SAP	NA
+PI656061	kafir	SAP	NA
+PI656062	caudatum	SAP	NA
+PI656063	kafir	SAP	NA
+PI656064	guinea	SAP	NA
+PI656065	guinea	SAP	NA
+PI656066	guinea	SAP	NA
+PI656067	guinea	SAP	NA
+PI656068	caudatum	SAP	NA
+PI656069	caudatum	SAP	NA
+PI656070	caudatum	SAP	NA
+PI656071	caudatum	SAP	Ethiopia
+PI656072	mixed/bicolor	SAP	NA
+PI656073	guinea	SAP	Nigeria
+PI656074	guinea	SAP	Sudan
+PI656075	caudatum	SAP	Sudan
+PI656076	caudatum	SAP	Ethiopia
+PI656077	guinea	SAP	Niger
+PI656078	durra	SAP	Mali
+PI656079	milo/durra-bicolor	SAP	Mali
+PI656080	durra	SAP	Zimbabwe
+PI656081	durra	SAP	NA
+PI656082	mixed/bicolor	SAP	Ethiopia
+PI656083	guinea	SAP	Malawi
+PI656085	caudatum	SAP	Sudan
+PI656086	guinea	SAP	Sudan
+PI656087	caudatum	SAP	Sudan
+PI656088	mixed/bicolor	SAP	Somalia
+PI656089	mixed/bicolor	SAP	Somalia
+PI656090	caudatum	SAP	Sudan
+PI656091	mixed/bicolor	SAP	Ethiopia
+PI656092	mixed/bicolor	SAP	Ethiopia
+PI656093	milo/durra-bicolor	SAP	Nigeria
+PI656094	milo/durra-bicolor	SAP	Mali
+PI656095	milo/durra-bicolor	SAP	Nigeria
+PI656096	milo/durra-bicolor	SAP	Egypt
+PI656097	guinea	SAP	NA
+PI656098	caudatum	SAP	Sudan
+PI656099	guinea	SAP	India
+PI656100	guinea	SAP	India
+PI656101	caudatum	SAP	Nigeria
+PI656102	durra	SAP	Sudan
+PI656103	guinea	SAP	China
+PI656104	guinea	SAP	India
+PI656105	caudatum	SAP	India
+PI656106	caudatum	SAP	Tanzania
+PI656107	caudatum	SAP	Sudan
+PI656108	guinea	SAP	India
+PI656109	guinea	SAP	Uganda
+PI656110	guinea	SAP	Rhodesia
+PI656111	durra	SAP	Puerto Rico
+PI656112	kafir	SAP	Niger
+PI656113	guinea	SAP	India
+PI656114	guinea	SAP	Ethiopia
+PI656115	mixed/bicolor	SAP	Gambia
+PI656116	guinea	SAP	Mali
+PI656118	caudatum	SAP	India
+PI656119	milo/durra-bicolor	SAP	Nigeria
+PI656120	caudatum	SAP	India
+PI656121	guinea	SAP	India
+PI659691	caudatum	SAP	NA
+PI659694	caudatum	SAP	NA
+PI659695	mixed/bicolor	SAP	NA
+PI659696	caudatum	SAP	Kenya
+PI659753	guinea	SAP	NA
+3	Improved	SorGSD	Unknown
+11	Improved	SorGSD	South Africa, KwaZulu-Natal
+14	Improved	SorGSD	South Africa, KwaZulu-Natal
+16	Improved	SorGSD	South Africa, KwaZulu-Natal
+29	Improved	SorGSD	United States
+31	Improved	SorGSD	Sudan, Kordofan
+32	Improved	SorGSD	Sudan
+34	Improved	SorGSD	Sudan
+40	Improved	SorGSD	Sudan
+42	Improved	SorGSD	Sudan
+43	Improved	SorGSD	Sudan
+45	Improved	SorGSD	Kenya
+47	Improved	SorGSD	Kenya
+48	Improved	SorGSD	Uganda
+51	Improved	SorGSD	Sudan
+53	Improved	SorGSD	Kenya
+56	Improved	SorGSD	Malawi
+61	Improved	SorGSD	Turkey
+62	Improved	SorGSD	Turkey
+66	Landrace	SorGSD	India
+67	Improved	SorGSD	India
+68	Improved	SorGSD	India
+70	Improved	SorGSD	India
+73	Improved	SorGSD	Taiwan
+75	Improved	SorGSD	Nigeria
+88	Improved	SorGSD	Zimbabwe
+89	Improved	SorGSD	Zimbabwe
+91	Improved	SorGSD	Zimbabwe
+92	Improved	SorGSD	Zimbabwe
+93	Improved	SorGSD	Zimbabwe
+94	Improved	SorGSD	Zimbabwe
+95	Improved	SorGSD	Zimbabwe
+96	Improved	SorGSD	Zimbabwe
+97	Improved	SorGSD	Zimbabwe
+101	Improved	SorGSD	Zimbabwe
+103	Improved	SorGSD	Zimbabwe
+107	Improved	SorGSD	Zimbabwe
+110	Improved	SorGSD	Portugal
+123	Landrace	SorGSD	Ethiopia
+131	Improved	SorGSD	Zimbabwe
+132	Improved	SorGSD	Zimbabwe
+135	Improved	SorGSD	Zimbabwe
+137	Improved	SorGSD	Zimbabwe
+138	Improved	SorGSD	Zimbabwe
+140	Improved	SorGSD	Zimbabwe
+141	Improved	SorGSD	Zimbabwe
+144	Improved	SorGSD	Zimbabwe
+150	Improved	SorGSD	Zimbabwe
+154	Improved	SorGSD	Zimbabwe
+159	Landrace	SorGSD	India
+161	Landrace	SorGSD	Unknown
+167	Improved	SorGSD	United States, Indiana
+168	Improved	SorGSD	United States, Indiana
+170	Improved	SorGSD	United States, Indiana
+173	Improved	SorGSD	United States, Indiana
+175	Improved	SorGSD	United States, Indiana
+176	Improved	SorGSD	United States, Indiana
+182	Landrace	SorGSD	Australia
+186	Improved	SorGSD	Unknown
+190	Improved	SorGSD	Unknown
+192	Improved	SorGSD	Unknown
+194	Improved	SorGSD	Unknown
+195	Improved	SorGSD	Unknown
+197	Improved	SorGSD	Unknown
+201	Improved	SorGSD	United States, Mississippi
+202	Improved	SorGSD	United States, Mississippi
+204	Improved	SorGSD	United States, Mississippi
+205	Improved	SorGSD	United States, Mississippi
+206	Improved	SorGSD	Unknown
+260	Wild sorghum	SorGSD	Cameroon
+261	Improved	SorGSD	United States
+262	Improved	SorGSD	South Africa
+263	Improved	SorGSD	United States
+286	Improved	SorGSD	Hungary
+346	Landrace	SorGSD	Argentina
+348	Wild sorghum	SorGSD	Egypt
+353	Wild sorghum	SorGSD	Sudan
+355	Wild sorghum	SorGSD	India
+357	Wild sorghum	SorGSD	South Africa
+364	Wild sorghum	SorGSD	Ethiopia
+367	Landrace	SorGSD	Oman
+370	Landrace	SorGSD	Oman
+377	Wild sorghum	SorGSD	South Africa
+392	Wild sorghum	SorGSD	Soviet Union, Former
+394	Wild sorghum	SorGSD	Australia, Austr. Capital Terr.
+2001	Landrace	SorGSD	Japan
+2005	Improved	SorGSD	Unknown
+2008	Improved	SorGSD	Unknown
+2009	Landrace	SorGSD	Sudan
+2010	Landrace	SorGSD	Sudan
+2016	Improved	SorGSD	India
+2019	Improved	SorGSD	Unknown
+2021	Improved	SorGSD	Unknown
+2023	Improved	SorGSD	Unknown
+2026	Improved	SorGSD	Sudan, Khartoum
+2029	Improved	SorGSD	India
+2030	Landrace	SorGSD	Sudan, Kordofan
+2031	Landrace	SorGSD	Sudan
+2036	Improved	SorGSD	Unknown
+2037	Improved	SorGSD	India
+2038	Improved	SorGSD	India
+2039	Improved	SorGSD	India
+2042	Improved	SorGSD	Unknown
+2043	Improved	SorGSD	Unknown
+2048	Improved	SorGSD	Pakistan
+2049	Improved	SorGSD	Unknown
+2050	Improved	SorGSD	Unknown
+2052	Improved	SorGSD	Pakistan
+2054	Improved	SorGSD	Portugal
+2056	Improved	SorGSD	Unknown
+2059	Improved	SorGSD	Nigeria
+2064	Improved	SorGSD	Unknown
+2065	Improved	SorGSD	Unknown
+2067	Improved	SorGSD	United States
+2068	Improved	SorGSD	Australia
+2069	Improved	SorGSD	South Africa
+2071	Improved	SorGSD	United States, Texas
+2074	Improved	SorGSD	Unknown
+2075	Improved	SorGSD	Unknown
+2076	Improved	SorGSD	Unknown
+2080	Improved	SorGSD	Unknown
+2081	Improved	SorGSD	United States, Texas
+2082	Improved	SorGSD	Algeria
+2086	Improved	SorGSD	Yemen
+2088	Improved	SorGSD	China
+GW102	Landrace	SorGSD	Sudan
+GW103	Landrace	SorGSD	United States, Kansas
+GW104	Landrace	SorGSD	Cameroon
+GW105	Landrace	SorGSD	Unknown
+GW16	Landrace	SorGSD	Yemen
+GW2	Landrace	SorGSD	Ethiopia
+GW34	Landrace	SorGSD	Yemen
+GW37	Landrace	SorGSD	Yemen
+GW58	Landrace	SorGSD	Cameroon
+GW59	Landrace	SorGSD	Yemen
+GW9	Landrace	SorGSD	Yemen
+J101	Landrace	SorGSD	Botswana
+J103	Improved	SorGSD	England
+J112	Landrace	SorGSD	France
+J113	Improved	SorGSD	Germany
+J129	Improved	SorGSD	Thailand
+J130	Improved	SorGSD	TUAE
+J136	Improved	SorGSD	Australia
+J152	Improved	SorGSD	Iran
+J2	Landrace	SorGSD	China
+J20	Landrace	SorGSD	China
+J22	Landrace	SorGSD	China
+J26	Landrace	SorGSD	China
+J4	Landrace	SorGSD	China
+J42	Landrace	SorGSD	China
+J44	Landrace	SorGSD	China
+J49	Landrace	SorGSD	China
+J5	Landrace	SorGSD	China
+J50	Landrace	SorGSD	China
+J52	Landrace	SorGSD	China
+J53	Landrace	SorGSD	China
+J54	Landrace	SorGSD	China
+J57	Landrace	SorGSD	China
+J59	Landrace	SorGSD	China
+J64	Landrace	SorGSD	China
+J66	Landrace	SorGSD	China
+J67	Landrace	SorGSD	China
+J69	Landrace	SorGSD	China
+J87	Landrace	SorGSD	China
+J99	Landrace	SorGSD	Argentina
+MHMD	Landrace	SorGSD	Kenya
+SL105	Wild sorghum	SorGSD	Uganda
+SL108	Wild sorghum	SorGSD	Uganda
+SL109	Wild sorghum	SorGSD	Uganda
+SL12	Wild sorghum	SorGSD	Nigeria, Lagos
+SL129	Wild sorghum	SorGSD	Kenya
+SL130	Wild sorghum	SorGSD	Chad
+SL135	Wild sorghum	SorGSD	Dominican Republic
+SL136	Wild sorghum	SorGSD	Ethiopia
+SL137	Wild sorghum	SorGSD	Ethiopia
+SL138	Wild sorghum	SorGSD	Ethiopia
+SL140	Wild sorghum	SorGSD	Burundi
+SL141	Wild sorghum	SorGSD	Burundi
+SL19	Wild sorghum	SorGSD	Kenya, Nairobi Area
+SL25	Wild sorghum	SorGSD	India
+SL28	Wild sorghum	SorGSD	Australia
+SL32	Wild sorghum	SorGSD	Tanzania
+SL35	Wild sorghum	SorGSD	Ethiopia
+SL36	Wild sorghum	SorGSD	Ethiopia
+SL37	Wild sorghum	SorGSD	Ethiopia
+SL39	Wild sorghum	SorGSD	Ethiopia
+SL41	Wild sorghum	SorGSD	Uganda
+SL43	Wild sorghum	SorGSD	Ethiopia
+SL47	Wild sorghum	SorGSD	Zambia
+SL49	Wild sorghum	SorGSD	Kenya
+SL51	Wild sorghum	SorGSD	Malawi
+SL53	Wild sorghum	SorGSD	Malawi
+SL62	Wild sorghum	SorGSD	Zimbabwe
+SL83	Wild sorghum	SorGSD	Sudan
+SL97	Landrace	SorGSD	Sierra Leone
+Tu13	Wild sorghum	SorGSD	South Africa
+Tu14	Wild sorghum	SorGSD	South Africa
+Tu30	Wild sorghum	SorGSD	South Africa
+Tu5	Wild sorghum	SorGSD	Zimbabwe
+WSC100	Landrace	SorGSD	Sudan
+WSC104	Landrace	SorGSD	India
+WSC105	Landrace	SorGSD	India
+WSC12	Landrace	SorGSD	North Korea
+WSC13	Landrace	SorGSD	North Korea
+WSC15	Landrace	SorGSD	North Korea
+WSC16	Landrace	SorGSD	South Korea
+WSC17	Landrace	SorGSD	North Korea
+WSC18	Landrace	SorGSD	South Korea
+WSC19	Landrace	SorGSD	China
+WSC20	Landrace	SorGSD	China
+WSC24	Landrace	SorGSD	China
+WSC25	Landrace	SorGSD	China
+WSC29	Landrace	SorGSD	India
+WSC30	Landrace	SorGSD	India
+WSC31	Landrace	SorGSD	India
+WSC32	Landrace	SorGSD	India, Karnataka
+WSC34	Landrace	SorGSD	India, Karnataka
+WSC38	Landrace	SorGSD	Pakistan
+WSC39	Improved	SorGSD	Pakistan
+WSC40	Landrace	SorGSD	Pakistan
+WSC5	Landrace	SorGSD	Japan
+WSC52	Landrace	SorGSD	Nepal
+WSC54	Landrace	SorGSD	South Africa, Transvaal
+WSC56	Landrace	SorGSD	Chad
+WSC59	Landrace	SorGSD	Lesotho
+WSC6	Landrace	SorGSD	Japan
+WSC61	Landrace	SorGSD	Lesotho
+WSC68	Landrace	SorGSD	South Africa
+WSC70	Landrace	SorGSD	South Africa
+WSC71	Improved	SorGSD	United States
+WSC72	Landrace	SorGSD	South Africa
+WSC73	Landrace	SorGSD	South Africa
+WSC79	Landrace	SorGSD	Sudan
+WSC81	Landrace	SorGSD	Sudan
+WSC85	Improved	SorGSD	Sudan
+WSC91	Landrace	SorGSD	Uganda
+WSC93	Landrace	SorGSD	Kenya
+WSC94	Landrace	SorGSD	Sudan
+WSC98	Landrace	SorGSD	India
+WSC99	Landrace	SorGSD	Ethiopia
+s1	Improved	SorGSD	China
+s10	Improved	SorGSD	USA-Sudan
+s11	Improved	SorGSD	United States
+s12	Improved	SorGSD	China
+s13	Landrace	SorGSD	India
+s14	Improved	SorGSD	Mozambique
+s15	Improved	SorGSD	Mali
+s16	Wild sorghum	SorGSD	Mali
+s17	Improved	SorGSD	Australia
+s18	Improved	SorGSD	Australia
+s19	Improved	SorGSD	United States
+s2	Landrace	SorGSD	Ethiopia
+s20	Improved	SorGSD	United States
+s21	Wild sorghum	SorGSD	Ethiopia
+s22	Landrace	SorGSD	South Africa
+s23	Landrace	SorGSD	Ethiopia
+s24	Landrace	SorGSD	Ethiopia
+s25	Landrace	SorGSD	Ethiopia
+s26	Landrace	SorGSD	Sudan
+s27	Landrace	SorGSD	Ethiopia-USA
+s28	Landrace	SorGSD	Ethiopia
+s29	Landrace	SorGSD	Sudan
+s3	Improved	SorGSD	Australia
+s30	Landrace	SorGSD	Kenya
+s31	Wild sorghum	SorGSD	Sierra Leone
+s32	Improved	SorGSD	Australia
+s33	Wild sorghum	SorGSD	South Africa
+s34	Wild sorghum	SorGSD	Kenya
+s35	Landrace	SorGSD	Mali
+s36	Wild sorghum	SorGSD	Australia
+s39	Landrace	SorGSD	Ethiopia
+s4	Wild sorghum	SorGSD	United States
+s40	Landrace	SorGSD	Ethiopia
+s41	Wild sorghum	SorGSD	Ethiopia
+s42	Landrace	SorGSD	Ethiopia
+s43	Wild sorghum	SorGSD	Ethiopia
+s44	Improved	SorGSD	Mali
+s45	Landrace	SorGSD	China
+s46	Improved	SorGSD	United States
+s47	Improved	SorGSD	Russia
+s48	Improved	SorGSD	Ethiopia
+s5	Landrace	SorGSD	Sudan
+s6	Improved	SorGSD	India
+s7	Landrace	SorGSD	Unknown
+s8	Landrace	SorGSD	Ethiopia
+s9	Landrace	SorGSD	Sudan
