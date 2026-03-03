@@ -17,8 +17,8 @@ knitr::opts_knit$set(root.dir=normalizePath('..//..//'))
   library(patchwork)
 
 # ---------- Inputs ----------
-sap_csv   <- "data/1.pca_geo/tpj15853-sup-0001-files1.csv"
-sorgsd_xl <- "data/1.pca_geo/13068_2021_2016_MOESM1_ESM.xlsx"
+sap_csv   <- "data/1.pca_geo/tpj15853-sup-0001-files1 (1).csv"
+sorgsd_xl <- "data/1.pca_geo/13068_2021_2016_MOESM1_ESM (1).xlsx"
 pca_vec   <- "data/1.pca_geo/pca.eigenvec"
 pca_val   <- "data/1.pca_geo/pca.eigenval"
 # ---------- Outputs ----------
@@ -180,4 +180,134 @@ ggsave("graphs/01_publication/1.pca_geo/pca_plot.pdf", pca_plot, width = 9, heig
 
 ```
 
+
+```{r}
+library(stringr)
+library(readxl)
+library(dplyr)
+
+extract_pi <- function(x) {
+  x <- as.character(x)
+  pi_raw <- str_extract(x, regex("PI\\s*\\d+", ignore_case = TRUE))
+  pi_norm <- ifelse(
+    is.na(pi_raw),
+    NA_character_,
+    toupper(gsub("\\s+", "", pi_raw))
+  )
+  pi_norm
+}
+
+mcpd_file <- "/Users/subhashmahamkali/Downloads/MCPD - 885fec74-9578-436e-91cf-e0e2fe49e998.xlsx"
+mcpd <- read_excel(mcpd_file, sheet = "MCPD")
+
+mcpd_clean <- mcpd %>%
+  mutate(
+    PI_from_accenumb = extract_pi(ACCENUMB),
+    PI_from_donor    = extract_pi(DONORNUMB),
+    PI_from_other    = extract_pi(OTHERNUMB),
+    PI_from_coll     = extract_pi(COLLNUMB),
+    Pinumber = coalesce(PI_from_accenumb, PI_from_donor, PI_from_other, PI_from_coll),
+    Latitude = suppressWarnings(as.numeric(DECLATITUDE)),
+    Longitude = suppressWarnings(as.numeric(DECLONGITUDE))
+  ) %>%
+  filter(!is.na(Pinumber)) %>%
+  select(Pinumber, Latitude, Longitude) %>%
+  distinct(Pinumber, .keep_all = TRUE)
+
+head(mcpd_clean)
+
+# In your PCA table
+pca_annotated <- pca_annotated %>%
+  mutate(IID_norm = toupper(gsub("\\s+", "", IID)))
+
+# In MCPD table
+mcpd_clean <- mcpd_clean %>%
+  mutate(Pinumber_norm = toupper(gsub("\\s+", "", Pinumber)))
+# unique IDs from each
+pca_ids  <- unique(pca_annotated$IID_norm)
+mcpd_ids <- unique(mcpd_clean$Pinumber_norm)
+
+# overlap IDs
+overlap_ids <- intersect(pca_ids, mcpd_ids)
+
+length(pca_ids)       # total PCA IDs
+length(mcpd_ids)      # total MCPD PI IDs extracted
+length(overlap_ids)   # overlap count
+round(100 * length(overlap_ids) / length(pca_ids), 1)  # % of PCA covered
+
+```
+```{r}
+# ---------- Map pie chart (UPDATED: add dispersal arrows) ----------
+library(grid)  # for arrow()
+
+world <- map_data("world")
+
+# country centroids (same as your code)
+centroids <- world %>%
+  group_by(region) %>%
+  summarise(long = mean(range(long)),
+            lat  = mean(range(lat)),
+            .groups = "drop")
+
+map_df <- pca_annotated %>%
+  left_join(centroids, by = c("Country" = "region")) %>%
+  filter(!is.na(long))
+
+pie_data <- map_df %>%
+  group_by(Country, long, lat, ClusterName_new) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  group_by(Country) %>%
+  mutate(
+    prop  = n / sum(n),
+    angle = 2 * pi * cumsum(prop),
+    start = lag(angle, default = 0),
+    end   = angle,
+    r     = 5
+  )
+
+# ---- Dispersal arrows (schematic) ----
+# You can tweak these coordinates to match your aesthetic.
+routes <- tibble::tribble(
+  ~route,                 ~x,  ~y,  ~xend, ~yend, ~curv, ~label,
+  "Within Africa",         35,  10,   -5,   15,    0.25, "Africa spread",
+  "To South Asia",         40,  12,   78,   22,    0.20, "To South Asia",
+  "To East Asia",          85,  28,  115,   38,    0.15, "To East Asia",
+  "To Americas",           10,  12,  -60,   12,   -0.20, "To Americas"
+) %>%
+  mutate(
+    xm = (x + xend) / 2,
+    ym = (y + yend) / 2
+  )
+
+map_plot <- ggplot() +
+  geom_polygon(
+    data = world,
+    aes(long, lat, group = group),
+    fill = "white", color = "gray70", linewidth = 0.2
+  ) +
+  geom_arc_bar(
+    data = pie_data,
+    aes(x0 = long, y0 = lat, r0 = 0, r = r,
+        start = start, end = end, fill = ClusterName_new),
+    alpha = 0.55, color = "black", linewidth = 0.1
+  ) +
+  # arrows
+geom_curve(
+  data = routes,
+  aes(x = x, y = y, xend = xend, yend = yend, curvature = curv),
+  linewidth = 0.7,
+  color = "black",
+  arrow = arrow(length = unit(0.16, "inches"), type = "closed")
+) +
+# labels (optional)
+geom_label(
+  data = routes,
+  aes(x = xm, y = ym, label = label),
+  size = 3,
+  label.size = 0.15,
+  fill = "white",
+  alpha = 0.9
+)
+map_plot
+```
 
