@@ -1,0 +1,269 @@
+---
+title: "1.XPCLR analysis (domestication and modern breeding)"
+output: html_notebook
+author: "subhash"
+date: "2026-03-05"
+---
+
+# make sure to load modules on HCC unl
+
+This file records what and how we ran XPCLR in sorghum.
+
+comparisons used:
+1. domestication stage: landrace vs wild
+2. modern breeding stage: improved vs landrace
+
+we used these XPCLR parameters:
+- window size = 25000 bp
+- step size = 5000 bp
+- max SNPs per window = 200
+- LD cutoff = 0.95
+- recombination fallback = 1e-8 per bp
+
+## 1) creating organized directories and clean sample lists
+
+```{bash}
+#!/bin/bash
+set -euo pipefail
+
+ml bcftools
+
+BASE=/work/jyanglab/subhash/sorgsd/xpclr
+VCF=/work/jyanglab/subhash/sorgsd/filterfed_vcf/SorGSD.289snp.miss05.vcf.gz
+RAW=/work/jyanglab/subhash/sorgsd/filterfed_vcf
+
+mkdir -p ${BASE}
+mkdir -p ${BASE}/sample_lists
+mkdir -p ${BASE}/logs
+mkdir -p ${BASE}/domestication_landrace_vs_wild
+mkdir -p ${BASE}/breeding_improved_vs_landrace
+
+# get all sample IDs from vcf
+bcftools query -l "${VCF}" > ${BASE}/sample_lists/vcf_samples.txt
+
+# optional check for sample IDs not present in VCF
+comm -23 <(sort ${RAW}/landrace.txt) <(sort ${BASE}/sample_lists/vcf_samples.txt) || true
+comm -23 <(sort ${RAW}/wild.txt) <(sort ${BASE}/sample_lists/vcf_samples.txt) || true
+comm -23 <(sort ${RAW}/improved.txt) <(sort ${BASE}/sample_lists/vcf_samples.txt) || true
+
+# clean lists (only IDs present in VCF)
+grep -Fxf ${BASE}/sample_lists/vcf_samples.txt ${RAW}/landrace.txt > ${BASE}/sample_lists/landrace.clean.txt
+grep -Fxf ${BASE}/sample_lists/vcf_samples.txt ${RAW}/wild.txt > ${BASE}/sample_lists/wild.clean.txt
+grep -Fxf ${BASE}/sample_lists/vcf_samples.txt ${RAW}/improved.txt > ${BASE}/sample_lists/improved.clean.txt
+
+wc -l ${BASE}/sample_lists/landrace.clean.txt ${BASE}/sample_lists/wild.clean.txt ${BASE}/sample_lists/improved.clean.txt
+```
+
+## 2) tiny smoke test before full submit
+
+```{bash}
+#!/bin/bash
+ml bcftools
+
+mkdir -p /work/jyanglab/subhash/sorgsd/xpclr_test
+
+bcftools view \
+  -t 1:1-200000 \
+  -Oz \
+  -o /work/jyanglab/subhash/sorgsd/xpclr_test/test.chr1.1_200kb.vcf.gz \
+  /work/jyanglab/subhash/sorgsd/filterfed_vcf/SorGSD.289snp.miss05.vcf.gz
+
+bcftools index -t /work/jyanglab/subhash/sorgsd/xpclr_test/test.chr1.1_200kb.vcf.gz
+```
+
+run test command:
+
+```{bash}
+#!/bin/bash
+ml xpclr
+
+VCF=/work/jyanglab/subhash/sorgsd/xpclr_test/test.chr1.1_200kb.vcf.gz
+OUT=/work/jyanglab/subhash/sorgsd/xpclr_test/landrace_vs_wild.test.chr1.tsv
+
+xpclr \
+  --format vcf \
+  --input "${VCF}" \
+  --samplesA /work/jyanglab/subhash/sorgsd/xpclr/sample_lists/landrace.clean.txt \
+  --samplesB /work/jyanglab/subhash/sorgsd/xpclr/sample_lists/wild.clean.txt \
+  --chr 1 \
+  --size 25000 \
+  --step 5000 \
+  --maxsnps 200 \
+  --ld 0.95 \
+  --rrate 1e-8 \
+  --out "${OUT}"
+```
+
+ output is generated and no assertion error, then submited full jobs.
+
+## 3) slurm script for domestication run (landrace vs wild)
+
+save as `xpclr_domestication.slurm`
+
+```{bash}
+#!/bin/bash
+#SBATCH --job-name=xpclr_dom
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=16G
+#SBATCH --time=72:00:00
+#SBATCH --partition=batch,guest,jclarke
+#SBATCH --output=/work/jyanglab/subhash/sorgsd/xpclr/logs/%x_%A_%a.out
+#SBATCH --error=/work/jyanglab/subhash/sorgsd/xpclr/logs/%x_%A_%a.err
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+#SBATCH --array=1-10
+
+set -euo pipefail
+
+ml bcftools
+ml xpclr
+
+# to make sure tabix is available
+which tabix || true
+
+CHR="${SLURM_ARRAY_TASK_ID}"
+BASE=/work/jyanglab/subhash/sorgsd/xpclr
+VCF=/work/jyanglab/subhash/sorgsd/filterfed_vcf/SorGSD.289snp.miss05.vcf.gz
+OUTDIR=${BASE}/domestication_landrace_vs_wild
+
+mkdir -p "${OUTDIR}"
+
+xpclr \
+  --format vcf \
+  --input "${VCF}" \
+  --samplesA ${BASE}/sample_lists/landrace.clean.txt \
+  --samplesB ${BASE}/sample_lists/wild.clean.txt \
+  --chr "${CHR}" \
+  --size 25000 \
+  --step 5000 \
+  --maxsnps 200 \
+  --ld 0.95 \
+  --rrate 1e-8 \
+  --out "${OUTDIR}/domestication_landrace_vs_wild.chr${CHR}.tsv"
+```
+
+submit:
+
+```{bash}
+sbatch xpclr_domestication.slurm
+```
+
+## 4) slurm script for breeding run (improved vs landrace)
+
+save as `xpclr_breeding.slurm`
+
+```{bash}
+#!/bin/bash
+#SBATCH --job-name=xpclr_breed
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=16G
+#SBATCH --time=72:00:00
+#SBATCH --partition=batch,guest,jclarke
+#SBATCH --output=/work/jyanglab/subhash/sorgsd/xpclr/logs/%x_%A_%a.out
+#SBATCH --error=/work/jyanglab/subhash/sorgsd/xpclr/logs/%x_%A_%a.err
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+#SBATCH --array=1-10
+
+set -euo pipefail
+
+ml bcftools
+ml xpclr
+
+which tabix || true
+
+CHR="${SLURM_ARRAY_TASK_ID}"
+BASE=/work/jyanglab/subhash/sorgsd/xpclr
+VCF=/work/jyanglab/subhash/sorgsd/filterfed_vcf/SorGSD.289snp.miss05.vcf.gz
+OUTDIR=${BASE}/breeding_improved_vs_landrace
+
+mkdir -p "${OUTDIR}"
+
+xpclr \
+  --format vcf \
+  --input "${VCF}" \
+  --samplesA ${BASE}/sample_lists/improved.clean.txt \
+  --samplesB ${BASE}/sample_lists/landrace.clean.txt \
+  --chr "${CHR}" \
+  --size 25000 \
+  --step 5000 \
+  --maxsnps 200 \
+  --ld 0.95 \
+  --rrate 1e-8 \
+  --out "${OUTDIR}/breeding_improved_vs_landrace.chr${CHR}.tsv"
+```
+
+submit:
+
+```{bash}
+sbatch xpclr_breeding.slurm
+```
+
+## 5) job monitoring and completion checks
+
+```{bash}
+# running jobs
+squeue -u subhash
+
+# full status by array task
+sacct -j <jobid> --format=JobID,State,ExitCode
+
+```
+
+final output files:
+
+```{bash}
+ls /work/jyanglab/subhash/sorgsd/xpclr/domestication_landrace_vs_wild/*.tsv | wc -l
+ls /work/jyanglab/subhash/sorgsd/xpclr/breeding_improved_vs_landrace/*.tsv | wc -l
+```
+
+## 6) merge all chromosomes after completion
+
+```{bash}
+#!/bin/bash
+set -euo pipefail
+
+BASE=/work/jyanglab/subhash/sorgsd/xpclr
+
+for label in domestication_landrace_vs_wild breeding_improved_vs_landrace; do
+  out="${BASE}/${label}/${label}.all_chr.tsv"
+  first=1
+  for chr in {1..10}; do
+    f="${BASE}/${label}/${label}.chr${chr}.tsv"
+    if [ ${first} -eq 1 ]; then
+      cat "${f}" > "${out}"
+      first=0
+    else
+      tail -n +2 "${f}" >> "${out}"
+    fi
+  done
+  echo "merged: ${out}"
+done
+```
+
+## 7) quick manhattan plotting columns
+
+use these columns from XPCLR output:
+1. `chrom` for chromosome
+2. position = midpoint of `start` and `stop`
+3. `xpclr` as y-axis
+
+example R snippet:
+
+```{r}
+library(data.table)
+
+x <- fread("/work/jyanglab/subhash/sorgsd/xpclr/domestication_landrace_vs_wild/domestication_landrace_vs_wild.all_chr.tsv")
+x[, pos := (start + stop) / 2]
+
+# keep only needed columns
+man <- x[, .(chrom, pos, xpclr)]
+head(man)
+```
+
+# note
+This workflow is pairwise selection scan. It is different from BalLeRMix workflow (DAF based balancing selection).

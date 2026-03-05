@@ -1,0 +1,171 @@
+---
+title: "Figure 1: Geographic Distribution (Morris 272)"
+author: "subhash"
+date: "2026-03-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = normalizePath("../../.."))
+```
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(maps)
+
+# ---------------------------
+# Input (uses first existing path)
+# ---------------------------
+input_candidates <- c(
+  "data/1.pca_geo/sorghum_morris_mcpd_overlaps.xlsx",
+  "/Users/subhashmahamkali/Documents/New project/sorghum_morris_mcpd_overlaps.xlsx"
+)
+
+input_file <- input_candidates[file.exists(input_candidates)][1]
+if (is.na(input_file)) {
+  stop("Could not find overlap workbook. Place it in data/1.pca_geo/ or keep it at the New project path.")
+}
+
+# ---------------------------
+# Output folder
+# ---------------------------
+out_dir <- "graphs/01_publication/figure_1"
+if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)
+
+# ---------------------------
+# Figure settings
+# ---------------------------
+# Keep this TRUE for the 5-race publication panel aligned to PCA classes.
+major5_only <- TRUE
+
+# A4 dimensions for Illustrator workflow
+# (landscape and portrait exports both saved)
+a4_land_w <- 29.7
+a4_land_h <- 21
+a4_port_w <- 21
+a4_port_h <- 29.7
+```
+
+```{r}
+# ---------------------------
+# Load and prep data
+# ---------------------------
+geo_df <- read_excel(input_file, sheet = "Overlaps") %>%
+  filter(!is.na(DECLATITUDE), !is.na(DECLONGITUDE)) %>%
+  mutate(
+    race = tolower(trimws(`Morphological type (Race)`)),
+    DECLATITUDE = as.numeric(DECLATITUDE),
+    DECLONGITUDE = as.numeric(DECLONGITUDE)
+  )
+
+# PCA-aligned colors
+color_vec <- c(
+  "durra" = "#FF7F00",
+  "kafir" = "#E69F00",
+  "caudatum" = "#984EA3",
+  "guinea" = "#56B4E9",
+  "bicolor" = "#A6A6A6"
+)
+
+if (major5_only) {
+  keep_races <- names(color_vec)
+  plot_df <- geo_df %>% filter(race %in% keep_races)
+  race_order <- keep_races
+} else {
+  race_order <- sort(unique(geo_df$race))
+  pal <- grDevices::hcl.colors(max(length(race_order), 3), palette = "Set 3")
+  color_vec <- setNames(pal[seq_along(race_order)], race_order)
+  plot_df <- geo_df
+}
+
+world <- map_data("world")
+
+# Origin/star location (eastern Sahel / NE Africa, schematic)
+origin_lon <- 33
+origin_lat <- 13
+
+# Four main dispersal arrows
+arrows_df <- tibble::tribble(
+  ~x,   ~y,   ~xend, ~yend, ~route,
+   33,   13,   -12,   14,   "West Africa",
+   33,   13,    22,  -28,   "Southern Africa",
+   33,   13,    78,   21,   "South Asia",
+   78,   21,   113,   38,   "East Asia"
+)
+```
+
+```{r}
+# ---------------------------
+# Plot
+# ---------------------------
+p <- ggplot() +
+  geom_polygon(
+    data = world,
+    aes(long, lat, group = group),
+    fill = "#f3efe6", color = "#8c8779", linewidth = 0.25
+  ) +
+  geom_segment(
+    data = arrows_df,
+    aes(x = x, y = y, xend = xend, yend = yend),
+    arrow = grid::arrow(length = unit(0.18, "inches"), type = "closed"),
+    linewidth = 0.8,
+    color = "#303030",
+    alpha = 0.9
+  ) +
+  annotate("point", x = origin_lon, y = origin_lat, shape = 8, size = 7.2, color = "#101010", stroke = 1.2) +
+  annotate("point", x = origin_lon, y = origin_lat, shape = 8, size = 4.8, color = "#FFD23F", stroke = 1.1) +
+  geom_point(
+    data = plot_df,
+    aes(x = DECLONGITUDE, y = DECLATITUDE, color = race),
+    size = 2.4, alpha = 0.93, stroke = 0.25
+  ) +
+  scale_color_manual(values = color_vec, breaks = race_order, name = "Race") +
+  coord_quickmap(xlim = c(-25, 130), ylim = c(-42, 56), expand = FALSE) +
+  labs(
+    title = "Geographic Distribution of 272 Morris-Overlap Sorghum Accessions",
+    subtitle = "Africa-Asia focus with origin star and schematic dispersal routes",
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.background = element_rect(fill = "#dbeaf4", color = NA),
+    panel.grid.major = element_line(color = "#c2d4e2", linewidth = 0.35),
+    panel.grid.minor = element_blank(),
+    plot.background = element_rect(fill = "white", color = NA),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 12),
+    plot.title = element_text(size = 19, face = "bold"),
+    plot.subtitle = element_text(size = 14),
+    legend.position = "bottom",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 11)
+  ) +
+  guides(color = guide_legend(nrow = 2, byrow = TRUE, override.aes = list(size = 4)))
+
+print(p)
+```
+
+```{r}
+# ---------------------------
+# Save outputs
+# ---------------------------
+base_name <- if (major5_only) "figure1_geo_morris272_major5_with_star_arrows" else "figure1_geo_morris272_allraces_with_star_arrows"
+
+out_png_land <- file.path(out_dir, paste0(base_name, "_A4_landscape.png"))
+out_pdf_land <- file.path(out_dir, paste0(base_name, "_A4_landscape.pdf"))
+out_png_port <- file.path(out_dir, paste0(base_name, "_A4_portrait.png"))
+out_pdf_port <- file.path(out_dir, paste0(base_name, "_A4_portrait.pdf"))
+
+ggsave(out_png_land, p, width = a4_land_w, height = a4_land_h, units = "cm", dpi = 600, bg = "white")
+ggsave(out_pdf_land, p, width = a4_land_w, height = a4_land_h, units = "cm", bg = "white")
+ggsave(out_png_port, p, width = a4_port_w, height = a4_port_h, units = "cm", dpi = 600, bg = "white")
+ggsave(out_pdf_port, p, width = a4_port_w, height = a4_port_h, units = "cm", bg = "white")
+
+cat("Input used:", input_file, "\n")
+cat("Rows with coordinates:", nrow(geo_df), "\n")
+cat("Rows plotted:", nrow(plot_df), "\n")
+cat("Saved:\n", out_png_land, "\n", out_pdf_land, "\n", out_png_port, "\n", out_pdf_port, "\n")
+```
