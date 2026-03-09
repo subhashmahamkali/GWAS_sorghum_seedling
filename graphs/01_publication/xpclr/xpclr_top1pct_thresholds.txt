@@ -1,0 +1,3 @@
+comparison	top1pct_threshold
+domestication_landrace_vs_wild	368.319550975044
+breeding_improved_vs_landrace	138.454201885856

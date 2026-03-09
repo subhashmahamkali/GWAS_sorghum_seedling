@@ -1,0 +1,3 @@
+comparison	top1pct_threshold
+Landrace vs Wild	368.319550975044
+Improved vs Landrace	138.454201885856

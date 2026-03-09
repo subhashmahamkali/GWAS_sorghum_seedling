@@ -1,0 +1,513 @@
+---
+title: "race_wise_sap_deleterious"
+author: "Subhash"
+date: "2026-03-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+# Overview
+
+This notebook documents the SAP-specific deleterious mutation workflow using PlantCaduceus zero-shot scores and the SAP race assignments used elsewhere in the project.
+
+The workflow is:
+
+1. prepare the PlantCaduceus environment on HCC
+2. split the SAP VCF into 10K-variant chunks
+3. convert chunk VCFs into PlantCaduceus TSV input
+4. run zero-shot scoring in sequential GPU batches
+5. merge all chunk score files
+6. overlap scored variants with gene models
+7. export a SAP genotype matrix from the VCF
+8. calculate accession-level and gene-level deleterious load
+9. merge deleterious load with SAP race labels and generate race-wise summaries
+
+# Key inputs
+
+```{r}
+repo_root <- "/Users/subhashmahamkali/Documents/gwas_sap"
+cluster_file <- file.path(repo_root, "data/0.SAP/sorted_cluster_data.txt")
+
+sap_vcf <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/2.filtered_vcf/sap_v5.vcf.gz"
+plantcad_root <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad"
+reference_fa <- "/work/jyanglab/subhash/0.assignment_agro_932/0..refrence/Phytozome/PhytozomeV13/Sbicolor/v5.1/assembly/Sbicolor_730_v5.0.fa"
+
+chunk_dir <- file.path(plantcad_root, "1.chunk_vcf")
+tsv_dir <- file.path(plantcad_root, "2.tsv")
+batch_dir <- file.path(plantcad_root, "3.batches")
+score_dir <- file.path(plantcad_root, "4.scores")
+merge_dir <- file.path(plantcad_root, "5.merged")
+log_dir <- file.path(plantcad_root, "logs")
+```
+
+# PlantCaduceus environment setup
+
+```{bash, eval=FALSE}
+module purge
+module load anaconda
+mamba env create -f environment.yml -p $NRDSTOR/PlantCaduceus_1
+conda activate $NRDSTOR/PlantCaduceus_1
+mamba install --no-update-deps cudatoolkit
+pip install -r requirements.txt --no-build-isolation
+
+python
+import torch
+from mamba_ssm import Mamba
+
+srun --partition=gpu --gres=gpu:1 --time=00:30:00 --pty bash
+python /work/jyanglab/subhash/PC/git/PlantCaduceus/src/zero_shot_score.py \
+  -input /work/jyanglab/subhash/PC/git/PlantCaduceus/examples/example_snp.tsv \
+  -output output.tsv \
+  -model 'kuleshov-group/PlantCaduceus_l32' \
+  -device 'cuda:0'
+```
+
+# 1. Split the SAP VCF into 10K-variant chunks
+
+The SAP VCF contains 4,703,244 variants, which gives 471 chunk files when chunked into 10,000 variants per file.
+
+```{bash, eval=FALSE}
+#!/usr/bin/bash
+#SBATCH --job-name=sap_chunk_vcf
+#SBATCH --ntasks=1
+#SBATCH --mem=16G
+#SBATCH --time=08:00:00
+#SBATCH --partition=jclarke,batch,guest
+#SBATCH --output=/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/logs/00_chunk_vcf.out
+#SBATCH --error=/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/logs/00_chunk_vcf.err
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+
+set -euo pipefail
+
+module load bcftools
+module load htslib
+
+INPUT_VCF="/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/2.filtered_vcf/sap_v5.vcf.gz"
+OUTDIR="/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/1.chunk_vcf"
+CHUNK_SIZE=10000
+
+mkdir -p "$OUTDIR"
+bcftools view -h "$INPUT_VCF" > "$OUTDIR/header.vcf"
+bcftools view -H "$INPUT_VCF" | split -l $CHUNK_SIZE -d -a 5 - "$OUTDIR/body_chunk_"
+
+for f in "$OUTDIR"/body_chunk_*; do
+    chunk_num=$(basename "$f" | sed 's/body_chunk_//')
+    outvcf="$OUTDIR/chunk_${chunk_num}.vcf"
+
+    cat "$OUTDIR/header.vcf" "$f" | \
+    awk 'BEGIN{OFS="\t"}
+      /^#/ {print; next}
+      {
+        if ($1 ~ /^[0-9]+$/ && $1 <= 10) {
+          if ($1 < 10) $1 = "Chr0"$1
+          else $1 = "Chr"$1
+        } else {
+          next
+        }
+        print
+      }' > "$outvcf"
+
+    bgzip -f "$outvcf"
+    tabix -f -p vcf "${outvcf}.gz"
+done
+```
+
+# 2. Convert chunk VCFs into PlantCaduceus TSV input
+
+The FASTA and `.fai` index were verified, and the chromosome naming matches the chunk VCFs (`Chr01` to `Chr10`).
+
+```{bash, eval=FALSE}
+#!/usr/bin/bash
+#SBATCH --job-name=sap_vcf_to_tsv
+#SBATCH --ntasks=1
+#SBATCH --mem=24G
+#SBATCH --time=12:00:00
+#SBATCH --partition=jclarke,batch,guest
+#SBATCH --output=/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/logs/01_vcf_to_tsv.out
+#SBATCH --error=/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/logs/01_vcf_to_tsv.err
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+
+set -euo pipefail
+
+module load bedtools
+module load htslib
+
+GENOME_FA="/work/jyanglab/subhash/0.assignment_agro_932/0..refrence/Phytozome/PhytozomeV13/Sbicolor/v5.1/assembly/Sbicolor_730_v5.0.fa"
+VCF_DIR="/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/1.chunk_vcf"
+OUT_DIR="/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/2.tsv"
+
+mkdir -p "$OUT_DIR"
+
+for inputVCF in "$VCF_DIR"/chunk_*.vcf.gz; do
+    base=$(basename "$inputVCF" .vcf.gz)
+    tmpvcf="$OUT_DIR/${base}.vcf"
+    output="$OUT_DIR/${base}.tsv"
+
+    zcat "$inputVCF" > "$tmpvcf"
+    grep -v '^#' "$tmpvcf" | awk -v OFS="\t" '{print $1,$2-256,$2+256}' > "${tmpvcf}.bed"
+    bedtools getfasta -tab -fi "$GENOME_FA" -bed "${tmpvcf}.bed" -fo "${tmpvcf}.seq.tsv"
+
+    awk -v OFS="\t" '$0 !~ /^#/ {print $1,$2-256,$2+256,$2,$4,$5}' "$tmpvcf" | \
+    paste - <(cut -f2 "${tmpvcf}.seq.tsv") > "${output}.tmp"
+
+    echo -e "chr\tstart\tend\tpos\tref\talt\tsequences" > "$output"
+    cat "${output}.tmp" >> "$output"
+
+    rm -f "$tmpvcf" "${tmpvcf}.bed" "${tmpvcf}.seq.tsv" "${output}.tmp"
+done
+```
+
+# 3. Build GPU batch lists
+
+Thirty TSV chunk files per GPU job corresponds to roughly 300,000 variants per batch.
+
+```{bash, eval=FALSE}
+#!/usr/bin/bash
+set -euo pipefail
+
+TSV_DIR="/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/2.tsv"
+BATCH_DIR="/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/3.batches"
+BATCH_SIZE=30
+
+mkdir -p "$BATCH_DIR"
+find "$TSV_DIR" -name 'chunk_*.tsv' | sort > "$BATCH_DIR/all_tsv_files.txt"
+split -l $BATCH_SIZE -d -a 3 "$BATCH_DIR/all_tsv_files.txt" "$BATCH_DIR/file_batch_"
+```
+
+Expected result:
+
+- `471` TSV files total
+- `16` batch files
+- `15` full batches of 30 TSVs
+- `1` final batch with 21 TSVs
+
+# 4. Run PlantCaduceus zero-shot scoring on GPU
+
+This script is sequential by design. Submitting batch `000` starts the first GPU job, and that job submits the next batch when it finishes.
+
+```{bash, eval=FALSE}
+#!/usr/bin/bash
+#SBATCH --job-name=sap_plantcad
+#SBATCH --partition=gpu
+#SBATCH --gres=gpu:1
+#SBATCH --constraint=gpu_v100
+#SBATCH --time=04:00:00
+#SBATCH --mem=8G
+#SBATCH --output=/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/logs/03_plantcad_%A.out
+#SBATCH --error=/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/logs/03_plantcad_%A.err
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+
+set -euo pipefail
+
+ml anaconda
+set +u
+conda activate $NRDSTOR/PlantCaduceus_1
+set -u
+
+BATCH_NUM=$1
+BATCH_FILE="/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/3.batches/file_batch_${BATCH_NUM}"
+OUT_DIR="/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/4.scores"
+MODEL="kuleshov-group/PlantCaduceus_l32"
+
+mkdir -p "$OUT_DIR"
+
+echo "Starting batch ${BATCH_NUM}"
+while read -r FILE; do
+    [ -z "$FILE" ] && continue
+    base=$(basename "$FILE" .tsv)
+    outfile="$OUT_DIR/${base}_score.tsv"
+
+    if [ -s "$outfile" ]; then
+        echo "Skipping existing $outfile"
+        continue
+    fi
+
+    python /work/jyanglab/subhash/PC/git/PlantCaduceus/src/zero_shot_score.py \
+        -input "$FILE" \
+        -output "$outfile" \
+        -model "$MODEL" \
+        -device "cuda:0"
+done < "$BATCH_FILE"
+
+NEXT_BATCH=$(printf "%03d" $((10#$BATCH_NUM + 1)))
+if [ -f "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/3.batches/file_batch_${NEXT_BATCH}" ]; then
+    sbatch /mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/0.scripts/03_run_plantcad_batch.slurm "$NEXT_BATCH"
+else
+    echo "All batches completed."
+fi
+```
+
+Start the run with:
+
+```{bash, eval=FALSE}
+sbatch /mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/0.scripts/03_run_plantcad_batch.slurm 000
+```
+
+# 5. Merge all chunk score files
+
+```{bash, eval=FALSE}
+#!/usr/bin/bash
+#SBATCH --job-name=sap_merge_scores
+#SBATCH --ntasks=1
+#SBATCH --mem=8G
+#SBATCH --time=02:00:00
+#SBATCH --partition=jclarke,batch,guest
+#SBATCH --output=/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/logs/04_merge_scores.out
+#SBATCH --error=/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/logs/04_merge_scores.err
+
+set -euo pipefail
+
+SCORE_DIR="/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/4.scores"
+OUT_DIR="/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/5.merged"
+OUT_FILE="$OUT_DIR/sap_v5_plantcad_scores_merged.tsv"
+
+mkdir -p "$OUT_DIR"
+
+first=1
+for f in $(find "$SCORE_DIR" -name 'chunk_*_score.tsv' | sort); do
+    if [ $first -eq 1 ]; then
+        cat "$f" > "$OUT_FILE"
+        first=0
+    else
+        tail -n +2 "$f" >> "$OUT_FILE"
+    fi
+done
+```
+
+# 6. Export the SAP genotype matrix from the VCF
+
+The deleterious-load calculation needs genotype calls aligned to the scored variant positions.
+
+```{bash, eval=FALSE}
+#!/usr/bin/bash
+#SBATCH --job-name=sap_export_gt
+#SBATCH --ntasks=1
+#SBATCH --mem=24G
+#SBATCH --time=08:00:00
+#SBATCH --partition=jclarke,batch,guest
+#SBATCH --output=/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/logs/05_export_gt.out
+#SBATCH --error=/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/logs/05_export_gt.err
+
+set -euo pipefail
+
+module load bcftools
+
+INPUT_VCF="/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/2.filtered_vcf/sap_v5.vcf.gz"
+OUT_FILE="/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/5.merged/sap_v5_genotypes_fixed.txt"
+
+bcftools query -f '%CHROM\t%POS\t%REF\t%ALT[\t%GT]\n' "$INPUT_VCF" > "$OUT_FILE"
+```
+
+# 7. Overlap scored variants with gene models
+
+This step was implicit in the old workflow because the downstream load script reads a precomputed `zeroshot_in_gene.bed`. The same logic should be applied for SAP.
+
+Assumptions:
+
+- `sap_v5_plantcad_scores_merged.tsv` contains at least `chr`, `start`, `end`, `pos`, and `zeroShotScore`
+- a sorghum gene annotation BED file is available
+
+```{bash, eval=FALSE}
+#!/usr/bin/bash
+#SBATCH --job-name=sap_score_gene_overlap
+#SBATCH --ntasks=1
+#SBATCH --mem=16G
+#SBATCH --time=04:00:00
+#SBATCH --partition=jclarke,batch,guest
+#SBATCH --output=/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/logs/06_gene_overlap.out
+#SBATCH --error=/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/logs/06_gene_overlap.err
+
+set -euo pipefail
+
+module load bedtools
+
+SCORE_TSV="/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/5.merged/sap_v5_plantcad_scores_merged.tsv"
+GENE_BED="/work/jyanglab/subhash/annotations/Sbicolor_v5.1_genes.bed"
+OUT_BED="/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/5.merged/sap_v5_zeroshot_in_gene.bed"
+
+bedtools intersect -wa -wb -a "$SCORE_TSV" -b "$GENE_BED" > "$OUT_BED"
+```
+
+Update `GENE_BED` above to the actual annotation BED used on HCC.
+
+# 8. Accession-level and gene-level deleterious load
+
+This section adapts the older SorGSD gene-load code to SAP.
+
+```{r}
+library(data.table)
+library(dplyr)
+library(stringr)
+library(tidyr)
+library(ggplot2)
+
+sap_gt_file <- file.path(merge_dir, "sap_v5_genotypes_fixed.txt")
+sap_overlap_file <- file.path(merge_dir, "sap_v5_zeroshot_in_gene.bed")
+
+# Update these column names if the overlap bed uses a different structure.
+overlap_colnames <- c(
+  "chr", "start", "end", "pos", "ref", "alt", "sequences", "zeroShotScore",
+  "gene_chr", "gene_start", "gene_end", "geneID", "annot"
+)
+```
+
+```{r, eval=FALSE}
+individual_data <- fread(sap_gt_file, sep = "\t", header = FALSE)
+setnames(
+  individual_data,
+  c("chr", "pos", "ref", "alt", paste0("indiv", seq_len(ncol(individual_data) - 4)))
+)
+
+overlapping_data <- fread(sap_overlap_file, sep = "\t", header = FALSE)
+setnames(overlapping_data, overlap_colnames[seq_len(ncol(overlapping_data))])
+
+merged_data <- merge(overlapping_data, individual_data, by = c("chr", "pos", "ref", "alt"))
+
+d <- merged_data[, c("chr", "pos", "zeroShotScore", "gene_start", "gene_end", "geneID", paste0("indiv", 1:400)), with = FALSE]
+subset_df <- d[zeroShotScore < 0, ]
+```
+
+```{r}
+geno_to_multiplier <- function(x) {
+  ifelse(x == "./.", NA,
+    ifelse(x == "1/1", 2,
+      ifelse(x %in% c("0/1", "1/0"), 1,
+        ifelse(x == "0/0", 0, NA)
+      )
+    )
+  )
+}
+```
+
+```{r, eval=FALSE}
+genotype_cols <- grep("^indiv", names(subset_df), value = TRUE)
+genotype_matrix <- subset_df[, ..genotype_cols]
+multiplier_matrix <- as.data.table(lapply(genotype_matrix, geno_to_multiplier))
+
+for (i in seq_along(multiplier_matrix)) {
+  multiplier_matrix[[i]] <- multiplier_matrix[[i]] * subset_df$zeroShotScore
+}
+
+subset_df_final <- cbind(
+  subset_df[, .(chr, pos, gene_start, gene_end, geneID)],
+  multiplier_matrix
+)
+
+# Accession-level deleterious load
+accession_load <- data.table(
+  genotype = genotype_cols,
+  deleterious_load = sapply(multiplier_matrix, function(x) sum(abs(x), na.rm = TRUE)),
+  deleterious_sites = sapply(multiplier_matrix, function(x) sum(!is.na(x) & x != 0)),
+  mean_load_per_site = sapply(multiplier_matrix, function(x) mean(abs(x[x != 0]), na.rm = TRUE))
+)
+
+# Gene-level deleterious load
+raw_gene_load_cols <- names(multiplier_matrix)
+gene_load_summary <- subset_df_final[, c(
+  .(chr = first(chr), start = min(gene_start), end = max(gene_end)),
+  lapply(.SD, function(x) sum(abs(x), na.rm = TRUE))
+), by = geneID, .SDcols = raw_gene_load_cols]
+
+fwrite(accession_load, file.path(merge_dir, "sap_accession_deleterious_load.txt"), sep = "\t")
+fwrite(gene_load_summary, file.path(merge_dir, "sap_gene_load_summary.txt"), sep = "\t")
+```
+
+# 9. Merge accession-level load with SAP race labels
+
+```{r}
+cluster_names <- c(
+  "1" = "durra",
+  "2" = "kafir",
+  "3" = "caudatum",
+  "4" = "milo/durra-bicolor",
+  "5" = "mixed/bicolor",
+  "6" = "guinea"
+)
+```
+
+```{r, eval=FALSE}
+cluster <- read.table(cluster_file, header = TRUE, stringsAsFactors = FALSE) %>%
+  mutate(
+    Cluster = as.character(Cluster),
+    ClusterName = cluster_names[Cluster],
+    genotype = str_replace_all(PI_numbers, "\\s+", "")
+  ) %>%
+  select(genotype, Cluster, ClusterName)
+
+accession_load <- fread(file.path(merge_dir, "sap_accession_deleterious_load.txt")) %>%
+  mutate(genotype = str_remove(genotype, "^indiv"))
+
+# If accession_load already contains PI IDs instead of indiv numbers, drop the line above.
+
+race_load <- inner_join(accession_load, cluster, by = "genotype")
+```
+
+The key point above is ID alignment. If the accession load table is indexed as `indiv1..indiv400`, map those columns back to SAP genotype IDs first. If the exported genotype matrix already preserves PI IDs in the header, the join can be done directly.
+
+# 10. Race-wise summaries and plots
+
+```{r}
+race_colors <- c(
+  "durra" = "#FF7F00",
+  "kafir" = "#E69F00",
+  "caudatum" = "#984EA3",
+  "milo/durra-bicolor" = "#F781BF",
+  "mixed/bicolor" = "#A6A6A6",
+  "guinea" = "#56B4E9"
+)
+```
+
+```{r, eval=FALSE}
+race_summary <- race_load %>%
+  group_by(ClusterName) %>%
+  summarise(
+    n = n(),
+    mean_load = mean(deleterious_load, na.rm = TRUE),
+    median_load = median(deleterious_load, na.rm = TRUE),
+    sd_load = sd(deleterious_load, na.rm = TRUE),
+    mean_sites = mean(deleterious_sites, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(median_load))
+
+race_summary
+```
+
+```{r, eval=FALSE}
+ggplot(
+  race_load %>% mutate(ClusterName = reorder(ClusterName, deleterious_load, FUN = median, na.rm = TRUE)),
+  aes(x = ClusterName, y = deleterious_load, fill = ClusterName)
+) +
+  geom_violin(alpha = 0.8, trim = FALSE, color = "grey30") +
+  geom_boxplot(width = 0.15, outlier.shape = NA, fill = "white") +
+  scale_fill_manual(values = race_colors) +
+  labs(x = NULL, y = "Deleterious load", title = "Race-wise SAP deleterious load") +
+  theme_bw(base_size = 12) +
+  theme(legend.position = "none", axis.text.x = element_text(angle = 35, hjust = 1))
+```
+
+```{r, eval=FALSE}
+ggplot(
+  race_load %>% mutate(ClusterName = reorder(ClusterName, deleterious_sites, FUN = median, na.rm = TRUE)),
+  aes(x = ClusterName, y = deleterious_sites, fill = ClusterName)
+) +
+  geom_violin(alpha = 0.8, trim = FALSE, color = "grey30") +
+  geom_boxplot(width = 0.15, outlier.shape = NA, fill = "white") +
+  scale_fill_manual(values = race_colors) +
+  labs(x = NULL, y = "Number of deleterious sites", title = "Race-wise deleterious site counts") +
+  theme_bw(base_size = 12) +
+  theme(legend.position = "none", axis.text.x = element_text(angle = 35, hjust = 1))
+```
+
+# Notes
+
+- Jensina confirmed that the phenotype BLUE models intentionally used row and column without separate block or sub-block terms because block structure was confounded with plot coordinates. That is separate from this deleterious-load workflow.
+- The HCC GPU batching here is sequential, not parallel.
+- The overlap step requires the actual sorghum gene BED path used on HCC.
+- The accession-ID mapping step must be checked carefully before any publication figure is made from the race-wise deleterious-load table.
