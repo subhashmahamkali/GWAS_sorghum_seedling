@@ -5,6 +5,16 @@ library(readxl)
 library(writexl)
 library(dplyr)
 
+
+#Important: I have plotted the figure only here using the R script. The data files are too large to be uploaded on GitHub, so I have not included them in the HCC repository. 
+# I annotated genes using adobe illustrator. The data files can be found here.
+#for annoateing common gene names I used 
+
+####"/gwas_sap/data/2.0_balancing_selection/01_b2_candidates/W_L_I_5kb_description.xlsx"-sheet-3
+####and unique genes are annotated using the"/gwas_sap/data/2.0_balancing_selection/01_b2_candidates"
+
+
+
 #d=fread("/Users/subhashmahamkali/Downloads/1.miscellaneous/all_chr_merged_with_chr.B2.txt.gz", header=T,data.table=F)
 #d=fread("/work/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/wild_merged_chr.B2.txt", header=T,data.table=F)
 d=fread("/mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/wild_merged_chr.B2.txt", header=T,data.table=F)
