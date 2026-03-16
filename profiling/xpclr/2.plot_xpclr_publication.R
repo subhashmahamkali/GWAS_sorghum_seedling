@@ -103,6 +103,22 @@ plot_panel <- function(dp, thr, panel_title, label_key, show_x_axis = FALSE) {
   }
 }
 
+save_single_panel <- function(path, dp, thr, panel_title, label_key, show_x_axis = TRUE) {
+  tiff(
+    path,
+    height = 3.5,
+    width = 14,
+    res = 600,
+    units = "in",
+    compression = "lzw",
+    type = "cairo",
+    bg = "white"
+  )
+  par(mar = c(2.2, 4.5, 2.2, 1.5), mfrow = c(1, 1), oma = c(0.4, 0.5, 0.5, 0.5))
+  plot_panel(dp, thr, panel_title, label_key, show_x_axis = show_x_axis)
+  dev.off()
+}
+
 tiff(
   file.path(out_dir, "xpclr_positive_selection.tiff"),
   height = 7,
@@ -163,7 +179,7 @@ annot_minimal <- subset(
        ))
 )
 
-plot_panel_minimal <- function(dp, label_key) {
+plot_panel_minimal <- function(dp, thr, label_key) {
   plot(
     dp$pos_mb, dp$xpclr,
     col = dp$col,
@@ -176,20 +192,36 @@ plot_panel_minimal <- function(dp, label_key) {
     ylab = ""
   )
 
-  axis(1, labels = FALSE, tck = -0.02)
+  axis(1, at = x_ticks, labels = FALSE, tck = -0.02)
   axis(2, labels = FALSE, tck = -0.02, las = 2)
+  segments(x0 = 0, x1 = x_max, y0 = thr, y1 = thr, col = "red", lty = 2, lwd = 2)
 
   mark <- subset(annot_minimal, comparison == label_key)
   if (nrow(mark) > 0) {
-    segments(
-      x0 = mark$pos_mb,
-      x1 = mark$pos_mb,
-      y0 = 0,
-      y1 = mark$max_xpclr,
-      col = "#FF69B466",
-      lwd = 0.8
+    points(
+      x = mark$pos_mb,
+      y = mark$max_xpclr,
+      pch = 16,
+      cex = 0.8,
+      col = "red"
     )
   }
+}
+
+save_single_panel_minimal <- function(path, dp, thr, label_key) {
+  tiff(
+    path,
+    height = 3.5,
+    width = 14,
+    res = 600,
+    units = "in",
+    compression = "lzw",
+    type = "cairo",
+    bg = "white"
+  )
+  par(mar = c(0.4, 0.4, 0.4, 0.4), mfrow = c(1, 1), oma = c(0, 0, 0, 0))
+  plot_panel_minimal(dp, thr, label_key)
+  dev.off()
 }
 
 tiff(
@@ -204,6 +236,38 @@ tiff(
 )
 
 par(mar = c(0.4, 0.4, 0.4, 0.4), mfrow = c(2, 1), oma = c(0, 0, 0, 0))
-plot_panel_minimal(dom$data, "domestication_landrace_vs_wild")
-plot_panel_minimal(breed$data, "breeding_improved_vs_landrace")
+plot_panel_minimal(dom$data, dom$thr, "domestication_landrace_vs_wild")
+plot_panel_minimal(breed$data, breed$thr, "breeding_improved_vs_landrace")
 dev.off()
+
+save_single_panel(
+  file.path(out_dir, "xpclr_landrace_vs_wild.tiff"),
+  dom$data,
+  dom$thr,
+  "Landrace vs Wild",
+  "domestication_landrace_vs_wild",
+  show_x_axis = TRUE
+)
+
+save_single_panel(
+  file.path(out_dir, "xpclr_improved_vs_landrace.tiff"),
+  breed$data,
+  breed$thr,
+  "Improved vs Landrace",
+  "breeding_improved_vs_landrace",
+  show_x_axis = TRUE
+)
+
+save_single_panel_minimal(
+  file.path(out_dir, "xpclr_landrace_vs_wild_minimal_annotations.tiff"),
+  dom$data,
+  dom$thr,
+  "domestication_landrace_vs_wild"
+)
+
+save_single_panel_minimal(
+  file.path(out_dir, "xpclr_improved_vs_landrace_minimal_annotations.tiff"),
+  breed$data,
+  breed$thr,
+  "breeding_improved_vs_landrace"
+)

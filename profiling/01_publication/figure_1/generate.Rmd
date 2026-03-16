@@ -40,12 +40,9 @@ if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)
 # Keep this TRUE for the 5-race publication panel aligned to PCA classes.
 major5_only <- TRUE
 
-# A4 dimensions for Illustrator workflow
-# (landscape and portrait exports both saved)
-a4_land_w <- 29.7
-a4_land_h <- 21
-a4_port_w <- 21
-a4_port_h <- 29.7
+# Custom Illustrator panel dimensions
+fig_w <- 10.5
+fig_h <- 14.5
 ```
 
 ```{r}
@@ -82,6 +79,27 @@ if (major5_only) {
 
 world <- map_data("world")
 
+# Illustrator-safe crop: subset data before drawing so the exported PDF
+# does not carry a hidden full-world layer outside the visible panel.
+bbox <- list(
+  xmin = -25,
+  xmax = 130,
+  ymin = -42,
+  ymax = 56
+)
+
+world_crop <- world %>%
+  filter(
+    long >= bbox$xmin, long <= bbox$xmax,
+    lat >= bbox$ymin, lat <= bbox$ymax
+  )
+
+plot_df_crop <- plot_df %>%
+  filter(
+    DECLONGITUDE >= bbox$xmin, DECLONGITUDE <= bbox$xmax,
+    DECLATITUDE >= bbox$ymin, DECLATITUDE <= bbox$ymax
+  )
+
 # Origin/star location (eastern Sahel / NE Africa, schematic)
 origin_lon <- 33
 origin_lat <- 13
@@ -102,7 +120,7 @@ arrows_df <- tibble::tribble(
 # ---------------------------
 p <- ggplot() +
   geom_polygon(
-    data = world,
+    data = world_crop,
     aes(long, lat, group = group),
     fill = "#f3efe6", color = "#8c8779", linewidth = 0.25
   ) +
@@ -117,12 +135,16 @@ p <- ggplot() +
   annotate("point", x = origin_lon, y = origin_lat, shape = 8, size = 7.2, color = "#101010", stroke = 1.2) +
   annotate("point", x = origin_lon, y = origin_lat, shape = 8, size = 4.8, color = "#FFD23F", stroke = 1.1) +
   geom_point(
-    data = plot_df,
+    data = plot_df_crop,
     aes(x = DECLONGITUDE, y = DECLATITUDE, color = race),
     size = 2.4, alpha = 0.93, stroke = 0.25
   ) +
   scale_color_manual(values = color_vec, breaks = race_order, name = "Race") +
-  coord_quickmap(xlim = c(-25, 130), ylim = c(-42, 56), expand = FALSE) +
+  coord_quickmap(
+    xlim = c(bbox$xmin, bbox$xmax),
+    ylim = c(bbox$ymin, bbox$ymax),
+    expand = FALSE
+  ) +
   labs(
     title = "Geographic Distribution of 272 Morris-Overlap Sorghum Accessions",
     subtitle = "Africa-Asia focus with origin star and schematic dispersal routes",
@@ -154,18 +176,12 @@ print(p)
 # ---------------------------
 base_name <- if (major5_only) "figure1_geo_morris272_major5_with_star_arrows" else "figure1_geo_morris272_allraces_with_star_arrows"
 
-out_png_land <- file.path(out_dir, paste0(base_name, "_A4_landscape.png"))
-out_pdf_land <- file.path(out_dir, paste0(base_name, "_A4_landscape.pdf"))
-out_png_port <- file.path(out_dir, paste0(base_name, "_A4_portrait.png"))
-out_pdf_port <- file.path(out_dir, paste0(base_name, "_A4_portrait.pdf"))
+out_pdf_custom <- file.path(out_dir, paste0(base_name, "_10.5x14.5cm.pdf"))
 
-ggsave(out_png_land, p, width = a4_land_w, height = a4_land_h, units = "cm", dpi = 600, bg = "white")
-ggsave(out_pdf_land, p, width = a4_land_w, height = a4_land_h, units = "cm", bg = "white")
-ggsave(out_png_port, p, width = a4_port_w, height = a4_port_h, units = "cm", dpi = 600, bg = "white")
-ggsave(out_pdf_port, p, width = a4_port_w, height = a4_port_h, units = "cm", bg = "white")
+ggsave(out_pdf_custom, p, width = fig_w, height = fig_h, units = "cm", bg = "white")
 
 cat("Input used:", input_file, "\n")
 cat("Rows with coordinates:", nrow(geo_df), "\n")
-cat("Rows plotted:", nrow(plot_df), "\n")
-cat("Saved:\n", out_png_land, "\n", out_pdf_land, "\n", out_png_port, "\n", out_pdf_port, "\n")
+cat("Rows plotted:", nrow(plot_df_crop), "\n")
+cat("Saved:\n", out_pdf_custom, "\n")
 ```

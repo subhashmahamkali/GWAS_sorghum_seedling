@@ -23,21 +23,63 @@ normalize_id <- function(x) {
 }
 
 cluster_names <- c(
-  "1" = "durra",
-  "2" = "kafir",
-  "3" = "caudatum",
-  "4" = "guinea",
-  "5" = "milo/durra-bicolor",
-  "6" = "mixed/bicolor"
+  "1" = "Durra",
+  "2" = "Kafir",
+  "3" = "Caudatum",
+  "4" = "Guinea",
+  "5" = "Milo/Durra-\nBicolor",
+  "6" = "Bicolor"
 )
 
 pca_colors <- c(
-  "durra" = "#FF7F00",
-  "kafir" = "#E69F00",
-  "caudatum" = "#984EA3",
-  "guinea" = "#56B4E9",
-  "milo/durra-bicolor" = "#F781BF",
-  "mixed/bicolor" = "#A6A6A6"
+  "Durra" = "#F28E2B",
+  "Kafir" = "#DCA73C",
+  "Caudatum" = "#A56CC1",
+  "Guinea" = "#77BCE8",
+  "Milo/Durra-\nBicolor" = "#E88AC6",
+  "Bicolor" = "#B9B9B9"
+)
+
+trait_labels <- c(
+  "branchInternodeLength" = "Branch internode length",
+  "daysToFlower" = "Days to flower",
+  "extantLeafNumber" = "Extant leaf number",
+  "flagLeafLength" = "Flag leaf length",
+  "flagLeafWidth" = "Flag leaf width",
+  "leafAngleStandardDeviation" = "Leaf angle standard deviation",
+  "medianLeafAngle" = "Median leaf angle",
+  "panicleGrainWeight" = "Panicle grain weight",
+  "plantHeight" = "Plant height",
+  "primaryBranchNumber" = "Primary branch number",
+  "rachisDiameterLower" = "Rachis diameter lower",
+  "rachisDiameterUpper" = "Rachis diameter upper",
+  "rachisLength" = "Rachis length",
+  "stemDiameterLower" = "Stem diameter lower",
+  "stemDiameterUpper" = "Stem diameter upper",
+  "thirdLeafLength" = "Third leaf length",
+  "thirdLeafWidth" = "Third leaf width",
+  "tillersPerPlant" = "Tillers per plant"
+)
+
+trait_categories <- c(
+  "branchInternodeLength" = "Architecture",
+  "plantHeight" = "Architecture",
+  "primaryBranchNumber" = "Architecture",
+  "tillersPerPlant" = "Architecture",
+  "daysToFlower" = "Developmental",
+  "extantLeafNumber" = "Developmental",
+  "flagLeafLength" = "Developmental",
+  "flagLeafWidth" = "Developmental",
+  "leafAngleStandardDeviation" = "Developmental",
+  "medianLeafAngle" = "Developmental",
+  "stemDiameterLower" = "Developmental",
+  "stemDiameterUpper" = "Developmental",
+  "thirdLeafLength" = "Developmental",
+  "thirdLeafWidth" = "Developmental",
+  "panicleGrainWeight" = "Panicle",
+  "rachisDiameterLower" = "Panicle",
+  "rachisDiameterUpper" = "Panicle",
+  "rachisLength" = "Panicle"
 )
 
 all_traits_2020 <- c(
@@ -87,7 +129,7 @@ make_nr_ridge <- function(df_trait, trait_label) {
   df_trait <- df_trait %>%
     mutate(ClusterName = factor(ClusterName, levels = race_order))
 
-  ref_df <- df_trait %>%
+  median_df <- df_trait %>%
     group_by(ClusterName) %>%
     summarise(ref_value = median(Value, na.rm = TRUE), .groups = "drop") %>%
     mutate(
@@ -97,17 +139,18 @@ make_nr_ridge <- function(df_trait, trait_label) {
     )
 
   ggplot(df_trait, aes(x = Value, y = ClusterName, fill = ClusterName)) +
-    geom_density_ridges(alpha = 0.75, scale = 1.05, rel_min_height = 0.01, color = "white", linewidth = 0.18) +
+    geom_vline(xintercept = 0, color = "#222222", linewidth = 0.45, linetype = "dotted") +
+    geom_density_ridges(alpha = 0.78, scale = 1.05, rel_min_height = 0.01, color = "white", linewidth = 0.18) +
     geom_segment(
-      data = ref_df,
+      data = median_df,
       aes(x = ref_value, xend = ref_value, y = y, yend = yend),
       inherit.aes = FALSE,
       linetype = "dotted",
-      linewidth = 0.55,
+      linewidth = 0.5,
       color = "#222222"
     ) +
     scale_fill_manual(values = pca_colors, drop = FALSE) +
-    labs(title = trait_label, x = "NR", y = NULL) +
+    labs(title = trait_label, x = "Nitrogen response (NR)", y = NULL) +
     theme_minimal(base_size = 9) +
     theme(
       panel.grid.minor = element_blank(),
@@ -122,20 +165,49 @@ make_nr_ridge <- function(df_trait, trait_label) {
     )
 }
 
-plot_specs <- c(
-  paste0("2020|", keep_traits),
-  paste0("2021|", keep_traits_2021)
-)
+plot_specs <- tibble::tibble(
+  Year = c(rep("2020", length(keep_traits)), rep("2021", length(keep_traits_2021))),
+  Trait = c(keep_traits, keep_traits_2021)
+) %>%
+  mutate(
+    Category = unname(trait_categories[Trait]),
+    TraitLabel = unname(trait_labels[Trait])
+  ) %>%
+  filter(!is.na(Category), !is.na(TraitLabel)) %>%
+  arrange(Category, Year, TraitLabel)
 
-plot_list <- lapply(plot_specs, function(spec) {
-  parts <- strsplit(spec, "\\|")[[1]]
-  yr <- parts[1]
-  tr <- parts[2]
-  label <- paste0(yr, " | ", tr)
-  make_nr_ridge(filter(long_nr, Year == yr, Trait == tr), label)
+category_names <- sort(unique(plot_specs$Category))
+category_tags <- setNames(LETTERS[seq_along(category_names)], category_names)
+
+category_plots <- lapply(category_names, function(category_name) {
+  category_specs <- plot_specs %>% filter(Category == category_name)
+
+  plot_list <- lapply(seq_len(nrow(category_specs)), function(i) {
+    yr <- category_specs$Year[[i]]
+    tr <- category_specs$Trait[[i]]
+    label <- paste0(category_specs$TraitLabel[[i]], " (", yr, ")")
+    make_nr_ridge(filter(long_nr, Year == yr, Trait == tr), label)
+  })
+
+  section_title <- wrap_elements(
+    full = grid::textGrob(
+      paste(category_tags[[category_name]], category_name),
+      x = 0.02,
+      hjust = 0,
+      gp = grid::gpar(fontsize = 16, fontface = "bold")
+    )
+  )
+
+  section_body <- wrap_plots(plot_list, ncol = 4, byrow = TRUE)
+
+  section_title / section_body + plot_layout(heights = c(0.12, 1))
 })
 
-combined_plot <- wrap_plots(plot_list, ncol = 4, byrow = TRUE)
+category_heights <- vapply(category_names, function(category_name) {
+  ceiling(sum(plot_specs$Category == category_name) / 4)
+}, numeric(1))
+
+combined_plot <- wrap_plots(category_plots, ncol = 1, heights = category_heights)
 
 out_pdf <- file.path(out_dir, "2020_2021_NR_remaining_traits_ridge_4cols.pdf")
 ggsave(out_pdf, combined_plot, width = 18, height = 16.5, units = "in", bg = "white")

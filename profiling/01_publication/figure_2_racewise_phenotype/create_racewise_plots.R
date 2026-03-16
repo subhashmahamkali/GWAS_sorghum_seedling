@@ -163,6 +163,7 @@ make_nr_ridge <- function(df_trait, year, trait) {
     )
 
   ggplot(df_trait, aes(x = Value, y = ClusterName, fill = ClusterName)) +
+    geom_vline(xintercept = 0, color = "#444444", linewidth = 0.45, linetype = "dashed") +
     geom_density_ridges(alpha = 0.75, scale = 1.05, rel_min_height = 0.01, color = "white", linewidth = 0.2) +
     geom_segment(
       data = mean_df,

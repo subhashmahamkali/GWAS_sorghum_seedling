@@ -1,0 +1,114 @@
+---
+title: "Generate Geo, PCA, and Race-wise Figures"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+## Purpose
+
+This notebook is an organized entry point for regenerating:
+
+- the Morris passport geographic distribution figure
+- the PCA figure
+- the combined `geo + PCA` two-panel figure
+- the race-wise phenotype ridge and violin figures
+
+It does not replace the underlying plotting scripts. It runs them in a documented order.
+
+## Paths
+
+```{r}
+repo_root <- "/Users/subhashmahamkali/Documents/gwas_sap"
+
+geo_pca_builder <- file.path(
+  repo_root,
+  "profiling/01_publication/figure_1/build_geo_pca_two_panel.R"
+)
+
+racewise_script <- file.path(
+  repo_root,
+  "profiling/01_publication/figure_2_racewise_phenotype/create_racewise_plots.R"
+)
+
+combined_geo_pca_pdf <- file.path(
+  repo_root,
+  "graphs/01_publication/figure_1/figure1_geo_pca_two_panel_A4_landscape.pdf"
+)
+
+racewise_root <- file.path(
+  repo_root,
+  "graphs/01_publication/figure_2_racewise_phenotype"
+)
+
+list(
+  geo_pca_builder = geo_pca_builder,
+  racewise_script = racewise_script,
+  combined_geo_pca_pdf = combined_geo_pca_pdf,
+  racewise_root = racewise_root
+)
+```
+
+## 1. Build Geo + PCA Two-panel Figure
+
+This step regenerates the combined two-panel figure:
+
+- Panel A: Morris passport geographic distribution
+- Panel B: PCA
+
+```{r}
+source(geo_pca_builder)
+```
+
+```{r}
+file.exists(combined_geo_pca_pdf)
+combined_geo_pca_pdf
+```
+
+## 2. Build Race-wise Ridge and Violin Figures
+
+This step regenerates the race-wise phenotype figures, including:
+
+- `ridge_hn_ln`
+- `ridge_nr`
+- `violin_hn_ln`
+- `violin_nr`
+
+```{r}
+source(racewise_script)
+```
+
+## 3. Key Output Directories
+
+```{r}
+list.files(
+  racewise_root,
+  full.names = TRUE
+)
+```
+
+## 4. Important Output Files
+
+```{r}
+important_outputs <- c(
+  combined_geo_pca_pdf,
+  file.path(racewise_root, "ridge_nr", "2020"),
+  file.path(racewise_root, "ridge_nr", "2021"),
+  file.path(racewise_root, "ridge_hn_ln", "2020"),
+  file.path(racewise_root, "ridge_hn_ln", "2021")
+)
+
+important_outputs
+```
+
+## Notes
+
+- The underlying source scripts remain the authoritative plotting code.
+- This notebook is only an organized runner and record of what to execute.
+- Running this notebook may also refresh individual panel outputs as a side effect of the sourced scripts.

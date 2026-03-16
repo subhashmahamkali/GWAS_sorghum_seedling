@@ -89,15 +89,23 @@ color_vec <- c(
   "milo/durra-bicolor" = "#F781BF", "mixed/bicolor" = "#A6A6A6",
   "guinea" = "#56B4E9", "Wild sorghum" = "#4DAF4A"
 )
+shape_vec <- c(
+  "durra" = 16, "kafir" = 16, "caudatum" = 16,
+  "milo/durra-bicolor" = 16, "mixed/bicolor" = 16,
+  "guinea" = 16, "Wild sorghum" = 17
+)
+a4_width_in <- 21 / 2.54
+a4_height_in <- 29.7 / 2.54
 # ---------- Variance ----------
 eigenvalues <- scan(pca_val)
 variance_explained <- eigenvalues / sum(eigenvalues) * 100
 PC1_var <- variance_explained[1]; PC2_var <- variance_explained[2]
 
 # ---------- PCA plot ----------
-pca_plot <- ggplot(pca_annotated, aes(PC1, PC2, color = ClusterName_new)) +
+pca_plot <- ggplot(pca_annotated, aes(PC1, PC2, color = ClusterName_new, shape = ClusterName_new)) +
   geom_point(size = 2, alpha = 0.8) +
   scale_color_manual(values = color_vec, name = NULL) +
+  scale_shape_manual(values = shape_vec, name = NULL) +
   scale_x_continuous(expand = expansion(mult = 0.02)) +
   scale_y_continuous(expand = expansion(mult = 0.02)) +
   coord_cartesian(clip = "on") +
@@ -175,8 +183,8 @@ combined <- combined & guides(colour = guide_legend(nrow = 1, byrow = TRUE))
 # ---------- Save ----------
 #ggsave(out_png, combined, width = 12, height = 4.5, dpi = 600, bg = "white")
 ggsave(out_pdf, combined, width = 12, height = 4.5)
-ggsave("graphs/01_publication/1.pca_geo/map_plot.pdf", map_plot, width = 9, height = 5)
-ggsave("graphs/01_publication/1.pca_geo/pca_plot.pdf", pca_plot, width = 9, height = 5)
+ggsave("graphs/01_publication/1.pca_geo/map_plot.pdf", map_plot, width = a4_width_in, height = a4_height_in)
+ggsave("graphs/01_publication/1.pca_geo/pca_plot.pdf", pca_plot, width = a4_width_in, height = a4_height_in)
 
 ```
 
@@ -310,4 +318,3 @@ geom_label(
 )
 map_plot
 ```
-
