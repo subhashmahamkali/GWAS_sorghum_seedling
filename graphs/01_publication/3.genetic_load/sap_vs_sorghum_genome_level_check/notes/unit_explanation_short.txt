@@ -1,0 +1,9 @@
+Interpretation note:
+- SAP file is already one row per sample per cutoff (genome-level).
+- Sorghum raw files are one row per sample x chromosome.
+- For apples-to-apples comparison, sorghum should be summed across chromosomes first.
+
+Simple unit example:
+- If one sample has chr-level loads: -12000, -9000, -11000
+- Chr-level boxplot uses values: 12000, 9000, 11000 (3 rows).
+- Genome-level per-sample value is abs(-12000-9000-11000)=32000 (1 row).

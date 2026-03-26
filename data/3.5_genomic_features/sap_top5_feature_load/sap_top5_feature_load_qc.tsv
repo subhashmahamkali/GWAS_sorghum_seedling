@@ -1,0 +1,9 @@
+metric	value
+n_samples	400
+n_keys_in_map	147856
+n_rows_used	147856
+snp_used_downstream_2kb	2035
+snp_used_exon	4314
+snp_used_intergenic	135942
+snp_used_intron	2130
+snp_used_upstream_2kb	3435

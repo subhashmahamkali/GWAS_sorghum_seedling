@@ -1,0 +1,148 @@
+---
+title: "Sorghum V5: Negative ZSS Distribution Across Genomic Features"
+author: "Subhash"
+date: "2026-03-23"
+output: html_document
+---
+
+## Goal
+
+Map **negative ZSS SNPs** to Sorghum V5 genomic features and build a clean table for plotting ZSS distribution by feature.
+
+We keep ZSS as negative values (no absolute transform in this workflow).
+
+## Input Files (HCC)
+
+- `zeroscore.bed`  
+  Path: `/mnt/nrdstor/jyanglab/subhash/datasets/3.results/negative/zeroscore.bed`  
+  Expected columns: `chr start end pos zss`
+
+- `sorghum_v5_gene_features_2kb_labeled.chr.bed`  
+  Path: `/mnt/nrdstor/jyanglab/subhash/datasets/3.results/negative/genomic_fetures/sorghum_v5_gene_features_2kb_labeled.chr.bed`  
+  Expected columns: `chr start end feature gene_id strand`
+
+## Why Duplicate Handling Is Needed
+
+A SNP can overlap more than one feature (for example exon and gene_body).  
+If we keep all overlaps, one SNP can be counted multiple times, which biases feature-wise counts and distributions.
+
+So we assign **one SNP -> one feature** with priority:
+
+`exon > intron > upstream_2kb > downstream_2kb > gene_body`
+
+## Step-by-Step Commands (HCC)
+
+```bash
+cd /mnt/nrdstor/jyanglab/subhash/datasets/3.results/negative
+```
+
+### 1) Keep only negative ZSS SNPs
+
+```{bash}
+awk 'BEGIN{FS="[[:space:]]+"; OFS="\t"}
+     NF>=5 && $2~/^[0-9]+$/ && $3~/^[0-9]+$/ && $5<0 {
+       print $1, int($2), int($3), int($4), $5, $1 ":" int($4)
+     }' zeroscore.bed \
+| sort -k1,1 -k2,2n > zss_neg.sorted.bed
+```
+
+Output columns:
+
+`chr start end pos zss snpid`
+
+### 2) Clean/sort feature BED
+
+```bash
+awk 'BEGIN{FS="[[:space:]]+"; OFS="\t"}
+     NF>=6 && $2~/^[0-9]+$/ && $3~/^[0-9]+$/ {
+       print $1, int($2), int($3), $4, $5, $6
+     }' genomic_fetures/sorghum_v5_gene_features_2kb_labeled.chr.bed \
+| sort -k1,1 -k2,2n > genomic_fetures/features.sorted.bed
+```
+
+### 3) Intersect negative SNPs with features
+
+```bash
+bedtools intersect \
+  -a zss_neg.sorted.bed \
+  -b genomic_fetures/features.sorted.bed \
+  -wa -wb > zss_neg_feature_overlap.tsv
+```
+
+### 4) Keep one feature per SNP using priority
+
+```bash
+awk 'BEGIN{FS=OFS="\t";
+  p["exon"]=1; p["intron"]=2; p["upstream_2kb"]=3; p["downstream_2kb"]=4; p["gene_body"]=5}
+{
+  id=$6; f=$10; pr=p[f];
+  if(!(id in best) || pr<bp[id]){best[id]=$0; bp[id]=pr}
+}
+END{for(i in best) print best[i]}' zss_neg_feature_overlap.tsv > zss_neg_feature_unique.tsv
+```
+
+### 5) Build compact plotting table
+
+```bash
+awk 'BEGIN{FS=OFS="\t"} {print $1,$4,$5,$10,$11}' zss_neg_feature_unique.tsv \
+> zss_neg_by_feature.tsv
+```
+
+Output columns:
+
+`chr pos zss feature gene_id`
+
+### 6) QC checks
+
+```bash
+wc -l zss_neg.sorted.bed zss_neg_feature_overlap.tsv zss_neg_feature_unique.tsv
+cut -f4 zss_neg_by_feature.tsv | sort | uniq -c
+```
+
+## Interpretation of Your Current Counts
+
+From your output:
+
+- `downstream_2kb`: 583,740
+- `exon`: 1,100,930
+- `intron`: 972,549
+- `upstream_2kb`: 845,601
+
+Total assigned negative SNPs in these features: **3,502,820**.
+
+Total negative SNPs in `zss_neg.sorted.bed`: **13,472,877**.
+
+So SNPs outside these annotated feature classes are:
+
+`13,472,877 - 3,502,820 = 9,970,057`.
+
+## Files to Keep for Plotting
+
+Minimum needed to plot ZSS distributions by feature:
+
+- `zss_neg_by_feature.tsv`  (required)
+
+Recommended to keep for reproducibility:
+
+- `zss_neg_feature_unique.tsv`
+- `zss_neg_feature_overlap.tsv`
+- `genomic_fetures/features.sorted.bed`
+
+## Minimal R Plot Example
+
+```{r}
+library(data.table)
+library(ggplot2)
+
+d <- fread("zss_neg_by_feature.tsv", col.names = c("chr","pos","zss","feature","gene_id"))
+d[, feature := factor(feature, levels = c("exon","intron","upstream_2kb","downstream_2kb","gene_body"))]
+d <- d[!is.na(feature)]
+
+ggplot(d, aes(x = feature, y = zss, fill = feature)) +
+  geom_violin(trim = TRUE, scale = "width", color = "black", linewidth = 0.2) +
+  geom_boxplot(width = 0.1, outlier.size = 0.2, fill = "white") +
+  theme_bw(base_size = 12) +
+  theme(legend.position = "none") +
+  labs(x = NULL, y = "Negative zero-shot score (ZSS)")
+```
+

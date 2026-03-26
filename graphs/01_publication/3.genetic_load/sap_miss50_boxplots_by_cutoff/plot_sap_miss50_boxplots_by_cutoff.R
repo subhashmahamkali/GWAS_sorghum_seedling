@@ -23,6 +23,14 @@ cluster_names <- c(
 
 cutoff_levels <- c("1%", "5%", "10%", "25%")
 race_levels <- c("Bicolor", "Caudatum", "Durra", "Guinea", "Kafir", "Milo/Durra-Bicolor")
+race_colors <- c(
+  "Durra" = "#F28E2B",
+  "Kafir" = "#DCA73C",
+  "Caudatum" = "#A56CC1",
+  "Guinea" = "#77BCE8",
+  "Milo/Durra-Bicolor" = "#E88AC6",
+  "Bicolor" = "#B9B9B9"
+)
 
 dt <- fread(in_file)
 cl <- fread(cluster_file)
@@ -38,17 +46,21 @@ plot_dt <- merge(dt, cl[, .(PI, Race)], by = "PI", all.x = TRUE)
 plot_dt <- plot_dt[!is.na(Race)]
 plot_dt[, cutoff := factor(cutoff, levels = cutoff_levels)]
 plot_dt[, Race := factor(Race, levels = race_levels)]
+plot_dt[, Abs_genetic_load := abs(Genetic_load)]
 
 for (cut in cutoff_levels) {
   d <- plot_dt[cutoff == cut]
   if (nrow(d) == 0) next
+  race_order <- d[, .(med_abs = median(Abs_genetic_load, na.rm = TRUE)), by = Race][order(-med_abs), as.character(Race)]
+  d[, Race := factor(as.character(Race), levels = race_order)]
 
-  p <- ggplot(d, aes(x = Race, y = Genetic_load, fill = Race)) +
+  p <- ggplot(d, aes(x = Race, y = Abs_genetic_load, fill = Race)) +
     geom_boxplot(width = 0.7, outlier.size = 0.5) +
+    scale_fill_manual(values = race_colors, drop = FALSE) +
     labs(
-      title = paste0("SAP Genetic Load (miss50) - ", cut, " cutoff"),
+      title = paste0("SAP Absolute Genetic Load (miss50) - ", cut, " cutoff"),
       x = NULL,
-      y = "Genetic load (more negative = higher burden)"
+      y = "Absolute genetic load"
     ) +
     theme_bw(base_size = 12) +
     theme(
@@ -62,13 +74,24 @@ for (cut in cutoff_levels) {
   ggsave(file.path(out_dir, paste0(out_stub, ".png")), p, width = 8, height = 5, units = "in", dpi = 300, bg = "white")
 }
 
-combined <- ggplot(plot_dt, aes(x = Race, y = Genetic_load, fill = Race)) +
+# Facet-specific ordering (highest to lowest within each cutoff)
+rank_dt <- plot_dt[, .(med_abs = median(Abs_genetic_load, na.rm = TRUE)), by = .(cutoff, Race)][order(cutoff, -med_abs)]
+rank_dt[, rk := seq_len(.N), by = cutoff]
+plot_dt <- merge(plot_dt, rank_dt[, .(cutoff, Race, rk)], by = c("cutoff", "Race"), all.x = TRUE)
+plot_dt[, Race_cut := factor(
+  paste(cutoff, rk, as.character(Race), sep = "__"),
+  levels = rank_dt[order(cutoff, rk), paste(cutoff, rk, as.character(Race), sep = "__")]
+)]
+
+combined <- ggplot(plot_dt, aes(x = Race_cut, y = Abs_genetic_load, fill = Race)) +
   geom_boxplot(width = 0.7, outlier.size = 0.4) +
-  facet_wrap(~ cutoff, nrow = 2, scales = "free_y") +
+  facet_wrap(~ cutoff, nrow = 2, scales = "free") +
+  scale_fill_manual(values = race_colors, drop = FALSE) +
+  scale_x_discrete(labels = function(x) sub("^.*__.*__", "", x)) +
   labs(
-    title = "SAP Genetic Load by Race Across Cutoffs (miss50)",
+    title = "SAP Absolute Genetic Load by Race Across Cutoffs (miss50)",
     x = NULL,
-    y = "Genetic load (more negative = higher burden)"
+    y = "Absolute genetic load"
   ) +
   theme_bw(base_size = 12) +
   theme(
