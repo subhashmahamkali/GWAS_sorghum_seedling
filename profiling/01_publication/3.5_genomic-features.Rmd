@@ -6,23 +6,19 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE) 
+knitr::opts_knit$set(root.dir=normalizePath('..//..//'))  
 ```
 
 
 
 
-```{bash}
-#!/usr/bin/env bash
-# ==============================================================================
-# Feature-stratified genetic load per Mb  —  SAP panel
-# Cutoff   : genome-wide 5th percentile  (zeroShotScore < -5.150879)
+```{bash, eval=F}
+
+# Feature wise genetic load per Mb  —  SAP panel
+# Cutoff   : genome-wide 5th percentile, so top5% deleterious SNPs
 # Features : exon | intron | upstream_2kb | downstream_2kb | intergenic
-# Load     : sum(dosage × |ZSS|) per sample per feature ÷ feature Mb
-# Samples  : 400  (col 2 – col 401 in joined TSV)
-# Key col  : col 1  format Chr01|pos|REF|ALT
-# ZSS col  : col 402  named zeroShotScore
-# ==============================================================================
+
 set -euo pipefail
 
 # ── PATHS ─────────────────────────────────────────────────────────────────────
@@ -31,7 +27,7 @@ FEAT=/mnt/nrdstor/jyanglab/subhash/datasets/3.results/negative/genomic_fetures/s
 WORK=/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/7.feature_load_perMb
 mkdir -p "$WORK"
 
-CUTOFF=-5.150879   # genome-wide 5% threshold from your R: cuts["5%"]
+CUTOFF=-6.044922   # genome-wide 5% threshold from your R: cuts["5%"]
 
 echo "============================================================"
 echo " Feature load per Mb — SAP panel"
@@ -47,7 +43,7 @@ import sys
 
 JOINED  = "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/5.merged/sap_v5_genotypes_scores_joined_clean.tsv"
 WORK    = "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/7.feature_load_perMb"
-CUTOFF  = -5.150879
+CUTOFF  = -6.044922
 
 n_total = 0
 n_kept  = 0
@@ -83,19 +79,19 @@ print(f"  kept       : {n_kept:,}  ({100*n_kept/n_total:.2f}%)")
 PY
 
 # ── STEP 2: sort SNP BED ──────────────────────────────────────────────────────
-echo "[$(date '+%H:%M:%S')] Step 2: sorting SNP BED"
+echo "Step 2: sorting SNP BED"
 sort -k1,1V -k2,2n "$WORK/snps_top5pct.bed" > "$WORK/snps_top5pct.sorted.bed"
 
 # ── STEP 3: prepare feature BED (Chr01-Chr10 only, sorted) ───────────────────
-echo "[$(date '+%H:%M:%S')] Step 3: preparing feature BED (main chromosomes only)"
+echo "Step 3: preparing feature BED (main chromosomes only)"
 grep -P "^Chr[0-9]+" "$FEAT" | \
     awk 'BEGIN{OFS="\t"}{print $1, int($2), int($3), $4}' | \
     sort -k1,1V -k2,2n > "$WORK/features.sorted.bed"
 
-echo "  feature intervals: $(wc -l < "$WORK/features.sorted.bed")"
+echo "feature intervals: $(wc -l < "$WORK/features.sorted.bed")"
 
 # ── STEP 4: bedtools intersect ────────────────────────────────────────────────
-echo "[$(date '+%H:%M:%S')] Step 4: intersecting SNPs with features"
+echo "Step 4: intersecting SNPs with features"
 
 bedtools intersect \
     -nonamecheck \
@@ -110,7 +106,7 @@ bedtools intersect \
 echo "  SNPs mapped to a feature: $(wc -l < "$WORK/snps_with_feature.tsv")"
 
 # ── STEP 5: compute feature sizes in Mb (denominator) ────────────────────────
-echo "[$(date '+%H:%M:%S')] Step 5: computing feature sizes"
+echo "Step 5: computing feature sizes"
 
 grep -P "^Chr[0-9]+" "$FEAT" | \
 awk 'BEGIN{OFS="\t"} {bp[$4] += ($3-$2)} END{
@@ -121,7 +117,7 @@ echo "  Feature sizes (Mb):"
 cat "$WORK/feature_size_mb.tsv"
 
 # ── STEP 6: per-sample per-feature load ──────────────────────────────────────
-echo "[$(date '+%H:%M:%S')] Step 6: computing load per sample per feature"
+echo "Step 6: computing load per sample per feature"
 
 python3 << 'PY'
 import csv
@@ -228,11 +224,13 @@ echo "============================================================"
 
 
 
-
 ```{r}
 # ==============================================================================
-# Genetic load per Mb by genomic feature × sorghum race  —  SAP panel
-# Races ordered high → low by mean load averaged across all features
+# Cross-feature load per SNP site — single shared y-axis, legend on right
+# load_per_site = load_raw / n_snp_sites_in_feature
+# Denominator is FIXED per feature — same for every individual
+# n_snp_sites from step6_qc.txt: exon=8157, intron=4795,
+#   upstream_2kb=8782, downstream_2kb=5174, intergenic=300507
 # ==============================================================================
 library(data.table)
 library(ggplot2)
@@ -241,126 +239,200 @@ library(patchwork)
 # ── PATHS ─────────────────────────────────────────────────────────────────────
 LOAD_FILE <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/7.feature_load_perMb/sap_feature_load_perMb.tsv"
 RACE_FILE <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/7.feature_load_perMb/sorted_cluster_data.txt"
-OUT_PDF   <- "feature_load_perMb_by_race.pdf"
+OUT_PDF   <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/7.feature_load_perMb/feature_load_perSNPsite_crossfeature.pdf"
 
-# ── CLUSTER → RACE MAPPING ────────────────────────────────────────────────────
+#LOAD_FILE <- "/Users/subhashmahamkali/Documents/gwas_sap/data/3.5_genomic_features/sap_top5_feature_load/sap_feature_load_perMb.tsv"
+#RACE_FILE <- "/Users/subhashmahamkali/Documents/gwas_sap/data/3.5_genomic_features/sap_top5_feature_load/sorted_cluster_data.txt"
+#OUT_PDF   <- "/Users/subhashmahamkali/Documents/gwas_sap/graphs/01_publication/3.genetic_load/3.5_genomic_features/feature_load_perSNPsite_crossfeature_v7.pdf"
+
+# ── MAPPINGS ──────────────────────────────────────────────────────────────────
 cluster_to_race <- c(
-  "1" = "durra",
-  "2" = "kafir",
-  "3" = "caudatum",
-  "4" = "milo/durra-bicolor",
-  "5" = "mixed/bicolor",
-  "6" = "guinea"
+  "1" = "Durra", "2" = "Kafir", "3" = "Caudatum",
+  "4" = "Milo/Durra-Bicolor", "5" = "Mixed/Bicolor", "6" = "Guinea"
 )
-
 race_pal <- c(
-  "durra"             = "#FF7F00",
-  "kafir"             = "#E69F00",
-  "caudatum"          = "#984EA3",
-  "milo/durra-bicolor"= "#F781BF",
-  "mixed/bicolor"     = "#A6A6A6",
-  "guinea"            = "#56B4E9"
+  "Durra"              = "#FF7F00",
+  "Kafir"              = "#E69F00",
+  "Caudatum"           = "#984EA3",
+  "Milo/Durra-Bicolor" = "#F781BF",
+  "Mixed/Bicolor"      = "#A6A6A6",
+  "Guinea"             = "#56B4E9"
+)
+RACE_ORDER  <- c("Durra","Kafir","Caudatum","Milo/Durra-Bicolor","Mixed/Bicolor","Guinea")
+FEAT_ORDER  <- c("exon","intron","upstream_2kb","downstream_2kb","intergenic")
+FEAT_LABELS <- c("Exon","Intron","Upstream 2 kb","Downstream 2 kb","Intergenic")
+
+# ── SNP SITE COUNTS (from step6_qc.txt — fixed per feature) ──────────────────
+snp_sites <- data.table(
+  feature = c("exon","intron","upstream_2kb","downstream_2kb","intergenic"),
+  n_sites = c(8157L, 4795L, 8782L, 5174L, 300507L)
 )
 
-# ── LOAD DATA ─────────────────────────────────────────────────────────────────
+cat("SNP site denominators:\n")
+print(snp_sites)
+
+# ── LOAD & PREP ───────────────────────────────────────────────────────────────
 load_dt <- fread(LOAD_FILE)
 race_dt <- fread(RACE_FILE)
-
 race_dt[, sample := paste0(PI_numbers, "_", PI_numbers)]
 race_dt[, race   := cluster_to_race[as.character(Cluster)]]
-race_map <- race_dt[, .(sample, race)]
 
-dt <- merge(load_dt, race_map, by = "sample", all.x = TRUE)
+dt <- merge(load_dt, race_dt[, .(sample, race)], by = "sample", all.x = TRUE)
 dt <- dt[!is.na(race)]
 
-cat("Samples with race info:", dt[, uniqueN(sample)], "\n")
-cat("Races found:", paste(sort(unique(dt$race)), collapse = ", "), "\n")
+# ── COMPUTE load_per_site ─────────────────────────────────────────────────────
+# Merge in the fixed SNP site counts per feature
+dt <- merge(dt, snp_sites, by = "feature")
 
-# ── DERIVE RACE ORDER: high → low mean load averaged across all features ──────
-race_order <- dt[, .(mean_load = mean(load_per_Mb, na.rm = TRUE)), by = race
-                ][order(-mean_load), race]
-
-cat("\nRace order (high → low average load per Mb):\n")
-print(dt[, .(mean_load = round(mean(load_per_Mb, na.rm = TRUE), 2)), by = race
-        ][order(-mean_load)])
+# load_per_site = load_raw / n_sites
+# Every individual in exon is divided by 8,157
+# Every individual in intergenic is divided by 300,507
+# This is a BURDEN RATE: how much load per available deleterious site
+dt[, load_per_site := load_raw / n_sites]
 
 # ── FACTORS ───────────────────────────────────────────────────────────────────
-FEAT_ORDER  <- c("exon", "intron", "upstream_2kb", "downstream_2kb", "intergenic")
-FEAT_LABELS <- c("Exon", "Intron", "Upstream 2 kb", "Downstream 2 kb", "Intergenic")
-
 dt[, feature := factor(feature, levels = FEAT_ORDER, labels = FEAT_LABELS)]
-dt[, race    := factor(race, levels = race_order)]   # ← data-driven order
+dt[, race    := factor(race,    levels = RACE_ORDER)]
 dt <- dt[!is.na(feature) & !is.na(race)]
 
-# ── PANEL FUNCTION ────────────────────────────────────────────────────────────
-make_panel <- function(feat_label) {
+# ── SUMMARY CHECK ─────────────────────────────────────────────────────────────
+cat("\nload_per_site summary by feature:\n")
+print(dt[, .(mean  = round(mean(load_per_site),  4),
+             median= round(median(load_per_site), 4),
+             sd    = round(sd(load_per_site),     4)),
+          by = feature][order(feature)])
+
+# ── PER-FEATURE RACE ORDER (high → low mean load_per_site) ───────────────────
+race_order_per_feat <- dt[, .(mean_lps = mean(load_per_site, na.rm = TRUE)),
+                           by = .(feature, race)][order(feature, -mean_lps)]
+
+cat("\nRace order per feature (high → low load_per_site):\n")
+print(race_order_per_feat)
+
+# ── SHARED Y RANGE ────────────────────────────────────────────────────────────
+y_min <- floor(min(dt$load_per_site,   na.rm = TRUE) * 100) / 100
+y_max <- ceiling(max(dt$load_per_site, na.rm = TRUE) * 100) / 100
+
+race_x_labels <- c(
+  "Durra"              = "Durra",
+  "Kafir"              = "Kafir",
+  "Caudatum"           = "Caudatum",
+  "Milo/Durra-Bicolor" = "Milo/\nDurra-Bicolor",
+  "Mixed/Bicolor"      = "Mixed/\nBicolor",
+  "Guinea"             = "Guinea"
+)
+
+# ── BASE THEME ────────────────────────────────────────────────────────────────
+base_theme <- theme_classic(base_size = 10) +
+  theme(
+    plot.title         = element_blank(),
+    plot.subtitle      = element_blank(),
+    strip.text         = element_text(size = 10, face = "bold", color = "grey15"),
+    strip.background   = element_blank(),
+    axis.text.x        = element_text(angle = 38, hjust = 1, size = 8, color = "grey20"),
+    axis.text.y        = element_text(size = 8, color = "grey20"),
+    axis.title.x       = element_blank(),
+    axis.line          = element_line(color = "grey40", linewidth = 0.35),
+    axis.ticks         = element_line(color = "grey40", linewidth = 0.3),
+    panel.grid.major.y = element_line(color = "grey93", linewidth = 0.3),
+    panel.grid.major.x = element_blank(),
+    legend.position    = "none",
+    plot.background    = element_rect(fill = "white", color = NA),
+    panel.background   = element_rect(fill = "white", color = NA),
+    plot.margin        = margin(4, 2, 4, 2)
+  )
+
+# ── PANEL BUILDER ─────────────────────────────────────────────────────────────
+make_panel <- function(feat_label, show_y = FALSE, show_legend = FALSE) {
+
   sub <- dt[feature == feat_label]
 
-  kw_p     <- kruskal.test(load_per_Mb ~ race, data = sub)$p.value
-  kw_label <- ifelse(kw_p < 0.001, "italic(p) < 0.001",
-               ifelse(kw_p < 0.01,  "italic(p) < 0.01",
-               sprintf("italic(p) == %.3f", kw_p)))
+  # order races high → low for this feature
+  feat_race_order <- race_order_per_feat[feature == feat_label, as.character(race)]
+  sub[, race_ordered := factor(race, levels = feat_race_order)]
 
-  # readable x-axis labels (title case, linebreak for long names)
-  label_map <- c(
-    "durra"             = "Durra",
-    "kafir"             = "Kafir",
-    "caudatum"          = "Caudatum",
-    "milo/durra-bicolor"= "Milo/Durra-\nBicolor",
-    "mixed/bicolor"     = "Mixed/\nBicolor",
-    "guinea"            = "Guinea"
-  )
+  # n_sites for subtitle
+  feat_key   <- FEAT_ORDER[FEAT_LABELS == feat_label]
+  n_sites_val <- snp_sites[feature == feat_key, n_sites]
 
-  ggplot(sub, aes(x = race, y = load_per_Mb, fill = race)) +
-    geom_violin(alpha = 0.45, linewidth = 0.3, trim = TRUE, color = NA) +
-    geom_boxplot(
-      width = 0.16, outlier.shape = NA,
-      fill  = "white", alpha = 0.85,
-      linewidth = 0.35, color = "grey20"
+  p <- ggplot(sub, aes(x = race_ordered, y = load_per_site, fill = race)) +
+    geom_violin(
+      trim      = TRUE,
+      scale     = "width",
+      alpha     = 0.85,
+      linewidth = 0,
+      color     = NA
     ) +
-    annotate("text",
-             x = Inf, y = Inf,
-             label = kw_label,
-             hjust = 1.1, vjust = 1.6,
-             size  = 2.8, parse = TRUE,
-             color = "grey30") +
-    scale_fill_manual(values = race_pal) +
-    scale_x_discrete(labels = label_map) +
-    labs(title = feat_label, x = NULL, y = "Load per Mb") +
-    theme_classic(base_size = 9) +
+    geom_boxplot(
+      width         = 0.18,
+      outlier.shape = NA,
+      fill          = "white",
+      color         = "grey20",
+      linewidth     = 0.4,
+      alpha         = 0.9
+    ) +
+    scale_fill_manual(values = race_pal, name = "Race", labels = race_x_labels) +
+    scale_x_discrete(labels = race_x_labels) +
+    coord_cartesian(ylim = c(y_min, y_max)) +
+    labs(
+      title    = feat_label,
+      subtitle = paste0("n sites = ", formatC(n_sites_val, format="d", big.mark=","))
+    ) +
+    base_theme +
     theme(
-      plot.title         = element_text(size = 9, face = "bold", hjust = 0.5),
-      axis.text.x        = element_text(angle = 40, hjust = 1, size = 7.5),
-      axis.text.y        = element_text(size = 7.5),
-      axis.title.y       = element_text(size = 8.5),
-      legend.position    = "none",
-      panel.grid.major.y = element_line(color = "grey93", linewidth = 0.25)
+      plot.title    = element_text(size = 10, face = "bold",
+                                   hjust = 0.5, margin = margin(b = 2)),
+      plot.subtitle = element_text(size = 7.5, color = "grey50",
+                                   hjust = 0.5, margin = margin(b = 4))
     )
+
+  if (!show_y) {
+    p <- p + theme(
+      axis.text.y  = element_blank(),
+      axis.ticks.y = element_blank(),
+      axis.title.y = element_blank(),
+      axis.line.y  = element_blank()
+    )
+  } else {
+    p <- p + labs(y = "Load per deleterious SNP site") +
+      theme(axis.title.y = element_text(size = 9, margin = margin(r = 6)))
+  }
+
+  if (show_legend) {
+    p <- p + theme(
+      legend.position = "right",
+      legend.title    = element_text(size = 9, face = "bold"),
+      legend.text     = element_text(size = 8.5),
+      legend.key.size = unit(0.5, "cm")
+    ) +
+    guides(fill = guide_legend(
+      override.aes = list(alpha = 1, color = NA, shape = 22, size = 4)
+    ))
+  }
+  p
 }
 
-# ── ASSEMBLE ──────────────────────────────────────────────────────────────────
-panels <- lapply(FEAT_LABELS, make_panel)
+# ── BUILD PANELS ──────────────────────────────────────────────────────────────
+p1 <- make_panel("Exon",            show_y = TRUE,  show_legend = FALSE)
+p2 <- make_panel("Intron",          show_y = FALSE, show_legend = FALSE)
+p3 <- make_panel("Upstream 2 kb",   show_y = FALSE, show_legend = FALSE)
+p4 <- make_panel("Downstream 2 kb", show_y = FALSE, show_legend = FALSE)
+p5 <- make_panel("Intergenic",      show_y = FALSE, show_legend = TRUE)
 
-fig <- wrap_plots(panels, nrow = 1) +
+# ── ASSEMBLE ──────────────────────────────────────────────────────────────────
+fig <- (p1 | p2 | p3 | p4 | p5) +
+  plot_layout(widths = c(1.2, 1, 1, 1, 1.35)) +
   plot_annotation(
-    title    = "Genetic load per Mb by genomic feature and sorghum race",
-    subtitle = paste0(
-      "Top 5% most deleterious SNPs (ZSS < \u22125.15)  |  ",
-      "Exclusive feature annotation  |  SAP panel (n = 400)  |  ",
-      "Races ordered high \u2192 low by mean load across all features"
-    ),
-    caption = paste0(
-      "Load = \u03a3(dosage \u00d7 |ZSS|) \u00f7 feature size (Mb).  ",
-      "Feature sizes \u2014 exon: 62.3, intron: 57.8, upstream: 50.5, ",
-      "downstream: 33.9, intergenic: 512.5 Mb."
-    ),
+    title    = "Genetic load per deleterious SNP site by genomic feature and sorghum race")
     theme = theme(
-      plot.title    = element_text(size = 12, face = "bold"),
-      plot.subtitle = element_text(size = 8.5, color = "grey35"),
-      plot.caption  = element_text(size = 7,   color = "grey50", hjust = 0),
-      plot.background = element_rect(fill = "white", color = NA)
+      plot.title      = element_text(size = 12, face = "bold", hjust = 0),
+      plot.subtitle   = element_text(size = 8,  color = "grey40", hjust = 0),
+      plot.caption    = element_text(size = 7,  color = "grey55", hjust = 0,
+                                     margin = margin(t = 6)),
+      plot.background = element_rect(fill = "white", color = NA),
+      plot.margin     = margin(14, 14, 10, 14)
     )
-  )
+  
 
 # ── SAVE ──────────────────────────────────────────────────────────────────────
 cairo_pdf(OUT_PDF, width = 16, height = 5.5, family = "Arial")
@@ -369,4 +441,204 @@ dev.off()
 cat("Saved:", OUT_PDF, "\n")
 ```
 
+
+
+
+
+
+
+
+
+```{r}
+# ==============================================================================
+# load per SNP site — faceted BY RACE (6 panels)
+# Features on x-axis within each panel
+# Shows: for each race, how load_per_site differs across genomic features
+# ==============================================================================
+library(data.table)
+library(ggplot2)
+library(patchwork)
+
+# ── PATHS ─────────────────────────────────────────────────────────────────────
+#LOAD_FILE <- "/Users/subhashmahamkali/Documents/gwas_sap/data/3.5_genomic_features/sap_top5_feature_load/sap_feature_load_perMb.tsv"
+#RACE_FILE <- "/Users/subhashmahamkali/Documents/gwas_sap/data/3.5_genomic_features/sap_top5_feature_load/sorted_cluster_data.txt"
+#OUT_PDF   <- "/Users/subhashmahamkali/Documents/gwas_sap/graphs/01_publication/3.genetic_load/3.5_genomic_features/feature_load_perSNPsite_byrace.pdf"
+
+LOAD_FILE <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/7.feature_load_perMb/sap_feature_load_perMb.tsv"
+RACE_FILE <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/7.feature_load_perMb/sorted_cluster_data.txt"
+OUT_PDF   <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/7.feature_load_perMb/feature_load_perSNPsite_byrace.pdf"
+
+# ── MAPPINGS ──────────────────────────────────────────────────────────────────
+cluster_to_race <- c(
+  "1" = "Durra", "2" = "Kafir", "3" = "Caudatum",
+  "4" = "Milo/Durra-Bicolor", "5" = "Mixed/Bicolor", "6" = "Guinea"
+)
+race_pal <- c(
+  "Durra"              = "#FF7F00",
+  "Kafir"              = "#E69F00",
+  "Caudatum"           = "#984EA3",
+  "Milo/Durra-Bicolor" = "#F781BF",
+  "Mixed/Bicolor"      = "#A6A6A6",
+  "Guinea"             = "#56B4E9"
+)
+RACE_ORDER  <- c("Durra","Kafir","Caudatum","Milo/Durra-Bicolor","Mixed/Bicolor","Guinea")
+FEAT_ORDER  <- c("exon","intron","upstream_2kb","downstream_2kb","intergenic")
+FEAT_LABELS <- c("Exon","Intron","Upstream\n2 kb","Downstream\n2 kb","Intergenic")
+
+# feature colors — consistent across all race panels
+feat_pal <- c(
+  "Exon"           = "#7B3F9E",
+  "Intron"         = "#E07B3A",
+  "Upstream\n2 kb" = "#3A82C4",
+  "Downstream\n2 kb"= "#3AA87A",
+  "Intergenic"     = "#888888"
+)
+
+# ── SNP SITE COUNTS (fixed denominators) ──────────────────────────────────────
+snp_sites <- data.table(
+  feature = c("exon","intron","upstream_2kb","downstream_2kb","intergenic"),
+  n_sites = c(8157L, 4795L, 8782L, 5174L, 300507L)
+)
+
+# ── LOAD & PREP ───────────────────────────────────────────────────────────────
+load_dt <- fread(LOAD_FILE)
+race_dt <- fread(RACE_FILE)
+race_dt[, sample := paste0(PI_numbers, "_", PI_numbers)]
+race_dt[, race   := cluster_to_race[as.character(Cluster)]]
+
+dt <- merge(load_dt, race_dt[, .(sample, race)], by = "sample", all.x = TRUE)
+dt <- dt[!is.na(race)]
+dt <- merge(dt, snp_sites, by = "feature")
+dt[, load_per_site := load_raw / n_sites]
+dt[, feature := factor(feature, levels = FEAT_ORDER, labels = FEAT_LABELS)]
+dt[, race    := factor(race,    levels = RACE_ORDER)]
+dt <- dt[!is.na(feature) & !is.na(race)]
+
+# ── SHARED Y RANGE ────────────────────────────────────────────────────────────
+y_min <- floor(min(dt$load_per_site,   na.rm = TRUE) * 100) / 100
+y_max <- ceiling(max(dt$load_per_site, na.rm = TRUE) * 100) / 100
+
+# ── FEATURE ORDER per race (high → low mean) ──────────────────────────────────
+feat_order_per_race <- dt[, .(mean_lps = mean(load_per_site, na.rm = TRUE)),
+                           by = .(race, feature)][order(race, -mean_lps)]
+
+cat("Feature order per race (high → low load_per_site):\n")
+print(feat_order_per_race)
+
+# ── PANEL BUILDER ─────────────────────────────────────────────────────────────
+make_race_panel <- function(race_label, show_y = FALSE) {
+
+  sub <- dt[race == race_label]
+  n   <- sub[, uniqueN(sample)]
+
+  # order features high → low for this race
+  race_feat_order <- feat_order_per_race[race == race_label, as.character(feature)]
+  sub[, feat_ordered := factor(feature, levels = race_feat_order)]
+
+  p <- ggplot(sub, aes(x = feat_ordered, y = load_per_site, fill = feature)) +
+    geom_violin(
+      trim      = TRUE,
+      scale     = "width",
+      alpha     = 0.85,
+      linewidth = 0,
+      color     = NA
+    ) +
+    geom_boxplot(
+      width         = 0.22,
+      outlier.shape = NA,
+      fill          = "white",
+      color         = "grey20",
+      linewidth     = 0.4,
+      alpha         = 0.9
+    ) +
+    # mean dot
+    stat_summary(fun = mean, geom = "point",
+                 shape = 18, size = 2.2, color = "grey15") +
+    scale_fill_manual(values = feat_pal, guide = "none") +
+    coord_cartesian(ylim = c(y_min, y_max)) +
+    labs(
+      title    = race_label,
+      subtitle = paste0("n = ", n)
+    ) +
+    theme_classic(base_size = 9.5) +
+    theme(
+      plot.title         = element_text(size = 10, face = "bold", hjust = 0.5,
+                                        color = race_pal[race_label],
+                                        margin = margin(b = 2)),
+      plot.subtitle      = element_text(size = 7.5, color = "grey50",
+                                        hjust = 0.5, margin = margin(b = 3)),
+      axis.text.x        = element_text(angle = 35, hjust = 1, size = 7.5,
+                                        color = "grey20"),
+      axis.text.y        = element_text(size = 7.5, color = "grey20"),
+      axis.title.x       = element_blank(),
+      axis.line          = element_line(color = "grey40", linewidth = 0.35),
+      axis.ticks         = element_line(color = "grey40", linewidth = 0.3),
+      panel.grid.major.y = element_line(color = "grey93", linewidth = 0.3),
+      panel.grid.major.x = element_blank(),
+      legend.position    = "none",
+      plot.background    = element_rect(fill = "white", color = NA),
+      panel.background   = element_rect(fill = "white", color = NA),
+      plot.margin        = margin(4, 4, 4, 4)
+    )
+
+  if (!show_y) {
+    p <- p + theme(
+      axis.text.y  = element_blank(),
+      axis.ticks.y = element_blank(),
+      axis.title.y = element_blank(),
+      axis.line.y  = element_blank()
+    )
+  } else {
+    p <- p + labs(y = "Load per deleterious SNP site") +
+      theme(axis.title.y = element_text(size = 9, margin = margin(r = 6)))
+  }
+  p
+}
+
+# ── BUILD 6 RACE PANELS ───────────────────────────────────────────────────────
+p1 <- make_race_panel("Durra",              show_y = TRUE)
+p2 <- make_race_panel("Kafir",              show_y = FALSE)
+p3 <- make_race_panel("Caudatum",           show_y = FALSE)
+p4 <- make_race_panel("Milo/Durra-Bicolor", show_y = FALSE)
+p5 <- make_race_panel("Mixed/Bicolor",      show_y = FALSE)
+p6 <- make_race_panel("Guinea",             show_y = FALSE)
+
+# ── FEATURE LEGEND (manual) ───────────────────────────────────────────────────
+legend_data <- data.table(
+  feature = factor(FEAT_LABELS, levels = FEAT_LABELS),
+  x = 1, y = 1
+)
+legend_plot <- ggplot(legend_data, aes(x = x, y = y, fill = feature)) +
+  geom_point(shape = 22, size = 4) +
+  scale_fill_manual(values = feat_pal, name = "Feature") +
+  theme_void() +
+  theme(
+    legend.position    = "right",
+    legend.title       = element_text(size = 9, face = "bold"),
+    legend.text        = element_text(size = 8.5),
+    legend.key.size    = unit(0.5, "cm"),
+    plot.background    = element_rect(fill = "white", color = NA)
+  ) +
+  guides(fill = guide_legend(override.aes = list(size = 4, alpha = 1)))
+
+# ── ASSEMBLE: 6 race panels + legend ─────────────────────────────────────────
+fig <- (p1 | p2 | p3 | p4 | p5 | p6 | legend_plot) +
+  plot_layout(widths = c(1.2, 1, 1, 1, 1, 1, 0.5)) +
+  plot_annotation(
+    title    = "Genetic load per deleterious SNP site by sorghum race")
+    theme = theme(
+      plot.title      = element_text(size = 12, face = "bold", hjust = 0),
+      plot.subtitle   = element_text(size = 8,  color = "grey40", hjust = 0),
+      plot.caption    = element_text(size = 7,  color = "grey55", hjust = 0,
+                                     margin = margin(t = 6)),
+      plot.background = element_rect(fill = "white", color = NA),
+      plot.margin     = margin(14, 14, 10, 14)
+    )
+
+# ── SAVE ──────────────────────────────────────────────────────────────────────
+cairo_pdf(OUT_PDF, width = 18, height = 5.5, family = "Arial")
+print(fig)
+dev.off()
+cat("Saved:", OUT_PDF, "\n")
+```
 
