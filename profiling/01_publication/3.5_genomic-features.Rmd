@@ -14,242 +14,447 @@ knitr::opts_knit$set(root.dir=normalizePath('..//..//'))
 
 
 ```{bash, eval=F}
-
-# Feature wise genetic load per Mb  —  SAP panel
-# Cutoff   : genome-wide 5th percentile, so top5% deleterious SNPs
-# Features : exon | intron | upstream_2kb | downstream_2kb | intergenic
-
+#!/usr/bin/env bash
 set -euo pipefail
 
-# ── PATHS ─────────────────────────────────────────────────────────────────────
-JOINED=/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/5.merged/sap_v5_genotypes_scores_joined_clean.tsv
-FEAT=/mnt/nrdstor/jyanglab/subhash/datasets/3.results/negative/genomic_fetures/sorghum_v5_exclusive_features_2kb_plus_intergenic.chr.bed
-WORK=/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/7.feature_load_perMb
-mkdir -p "$WORK"
+# ==============================================================================
+# Feature-stratified deleterious burden with callable-site normalization
+# SAP panel + PlantCAD ZSS
+#
+# Main outputs:
+#   1) burden per callable selected site
+#   2) burden per Mb
+#
+# Workflow:
+#   - compute or use ZSS cutoff
+#   - select deleterious SNPs
+#   - assign SNPs to exclusive genomic features
+#   - filter selected SNPs by variant missingness
+#   - compute per-sample callable selected sites
+#   - compute per-sample burden metrics
+#   - write QC and metadata
+# ==============================================================================
 
-CUTOFF=-6.044922   # genome-wide 5% threshold from your R: cuts["5%"]
+# ---------------- USER SETTINGS ------------------------------------------------
+JOINED="/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/5.merged/sap_v5_genotypes_scores_joined_clean.tsv"
+FEAT="/mnt/nrdstor/jyanglab/subhash/datasets/3.results/negative/genomic_fetures/sorghum_v5_exclusive_features_2kb_plus_intergenic.chr.bed"
+WORK="/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/8.feature_load_callable"
+
+# Set CUTOFF_MODE to:
+#   auto_5pct   -> compute genome-wide 5th percentile from current joined TSV
+#   fixed       -> use FIXED_CUTOFF below
+CUTOFF_MODE="auto_5pct"
+FIXED_CUTOFF="-6.044922"
+
+# Variant missingness filter:
+# keep selected SNPs only if fraction missing <= MAX_MISSING
+MAX_MISSING="0.20"
+
+# Feature list expected in BED
+FEATURES_CSV="exon,intron,upstream_2kb,downstream_2kb,intergenic"
+
+mkdir -p "$WORK"/{input,genomic_features,output/qc,output/intermediate,output/final,scripts}
+
+cp "$JOINED" "$WORK/input/" 2>/dev/null || true
+cp "$FEAT"   "$WORK/genomic_features/" 2>/dev/null || true
 
 echo "============================================================"
-echo " Feature load per Mb — SAP panel"
-echo " Cutoff : ZSS < $CUTOFF  (genome-wide 5%)"
-echo " Output : $WORK"
+echo " Deleterious burden workflow with callable-site normalization"
+echo " JOINED         : $JOINED"
+echo " FEAT           : $FEAT"
+echo " WORK           : $WORK"
+echo " CUTOFF_MODE    : $CUTOFF_MODE"
+echo " FIXED_CUTOFF   : $FIXED_CUTOFF"
+echo " MAX_MISSING    : $MAX_MISSING"
 echo "============================================================"
+
 ml bedtools
-# ── STEP 1: extract top-5% deleterious SNPs → BED ────────────────────────────
-echo "[$(date '+%H:%M:%S')] Step 1: filtering SNPs with ZSS < $CUTOFF"
 
+# ------------------------------------------------------------------------------
+# STEP 1. Compute cutoff and extract deleterious SNPs
+# ------------------------------------------------------------------------------
 python3 << 'PY'
-import sys
+import csv
+import math
+import os
 
-JOINED  = "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/5.merged/sap_v5_genotypes_scores_joined_clean.tsv"
-WORK    = "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/7.feature_load_perMb"
-CUTOFF  = -6.044922
+JOINED = "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/5.merged/sap_v5_genotypes_scores_joined_clean.tsv"
+WORK   = "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/8.feature_load_callable"
+CUTOFF_MODE  = "auto_5pct"
+FIXED_CUTOFF = -6.044922
 
+def percentile(values, p):
+    if not values:
+        raise ValueError("No values available for percentile calculation")
+    values = sorted(values)
+    k = (len(values)-1) * p
+    f = math.floor(k)
+    c = math.ceil(k)
+    if f == c:
+        return values[int(k)]
+    d0 = values[f] * (c-k)
+    d1 = values[c] * (k-f)
+    return d0 + d1
+
+zss_vals = []
 n_total = 0
-n_kept  = 0
 
-with open(JOINED) as fh, open(f"{WORK}/snps_top5pct.bed", "w") as out:
-    header = fh.readline().rstrip("\n").split("\t")
-    # confirm structure
-    assert header[0]  == "key",           f"col1 expected 'key', got '{header[0]}'"
-    assert header[-1] == "zeroShotScore", f"last col expected 'zeroShotScore', got '{header[-1]}'"
-    zss_idx = len(header) - 1   # column index of zeroShotScore (0-based)
-
-    for line in fh:
+with open(JOINED) as fh:
+    reader = csv.DictReader(fh, delimiter="\t")
+    for row in reader:
         n_total += 1
-        parts = line.rstrip("\n").split("\t")
-        zss   = float(parts[zss_idx])
-        if zss >= CUTOFF:
+        z = row["zeroShotScore"]
+        if z == "" or z is None:
             continue
-        key  = parts[0]                        # Chr01|10000140|G|A
+        zss_vals.append(float(z))
+
+if CUTOFF_MODE == "auto_5pct":
+    cutoff = percentile(zss_vals, 0.05)
+else:
+    cutoff = FIXED_CUTOFF
+
+n_kept = 0
+with open(JOINED) as fh, open(f"{WORK}/output/intermediate/snps_selected_raw.bed", "w") as out:
+    reader = csv.DictReader(fh, delimiter="\t")
+    for row in reader:
+        zss = float(row["zeroShotScore"])
+        if zss >= cutoff:
+            continue
+        key = row["key"]
         chrom, pos, ref, alt = key.split("|")
-        pos  = int(pos)
-        # BED is 0-based half-open
+        pos = int(pos)
         out.write(f"{chrom}\t{pos-1}\t{pos}\t{key}\t{zss}\n")
         n_kept += 1
 
-with open(f"{WORK}/step1_qc.txt", "w") as qc:
-    qc.write(f"total_SNPs\t{n_total}\n")
-    qc.write(f"SNPs_below_cutoff\t{n_kept}\n")
-    qc.write(f"cutoff_used\t{CUTOFF}\n")
-    qc.write(f"pct_kept\t{100*n_kept/n_total:.3f}\n")
+with open(f"{WORK}/output/qc/step1_cutoff_and_selection.tsv", "w") as qc:
+    qc.write("metric\tvalue\n")
+    qc.write(f"total_scored_snps\t{n_total}\n")
+    qc.write(f"cutoff_mode\t{CUTOFF_MODE}\n")
+    qc.write(f"cutoff_used\t{cutoff}\n")
+    qc.write(f"selected_snps_before_missingness\t{n_kept}\n")
+    qc.write(f"percent_selected\t{100*n_kept/n_total:.6f}\n")
 
-print(f"  total SNPs : {n_total:,}")
-print(f"  kept       : {n_kept:,}  ({100*n_kept/n_total:.2f}%)")
+with open(f"{WORK}/output/intermediate/cutoff_used.txt", "w") as out:
+    out.write(str(cutoff) + "\n")
+
+print(f"[STEP1] total scored SNPs: {n_total:,}")
+print(f"[STEP1] cutoff used: {cutoff}")
+print(f"[STEP1] selected SNPs before missingness: {n_kept:,}")
 PY
 
-# ── STEP 2: sort SNP BED ──────────────────────────────────────────────────────
-echo "Step 2: sorting SNP BED"
-sort -k1,1V -k2,2n "$WORK/snps_top5pct.bed" > "$WORK/snps_top5pct.sorted.bed"
+sort -k1,1V -k2,2n "$WORK/output/intermediate/snps_selected_raw.bed" \
+  > "$WORK/output/intermediate/snps_selected_raw.sorted.bed"
 
-# ── STEP 3: prepare feature BED (Chr01-Chr10 only, sorted) ───────────────────
-echo "Step 3: preparing feature BED (main chromosomes only)"
+# ------------------------------------------------------------------------------
+# STEP 2. Prepare exclusive feature BED and feature sizes
+# ------------------------------------------------------------------------------
 grep -P "^Chr[0-9]+" "$FEAT" | \
-    awk 'BEGIN{OFS="\t"}{print $1, int($2), int($3), $4}' | \
-    sort -k1,1V -k2,2n > "$WORK/features.sorted.bed"
+awk 'BEGIN{OFS="\t"} {print $1, int($2), int($3), $4}' | \
+sort -k1,1V -k2,2n > "$WORK/output/intermediate/features.sorted.bed"
 
-echo "feature intervals: $(wc -l < "$WORK/features.sorted.bed")"
+grep -P "^Chr[0-9]+" "$FEAT" | \
+awk 'BEGIN{OFS="\t"} {bp[$4] += ($3-$2)} END {for (f in bp) printf "%s\t%.6f\n", f, bp[f]/1e6}' | \
+sort > "$WORK/output/intermediate/feature_size_mb.tsv"
 
-# ── STEP 4: bedtools intersect ────────────────────────────────────────────────
-echo "Step 4: intersecting SNPs with features"
-
+# ------------------------------------------------------------------------------
+# STEP 3. Assign selected SNPs to features
+# ------------------------------------------------------------------------------
 bedtools intersect \
-    -nonamecheck \
-    -a "$WORK/snps_top5pct.sorted.bed" \
-    -b "$WORK/features.sorted.bed" \
-    -wa -wb \
-    > "$WORK/snps_with_feature.tsv"
+  -nonamecheck \
+  -a "$WORK/output/intermediate/snps_selected_raw.sorted.bed" \
+  -b "$WORK/output/intermediate/features.sorted.bed" \
+  -wa -wb > "$WORK/output/intermediate/snps_selected_with_feature.tsv"
 
-# columns: Chr  start  end  key  zss  |  Chr  start  end  feature
-#  index:   0    1      2    3    4         5    6      7      8
-
-echo "  SNPs mapped to a feature: $(wc -l < "$WORK/snps_with_feature.tsv")"
-
-# ── STEP 5: compute feature sizes in Mb (denominator) ────────────────────────
-echo "Step 5: computing feature sizes"
-
-grep -P "^Chr[0-9]+" "$FEAT" | \
-awk 'BEGIN{OFS="\t"} {bp[$4] += ($3-$2)} END{
-    for (f in bp) printf "%s\t%.6f\n", f, bp[f]/1e6
-}' | sort > "$WORK/feature_size_mb.tsv"
-
-echo "  Feature sizes (Mb):"
-cat "$WORK/feature_size_mb.tsv"
-
-# ── STEP 6: per-sample per-feature load ──────────────────────────────────────
-echo "Step 6: computing load per sample per feature"
-
+# ------------------------------------------------------------------------------
+# STEP 4. Apply variant missingness filter among selected SNPs
+# ------------------------------------------------------------------------------
 python3 << 'PY'
 import csv
 from collections import defaultdict
 
-JOINED       = "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/5.merged/sap_v5_genotypes_scores_joined_clean.tsv"
-WORK         = "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/7.feature_load_perMb"
-FEATURES     = ["exon", "intron", "upstream_2kb", "downstream_2kb", "intergenic"]
+JOINED = "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/5.merged/sap_v5_genotypes_scores_joined_clean.tsv"
+WORK   = "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/8.feature_load_callable"
+MAX_MISSING = 0.20
 
-# ── 6a. SNP → feature map from intersect output ───────────────────────────────
-# cols: Chr start end key zss  Chr start end feature
-# idx:   0   1    2   3   4    5   6    7    8
-snp_feat = {}   # key -> (zss, feature)
-with open(f"{WORK}/snps_with_feature.tsv") as fh:
+selected = {}
+with open(f"{WORK}/output/intermediate/snps_selected_with_feature.tsv") as fh:
     for line in fh:
-        p       = line.rstrip("\n").split("\t")
+        p = line.rstrip("\n").split("\t")
         key     = p[3]
         zss     = float(p[4])
         feature = p[8]
-        snp_feat[key] = (zss, feature)   # BED is exclusive so no conflict
+        selected[key] = (zss, feature)
 
-print(f"  SNPs with a feature assignment: {len(snp_feat):,}")
-
-# ── 6b. Feature size denominators ────────────────────────────────────────────
-feat_mb = {}
-with open(f"{WORK}/feature_size_mb.tsv") as fh:
-    for line in fh:
-        f, mb = line.strip().split("\t")
-        feat_mb[f] = float(mb)
-
-# ── 6c. Dosage decoder ───────────────────────────────────────────────────────
 def dosage(gt):
     return {"0/0":0, "0|0":0,
             "0/1":1, "0|1":1,
             "1/0":1, "1|0":1,
-            "1/1":2, "1|1":2}.get(gt, None)   # None = missing (./ .)
+            "1/1":2, "1|1":2}.get(gt, None)
 
-# ── 6d. Accumulate load ──────────────────────────────────────────────────────
-# Structures:  load_raw[sample][feature], n_del[sample][feature]
-load_raw   = defaultdict(lambda: defaultdict(float))
-n_del      = defaultdict(lambda: defaultdict(float))
-n_snp_feat = defaultdict(int)    # n unique deleterious SNPs per feature
-seen_keys  = set()
+n_selected_before = len(selected)
+n_selected_after = 0
+n_excluded_missingness = 0
 
-with open(JOINED) as fh:
-    reader  = csv.DictReader(fh, delimiter="\t")
-    samples = [c for c in reader.fieldnames
-               if c not in ("key", "zeroShotScore")]
-    print(f"  samples in joined file: {len(samples)}")
+sample_names = None
+
+with open(JOINED) as fh, \
+     open(f"{WORK}/output/intermediate/selected_variants_after_missingness.tsv", "w") as out, \
+     open(f"{WORK}/output/qc/variant_missingness_qc.tsv", "w") as qc:
+
+    reader = csv.DictReader(fh, delimiter="\t")
+    sample_names = [c for c in reader.fieldnames if c not in ("key", "zeroShotScore")]
+
+    out.write("key\tfeature\tzss\tmissing_rate\tn_total_samples\tn_missing\n")
+    qc.write("key\tfeature\tzss\tmissing_rate\tn_total_samples\tn_missing\tkept\n")
 
     for row in reader:
         key = row["key"]
-        if key not in snp_feat:
-            continue                        # SNP not in top-5% or not on main chr
+        if key not in selected:
+            continue
 
-        zss, feat = snp_feat[key]
-        w = abs(zss)                        # weight = |ZSS|
+        zss, feature = selected[key]
+        n_missing = 0
+        for s in sample_names:
+            d = dosage(row[s])
+            if d is None:
+                n_missing += 1
 
-        if key not in seen_keys:
-            n_snp_feat[feat] += 1
-            seen_keys.add(key)
+        missing_rate = n_missing / len(sample_names)
+        keep = 1 if missing_rate <= MAX_MISSING else 0
+
+        qc.write(f"{key}\t{feature}\t{zss}\t{missing_rate:.6f}\t{len(sample_names)}\t{n_missing}\t{keep}\n")
+
+        if keep:
+            out.write(f"{key}\t{feature}\t{zss}\t{missing_rate:.6f}\t{len(sample_names)}\t{n_missing}\n")
+            n_selected_after += 1
+        else:
+            n_excluded_missingness += 1
+
+with open(f"{WORK}/output/qc/step4_missingness_summary.tsv", "w") as out:
+    out.write("metric\tvalue\n")
+    out.write(f"selected_snps_before_missingness\t{n_selected_before}\n")
+    out.write(f"selected_snps_after_missingness\t{n_selected_after}\n")
+    out.write(f"selected_snps_excluded_by_missingness\t{n_excluded_missingness}\n")
+    out.write(f"max_variant_missingness_allowed\t{MAX_MISSING}\n")
+
+print(f"[STEP4] selected SNPs before missingness: {n_selected_before:,}")
+print(f"[STEP4] selected SNPs after missingness : {n_selected_after:,}")
+print(f"[STEP4] excluded by missingness         : {n_excluded_missingness:,}")
+PY
+
+# ------------------------------------------------------------------------------
+# STEP 5. Compute per-sample burden, callable sites, missing genotypes
+# ------------------------------------------------------------------------------
+python3 << 'PY'
+import csv
+from collections import defaultdict
+
+JOINED   = "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/5.merged/sap_v5_genotypes_scores_joined_clean.tsv"
+WORK     = "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/8.feature_load_callable"
+FEATURES = ["exon","intron","upstream_2kb","downstream_2kb","intergenic"]
+
+# feature sizes
+feat_mb = {}
+with open(f"{WORK}/output/intermediate/feature_size_mb.tsv") as fh:
+    for line in fh:
+        f, mb = line.rstrip("\n").split("\t")
+        feat_mb[f] = float(mb)
+
+# selected filtered variants
+selected = {}
+with open(f"{WORK}/output/intermediate/selected_variants_after_missingness.tsv") as fh:
+    next(fh)
+    for line in fh:
+        key, feature, zss, missing_rate, n_total, n_missing = line.rstrip("\n").split("\t")
+        selected[key] = (feature, float(zss), float(missing_rate))
+
+def dosage(gt):
+    return {"0/0":0, "0|0":0,
+            "0/1":1, "0|1":1,
+            "1/0":1, "1|0":1,
+            "1/1":2, "1|1":2}.get(gt, None)
+
+load_raw = defaultdict(lambda: defaultdict(float))
+n_del_alleles = defaultdict(lambda: defaultdict(float))
+callable_sites = defaultdict(lambda: defaultdict(int))
+missing_genotypes = defaultdict(lambda: defaultdict(int))
+selected_sites_feature = defaultdict(int)
+
+for key, (feature, zss, mr) in selected.items():
+    selected_sites_feature[feature] += 1
+
+with open(JOINED) as fh:
+    reader = csv.DictReader(fh, delimiter="\t")
+    samples = [c for c in reader.fieldnames if c not in ("key", "zeroShotScore")]
+
+    for row in reader:
+        key = row["key"]
+        if key not in selected:
+            continue
+
+        feature, zss, mr = selected[key]
+        weight = abs(zss)
 
         for s in samples:
             d = dosage(row[s])
-            if d is None or d == 0:
+
+            if d is None:
+                missing_genotypes[s][feature] += 1
                 continue
-            load_raw[s][feat] += d * w
-            n_del[s][feat]    += d
 
-# ── 6e. Write output ─────────────────────────────────────────────────────────
-with open(f"{WORK}/sap_feature_load_perMb.tsv", "w") as out:
-    out.write("sample\tfeature\tfeature_Mb\t"
-              "load_raw\tn_del_alleles\tload_per_Mb\tn_del_per_Mb\n")
+            # genotype is callable whether 0/0, 0/1, or 1/1
+            callable_sites[s][feature] += 1
+
+            if d > 0:
+                load_raw[s][feature] += d * weight
+                n_del_alleles[s][feature] += d
+
+with open(f"{WORK}/output/final/sample_feature_burden.tsv", "w") as out:
+    out.write(
+        "sample\tfeature\tfeature_Mb\tselected_sites_feature\tcallable_selected_sites\t"
+        "missing_genotypes_selected_sites\tload_raw\tn_del_alleles\t"
+        "burden_per_callable_site\tn_del_alleles_per_callable_site\t"
+        "burden_per_Mb\tn_del_alleles_per_Mb\n"
+    )
+
     for s in samples:
-        for feat in FEATURES:
-            raw  = load_raw[s][feat]
-            nd   = n_del[s][feat]
-            mb   = feat_mb.get(feat, float("nan"))
-            lpm  = raw / mb if mb > 0 else float("nan")
-            ndpm = nd  / mb if mb > 0 else float("nan")
-            out.write(f"{s}\t{feat}\t{mb:.4f}\t"
-                      f"{raw:.6f}\t{nd:.1f}\t{lpm:.6f}\t{ndpm:.6f}\n")
+        for feature in FEATURES:
+            mb = feat_mb.get(feature, float("nan"))
+            raw = load_raw[s][feature]
+            nd  = n_del_alleles[s][feature]
+            cs  = callable_sites[s][feature]
+            mg  = missing_genotypes[s][feature]
+            ssf = selected_sites_feature[feature]
 
-# ── 6f. QC summary ───────────────────────────────────────────────────────────
-with open(f"{WORK}/step6_qc.txt", "w") as qc:
-    qc.write("feature\tn_snps\tfeature_Mb\n")
-    for feat in FEATURES:
-        qc.write(f"{feat}\t{n_snp_feat[feat]}\t{feat_mb.get(feat,0):.4f}\n")
+            bpcs = raw / cs if cs > 0 else float("nan")
+            ndpcs = nd / cs if cs > 0 else float("nan")
+            bpmb = raw / mb if mb > 0 else float("nan")
+            ndpmb = nd / mb if mb > 0 else float("nan")
 
-print("\n  SNPs per feature (top-5%, Chr01-10):")
-for feat in FEATURES:
-    print(f"    {feat:<20s}: {n_snp_feat[feat]:>8,}  |  {feat_mb.get(feat,0):.1f} Mb")
+            out.write(
+                f"{s}\t{feature}\t{mb:.6f}\t{ssf}\t{cs}\t{mg}\t"
+                f"{raw:.6f}\t{nd:.1f}\t{bpcs:.8f}\t{ndpcs:.8f}\t{bpmb:.8f}\t{ndpmb:.8f}\n"
+            )
+
+with open(f"{WORK}/output/qc/sample_missingness_summary.tsv", "w") as out:
+    out.write("sample\tfeature\tcallable_selected_sites\tmissing_genotypes_selected_sites\n")
+    for s in samples:
+        for feature in FEATURES:
+            out.write(f"{s}\t{feature}\t{callable_sites[s][feature]}\t{missing_genotypes[s][feature]}\n")
+
+with open(f"{WORK}/output/qc/feature_selected_site_summary.tsv", "w") as out:
+    out.write("feature\tselected_sites_after_missingness\tfeature_Mb\n")
+    for feature in FEATURES:
+        out.write(f"{feature}\t{selected_sites_feature[feature]}\t{feat_mb.get(feature, float('nan')):.6f}\n")
+
+print("[STEP5] wrote final burden table")
 PY
 
-echo ""
+# ------------------------------------------------------------------------------
+# STEP 6. Write metadata and README
+# ------------------------------------------------------------------------------
+CUTOFF_USED=$(cat "$WORK/output/intermediate/cutoff_used.txt")
+
+cat > "$WORK/output/qc/run_metadata.tsv" << EOF
+field	value
+joined_file	$JOINED
+feature_bed	$FEAT
+work_dir	$WORK
+cutoff_mode	$CUTOFF_MODE
+cutoff_used	$CUTOFF_USED
+max_variant_missingness	$MAX_MISSING
+normalization_primary	burden_per_callable_site
+normalization_secondary	burden_per_Mb
+exclusive_features	yes
+EOF
+
+cat > "$WORK/README.md" << EOF
+# Deleterious burden workflow
+
+## Purpose
+This workflow calculates feature-stratified deleterious burden from PlantCAD zero-shot scores (ZSS) and genotype data.
+
+## Inputs
+- \`input/$(basename "$JOINED")\`
+- \`genomic_features/$(basename "$FEAT")\`
+
+## Main settings
+- cutoff mode: $CUTOFF_MODE
+- cutoff used: $CUTOFF_USED
+- max variant missingness: $MAX_MISSING
+
+## Definitions
+
+### Selected SNPs
+Variants with \`zeroShotScore < cutoff\`.
+
+### Variant missingness filter
+A selected SNP is kept only if:
+\`missing_rate <= $MAX_MISSING\`
+
+### Callable selected site
+For a given sample and feature, a selected SNP is callable if the genotype is not missing.
+- callable: 0/0, 0/1, 1/0, 1/1
+- missing: anything else not decoded, e.g. ./.
+
+### Load raw
+For each sample and feature:
+\`load_raw = sum(abs(ZSS) * dosage)\`
+
+### Primary normalization
+\`burden_per_callable_site = load_raw / callable_selected_sites\`
+
+### Secondary normalization
+\`burden_per_Mb = load_raw / feature_Mb\`
+
+## Output files
+
+### Final
+- \`output/final/sample_feature_burden.tsv\`
+
+### QC
+- \`output/qc/step1_cutoff_and_selection.tsv\`
+- \`output/qc/step4_missingness_summary.tsv\`
+- \`output/qc/variant_missingness_qc.tsv\`
+- \`output/qc/sample_missingness_summary.tsv\`
+- \`output/qc/feature_selected_site_summary.tsv\`
+- \`output/qc/run_metadata.tsv\`
+
+## Notes
+This workflow uses exclusive genomic features, so each SNP contributes to only one feature.
+EOF
+
 echo "============================================================"
-echo " DONE"
-echo " Main output : $WORK/sap_feature_load_perMb.tsv"
-echo " QC files   : $WORK/step1_qc.txt"
-echo "              $WORK/step6_qc.txt"
-echo "              $WORK/feature_size_mb.tsv"
+echo "DONE"
+echo "Main output:"
+echo "  $WORK/output/final/sample_feature_burden.tsv"
+echo ""
+echo "QC:"
+echo "  $WORK/output/qc/step1_cutoff_and_selection.tsv"
+echo "  $WORK/output/qc/step4_missingness_summary.tsv"
+echo "  $WORK/output/qc/sample_missingness_summary.tsv"
+echo "  $WORK/output/qc/run_metadata.tsv"
 echo "============================================================"
 ```
 
 
 
 ```{r}
-# ==============================================================================
-# Cross-feature load per SNP site — single shared y-axis, legend on right
-# load_per_site = load_raw / n_snp_sites_in_feature
-# Denominator is FIXED per feature — same for every individual
-# n_snp_sites from step6_qc.txt: exon=8157, intron=4795,
-#   upstream_2kb=8782, downstream_2kb=5174, intergenic=300507
-# ==============================================================================
 library(data.table)
 library(ggplot2)
 library(patchwork)
 
 # ── PATHS ─────────────────────────────────────────────────────────────────────
-LOAD_FILE <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/7.feature_load_perMb/sap_feature_load_perMb.tsv"
+LOAD_FILE <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/8.feature_load_callable/output/final/sample_feature_burden.tsv"
 RACE_FILE <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/7.feature_load_perMb/sorted_cluster_data.txt"
-OUT_PDF   <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/7.feature_load_perMb/feature_load_perSNPsite_crossfeature.pdf"
-
-#LOAD_FILE <- "/Users/subhashmahamkali/Documents/gwas_sap/data/3.5_genomic_features/sap_top5_feature_load/sap_feature_load_perMb.tsv"
-#RACE_FILE <- "/Users/subhashmahamkali/Documents/gwas_sap/data/3.5_genomic_features/sap_top5_feature_load/sorted_cluster_data.txt"
-#OUT_PDF   <- "/Users/subhashmahamkali/Documents/gwas_sap/graphs/01_publication/3.genetic_load/3.5_genomic_features/feature_load_perSNPsite_crossfeature_v7.pdf"
+OUT_PDF   <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/8.feature_load_callable/output/final/burden_per_callable_site_crossfeature.pdf"
 
 # ── MAPPINGS ──────────────────────────────────────────────────────────────────
 cluster_to_race <- c(
   "1" = "Durra", "2" = "Kafir", "3" = "Caudatum",
   "4" = "Milo/Durra-Bicolor", "5" = "Mixed/Bicolor", "6" = "Guinea"
 )
+
 race_pal <- c(
   "Durra"              = "#FF7F00",
   "Kafir"              = "#E69F00",
@@ -258,60 +463,41 @@ race_pal <- c(
   "Mixed/Bicolor"      = "#A6A6A6",
   "Guinea"             = "#56B4E9"
 )
+
 RACE_ORDER  <- c("Durra","Kafir","Caudatum","Milo/Durra-Bicolor","Mixed/Bicolor","Guinea")
 FEAT_ORDER  <- c("exon","intron","upstream_2kb","downstream_2kb","intergenic")
 FEAT_LABELS <- c("Exon","Intron","Upstream 2 kb","Downstream 2 kb","Intergenic")
 
-# ── SNP SITE COUNTS (from step6_qc.txt — fixed per feature) ──────────────────
-snp_sites <- data.table(
-  feature = c("exon","intron","upstream_2kb","downstream_2kb","intergenic"),
-  n_sites = c(8157L, 4795L, 8782L, 5174L, 300507L)
-)
-
-cat("SNP site denominators:\n")
-print(snp_sites)
-
 # ── LOAD & PREP ───────────────────────────────────────────────────────────────
 load_dt <- fread(LOAD_FILE)
 race_dt <- fread(RACE_FILE)
+
 race_dt[, sample := paste0(PI_numbers, "_", PI_numbers)]
 race_dt[, race   := cluster_to_race[as.character(Cluster)]]
 
 dt <- merge(load_dt, race_dt[, .(sample, race)], by = "sample", all.x = TRUE)
 dt <- dt[!is.na(race)]
+dt <- dt[!is.na(burden_per_callable_site)]
 
-# ── COMPUTE load_per_site ─────────────────────────────────────────────────────
-# Merge in the fixed SNP site counts per feature
-dt <- merge(dt, snp_sites, by = "feature")
-
-# load_per_site = load_raw / n_sites
-# Every individual in exon is divided by 8,157
-# Every individual in intergenic is divided by 300,507
-# This is a BURDEN RATE: how much load per available deleterious site
-dt[, load_per_site := load_raw / n_sites]
-
-# ── FACTORS ───────────────────────────────────────────────────────────────────
 dt[, feature := factor(feature, levels = FEAT_ORDER, labels = FEAT_LABELS)]
 dt[, race    := factor(race,    levels = RACE_ORDER)]
-dt <- dt[!is.na(feature) & !is.na(race)]
 
 # ── SUMMARY CHECK ─────────────────────────────────────────────────────────────
-cat("\nload_per_site summary by feature:\n")
-print(dt[, .(mean  = round(mean(load_per_site),  4),
-             median= round(median(load_per_site), 4),
-             sd    = round(sd(load_per_site),     4)),
-          by = feature][order(feature)])
+cat("\nburden_per_callable_site summary by feature:\n")
+print(dt[, .(
+  mean   = round(mean(burden_per_callable_site, na.rm = TRUE), 6),
+  median = round(median(burden_per_callable_site, na.rm = TRUE), 6),
+  sd     = round(sd(burden_per_callable_site, na.rm = TRUE), 6)
+), by = feature][order(feature)])
 
-# ── PER-FEATURE RACE ORDER (high → low mean load_per_site) ───────────────────
-race_order_per_feat <- dt[, .(mean_lps = mean(load_per_site, na.rm = TRUE)),
-                           by = .(feature, race)][order(feature, -mean_lps)]
-
-cat("\nRace order per feature (high → low load_per_site):\n")
-print(race_order_per_feat)
+# ── PER-FEATURE RACE ORDER (high → low mean burden) ──────────────────────────
+race_order_per_feat <- dt[, .(
+  mean_burden = mean(burden_per_callable_site, na.rm = TRUE)
+), by = .(feature, race)][order(feature, -mean_burden)]
 
 # ── SHARED Y RANGE ────────────────────────────────────────────────────────────
-y_min <- floor(min(dt$load_per_site,   na.rm = TRUE) * 100) / 100
-y_max <- ceiling(max(dt$load_per_site, na.rm = TRUE) * 100) / 100
+y_min <- floor(min(dt$burden_per_callable_site, na.rm = TRUE) * 1000) / 1000
+y_max <- ceiling(max(dt$burden_per_callable_site, na.rm = TRUE) * 1000) / 1000
 
 race_x_labels <- c(
   "Durra"              = "Durra",
@@ -347,15 +533,12 @@ make_panel <- function(feat_label, show_y = FALSE, show_legend = FALSE) {
 
   sub <- dt[feature == feat_label]
 
-  # order races high → low for this feature
   feat_race_order <- race_order_per_feat[feature == feat_label, as.character(race)]
   sub[, race_ordered := factor(race, levels = feat_race_order)]
 
-  # n_sites for subtitle
-  feat_key   <- FEAT_ORDER[FEAT_LABELS == feat_label]
-  n_sites_val <- snp_sites[feature == feat_key, n_sites]
+  n_callable_median <- round(median(sub$callable_selected_sites, na.rm = TRUE))
 
-  p <- ggplot(sub, aes(x = race_ordered, y = load_per_site, fill = race)) +
+  p <- ggplot(sub, aes(x = race_ordered, y = burden_per_callable_site, fill = race)) +
     geom_violin(
       trim      = TRUE,
       scale     = "width",
@@ -376,14 +559,12 @@ make_panel <- function(feat_label, show_y = FALSE, show_legend = FALSE) {
     coord_cartesian(ylim = c(y_min, y_max)) +
     labs(
       title    = feat_label,
-      subtitle = paste0("n sites = ", formatC(n_sites_val, format="d", big.mark=","))
+      subtitle = paste0("median callable sites = ", formatC(n_callable_median, format = "d", big.mark = ","))
     ) +
     base_theme +
     theme(
-      plot.title    = element_text(size = 10, face = "bold",
-                                   hjust = 0.5, margin = margin(b = 2)),
-      plot.subtitle = element_text(size = 7.5, color = "grey50",
-                                   hjust = 0.5, margin = margin(b = 4))
+      plot.title    = element_text(size = 10, face = "bold", hjust = 0.5, margin = margin(b = 2)),
+      plot.subtitle = element_text(size = 7.5, color = "grey50", hjust = 0.5, margin = margin(b = 4))
     )
 
   if (!show_y) {
@@ -394,7 +575,7 @@ make_panel <- function(feat_label, show_y = FALSE, show_legend = FALSE) {
       axis.line.y  = element_blank()
     )
   } else {
-    p <- p + labs(y = "Load per deleterious SNP site") +
+    p <- p + labs(y = "Burden per callable selected site") +
       theme(axis.title.y = element_text(size = 9, margin = margin(r = 6)))
   }
 
@@ -405,10 +586,11 @@ make_panel <- function(feat_label, show_y = FALSE, show_legend = FALSE) {
       legend.text     = element_text(size = 8.5),
       legend.key.size = unit(0.5, "cm")
     ) +
-    guides(fill = guide_legend(
-      override.aes = list(alpha = 1, color = NA, shape = 22, size = 4)
-    ))
+      guides(fill = guide_legend(
+        override.aes = list(alpha = 1, color = NA, shape = 22, size = 4)
+      ))
   }
+
   p
 }
 
@@ -423,22 +605,21 @@ p5 <- make_panel("Intergenic",      show_y = FALSE, show_legend = TRUE)
 fig <- (p1 | p2 | p3 | p4 | p5) +
   plot_layout(widths = c(1.2, 1, 1, 1, 1.35)) +
   plot_annotation(
-    title    = "Genetic load per deleterious SNP site by genomic feature and sorghum race")
-    theme = theme(
-      plot.title      = element_text(size = 12, face = "bold", hjust = 0),
-      plot.subtitle   = element_text(size = 8,  color = "grey40", hjust = 0),
-      plot.caption    = element_text(size = 7,  color = "grey55", hjust = 0,
-                                     margin = margin(t = 6)),
-      plot.background = element_rect(fill = "white", color = NA),
-      plot.margin     = margin(14, 14, 10, 14)
-    )
-  
+    title = "Deleterious burden per callable selected site by genomic feature and sorghum race"
+  ) &
+  theme(
+    plot.title      = element_text(size = 12, face = "bold", hjust = 0),
+    plot.background = element_rect(fill = "white", color = NA),
+    plot.margin     = margin(14, 14, 10, 14)
+  )
 
 # ── SAVE ──────────────────────────────────────────────────────────────────────
 cairo_pdf(OUT_PDF, width = 16, height = 5.5, family = "Arial")
 print(fig)
 dev.off()
+
 cat("Saved:", OUT_PDF, "\n")
+
 ```
 
 
@@ -446,33 +627,22 @@ cat("Saved:", OUT_PDF, "\n")
 
 
 
-
-
-
 ```{r}
-# ==============================================================================
-# load per SNP site — faceted BY RACE (6 panels)
-# Features on x-axis within each panel
-# Shows: for each race, how load_per_site differs across genomic features
-# ==============================================================================
 library(data.table)
 library(ggplot2)
 library(patchwork)
 
 # ── PATHS ─────────────────────────────────────────────────────────────────────
-#LOAD_FILE <- "/Users/subhashmahamkali/Documents/gwas_sap/data/3.5_genomic_features/sap_top5_feature_load/sap_feature_load_perMb.tsv"
-#RACE_FILE <- "/Users/subhashmahamkali/Documents/gwas_sap/data/3.5_genomic_features/sap_top5_feature_load/sorted_cluster_data.txt"
-#OUT_PDF   <- "/Users/subhashmahamkali/Documents/gwas_sap/graphs/01_publication/3.genetic_load/3.5_genomic_features/feature_load_perSNPsite_byrace.pdf"
-
-LOAD_FILE <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/7.feature_load_perMb/sap_feature_load_perMb.tsv"
+LOAD_FILE <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/8.feature_load_callable/output/final/sample_feature_burden.tsv"
 RACE_FILE <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/7.feature_load_perMb/sorted_cluster_data.txt"
-OUT_PDF   <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/7.feature_load_perMb/feature_load_perSNPsite_byrace.pdf"
+OUT_PDF   <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/8.feature_load_callable/output/final/burden_per_callable_site_byrace.pdf"
 
 # ── MAPPINGS ──────────────────────────────────────────────────────────────────
 cluster_to_race <- c(
   "1" = "Durra", "2" = "Kafir", "3" = "Caudatum",
   "4" = "Milo/Durra-Bicolor", "5" = "Mixed/Bicolor", "6" = "Guinea"
 )
+
 race_pal <- c(
   "Durra"              = "#FF7F00",
   "Kafir"              = "#E69F00",
@@ -481,49 +651,41 @@ race_pal <- c(
   "Mixed/Bicolor"      = "#A6A6A6",
   "Guinea"             = "#56B4E9"
 )
+
 RACE_ORDER  <- c("Durra","Kafir","Caudatum","Milo/Durra-Bicolor","Mixed/Bicolor","Guinea")
 FEAT_ORDER  <- c("exon","intron","upstream_2kb","downstream_2kb","intergenic")
 FEAT_LABELS <- c("Exon","Intron","Upstream\n2 kb","Downstream\n2 kb","Intergenic")
 
-# feature colors — consistent across all race panels
 feat_pal <- c(
-  "Exon"           = "#7B3F9E",
-  "Intron"         = "#E07B3A",
-  "Upstream\n2 kb" = "#3A82C4",
+  "Exon"            = "#7B3F9E",
+  "Intron"          = "#E07B3A",
+  "Upstream\n2 kb"  = "#3A82C4",
   "Downstream\n2 kb"= "#3AA87A",
-  "Intergenic"     = "#888888"
-)
-
-# ── SNP SITE COUNTS (fixed denominators) ──────────────────────────────────────
-snp_sites <- data.table(
-  feature = c("exon","intron","upstream_2kb","downstream_2kb","intergenic"),
-  n_sites = c(8157L, 4795L, 8782L, 5174L, 300507L)
+  "Intergenic"      = "#888888"
 )
 
 # ── LOAD & PREP ───────────────────────────────────────────────────────────────
 load_dt <- fread(LOAD_FILE)
 race_dt <- fread(RACE_FILE)
+
 race_dt[, sample := paste0(PI_numbers, "_", PI_numbers)]
 race_dt[, race   := cluster_to_race[as.character(Cluster)]]
 
 dt <- merge(load_dt, race_dt[, .(sample, race)], by = "sample", all.x = TRUE)
 dt <- dt[!is.na(race)]
-dt <- merge(dt, snp_sites, by = "feature")
-dt[, load_per_site := load_raw / n_sites]
+dt <- dt[!is.na(burden_per_callable_site)]
+
 dt[, feature := factor(feature, levels = FEAT_ORDER, labels = FEAT_LABELS)]
-dt[, race    := factor(race,    levels = RACE_ORDER)]
-dt <- dt[!is.na(feature) & !is.na(race)]
+dt[, race    := factor(race, levels = RACE_ORDER)]
 
 # ── SHARED Y RANGE ────────────────────────────────────────────────────────────
-y_min <- floor(min(dt$load_per_site,   na.rm = TRUE) * 100) / 100
-y_max <- ceiling(max(dt$load_per_site, na.rm = TRUE) * 100) / 100
+y_min <- floor(min(dt$burden_per_callable_site, na.rm = TRUE) * 1000) / 1000
+y_max <- ceiling(max(dt$burden_per_callable_site, na.rm = TRUE) * 1000) / 1000
 
-# ── FEATURE ORDER per race (high → low mean) ──────────────────────────────────
-feat_order_per_race <- dt[, .(mean_lps = mean(load_per_site, na.rm = TRUE)),
-                           by = .(race, feature)][order(race, -mean_lps)]
-
-cat("Feature order per race (high → low load_per_site):\n")
-print(feat_order_per_race)
+# ── FEATURE ORDER per race (high → low mean) ─────────────────────────────────
+feat_order_per_race <- dt[, .(
+  mean_burden = mean(burden_per_callable_site, na.rm = TRUE)
+), by = .(race, feature)][order(race, -mean_burden)]
 
 # ── PANEL BUILDER ─────────────────────────────────────────────────────────────
 make_race_panel <- function(race_label, show_y = FALSE) {
@@ -531,11 +693,10 @@ make_race_panel <- function(race_label, show_y = FALSE) {
   sub <- dt[race == race_label]
   n   <- sub[, uniqueN(sample)]
 
-  # order features high → low for this race
   race_feat_order <- feat_order_per_race[race == race_label, as.character(feature)]
   sub[, feat_ordered := factor(feature, levels = race_feat_order)]
 
-  p <- ggplot(sub, aes(x = feat_ordered, y = load_per_site, fill = feature)) +
+  p <- ggplot(sub, aes(x = feat_ordered, y = burden_per_callable_site, fill = feature)) +
     geom_violin(
       trim      = TRUE,
       scale     = "width",
@@ -551,9 +712,7 @@ make_race_panel <- function(race_label, show_y = FALSE) {
       linewidth     = 0.4,
       alpha         = 0.9
     ) +
-    # mean dot
-    stat_summary(fun = mean, geom = "point",
-                 shape = 18, size = 2.2, color = "grey15") +
+    stat_summary(fun = mean, geom = "point", shape = 18, size = 2.2, color = "grey15") +
     scale_fill_manual(values = feat_pal, guide = "none") +
     coord_cartesian(ylim = c(y_min, y_max)) +
     labs(
@@ -563,12 +722,10 @@ make_race_panel <- function(race_label, show_y = FALSE) {
     theme_classic(base_size = 9.5) +
     theme(
       plot.title         = element_text(size = 10, face = "bold", hjust = 0.5,
-                                        color = race_pal[race_label],
-                                        margin = margin(b = 2)),
+                                        color = race_pal[race_label], margin = margin(b = 2)),
       plot.subtitle      = element_text(size = 7.5, color = "grey50",
                                         hjust = 0.5, margin = margin(b = 3)),
-      axis.text.x        = element_text(angle = 35, hjust = 1, size = 7.5,
-                                        color = "grey20"),
+      axis.text.x        = element_text(angle = 35, hjust = 1, size = 7.5, color = "grey20"),
       axis.text.y        = element_text(size = 7.5, color = "grey20"),
       axis.title.x       = element_blank(),
       axis.line          = element_line(color = "grey40", linewidth = 0.35),
@@ -589,9 +746,10 @@ make_race_panel <- function(race_label, show_y = FALSE) {
       axis.line.y  = element_blank()
     )
   } else {
-    p <- p + labs(y = "Load per deleterious SNP site") +
+    p <- p + labs(y = "Burden per callable selected site") +
       theme(axis.title.y = element_text(size = 9, margin = margin(r = 6)))
   }
+
   p
 }
 
@@ -603,42 +761,42 @@ p4 <- make_race_panel("Milo/Durra-Bicolor", show_y = FALSE)
 p5 <- make_race_panel("Mixed/Bicolor",      show_y = FALSE)
 p6 <- make_race_panel("Guinea",             show_y = FALSE)
 
-# ── FEATURE LEGEND (manual) ───────────────────────────────────────────────────
+# ── FEATURE LEGEND ────────────────────────────────────────────────────────────
 legend_data <- data.table(
   feature = factor(FEAT_LABELS, levels = FEAT_LABELS),
   x = 1, y = 1
 )
+
 legend_plot <- ggplot(legend_data, aes(x = x, y = y, fill = feature)) +
   geom_point(shape = 22, size = 4) +
   scale_fill_manual(values = feat_pal, name = "Feature") +
   theme_void() +
   theme(
-    legend.position    = "right",
-    legend.title       = element_text(size = 9, face = "bold"),
-    legend.text        = element_text(size = 8.5),
-    legend.key.size    = unit(0.5, "cm"),
-    plot.background    = element_rect(fill = "white", color = NA)
+    legend.position = "right",
+    legend.title    = element_text(size = 9, face = "bold"),
+    legend.text     = element_text(size = 8.5),
+    legend.key.size = unit(0.5, "cm"),
+    plot.background = element_rect(fill = "white", color = NA)
   ) +
   guides(fill = guide_legend(override.aes = list(size = 4, alpha = 1)))
 
-# ── ASSEMBLE: 6 race panels + legend ─────────────────────────────────────────
+# ── ASSEMBLE ──────────────────────────────────────────────────────────────────
 fig <- (p1 | p2 | p3 | p4 | p5 | p6 | legend_plot) +
   plot_layout(widths = c(1.2, 1, 1, 1, 1, 1, 0.5)) +
   plot_annotation(
-    title    = "Genetic load per deleterious SNP site by sorghum race")
-    theme = theme(
-      plot.title      = element_text(size = 12, face = "bold", hjust = 0),
-      plot.subtitle   = element_text(size = 8,  color = "grey40", hjust = 0),
-      plot.caption    = element_text(size = 7,  color = "grey55", hjust = 0,
-                                     margin = margin(t = 6)),
-      plot.background = element_rect(fill = "white", color = NA),
-      plot.margin     = margin(14, 14, 10, 14)
-    )
+    title = "Deleterious burden per callable selected site by sorghum race"
+  ) &
+  theme(
+    plot.title      = element_text(size = 12, face = "bold", hjust = 0),
+    plot.background = element_rect(fill = "white", color = NA),
+    plot.margin     = margin(14, 14, 10, 14)
+  )
 
 # ── SAVE ──────────────────────────────────────────────────────────────────────
 cairo_pdf(OUT_PDF, width = 18, height = 5.5, family = "Arial")
 print(fig)
 dev.off()
+
 cat("Saved:", OUT_PDF, "\n")
 ```
 
