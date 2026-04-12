@@ -19,13 +19,13 @@ library(ggplot2)
 library(patchwork)
 
 # ── PATHS ─────────────────────────────────────────────────────────────────────
-#LOAD_FILE <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/8.feature_load_callable/output/final/sample_feature_burden.tsv"
-#RACE_FILE <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/7.feature_load_perMb/sorted_cluster_data.txt"
-#OUT_PDF   <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/8.feature_load_callable/output/final/burden_per_callable_site_crossfeature.pdf"
+LOAD_FILE <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/8.feature_load_callable/output/final/sample_feature_burden.tsv"
+RACE_FILE <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/7.feature_load_perMb/sorted_cluster_data.txt"
+OUT_PDF   <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/8.feature_load_callable/output/final/burden_per_callable_site_crossfeature.pdf"
 
-LOAD_FILE <- "data/3.5_genomic_features/2._SAP_features/sample_feature_burden.tsv"
-RACE_FILE <- "data/3.5_genomic_features/2._SAP_features/sorted_cluster_data.txt"
-OUT_PDF   <- "graphs/01_publication/3.genetic_load/3.5_genomic_features/2.weighted_burden/burden_per_callable_site_crossfeature.pdf"
+#LOAD_FILE <- "data/3.5_genomic_features/2._SAP_features/sample_feature_burden.tsv"
+#RACE_FILE <- "data/3.5_genomic_features/2._SAP_features/sorted_cluster_data.txt"
+#OUT_PDF   <- "graphs/01_publication/3.genetic_load/3.5_genomic_features/2.weighted_burden/burden_per_callable_site_crossfeature.pdf"
 
 
 # ── MAPPINGS ──────────────────────────────────────────────────────────────────
@@ -201,20 +201,28 @@ cat("Saved:", OUT_PDF, "\n")
 
 ```
 
-
-
-
+#race-level with significance
 
 
 ```{r}
-library(data.table)
-library(ggplot2)
-library(patchwork)
+#!/usr/bin/env Rscript
+
+suppressPackageStartupMessages({
+  library(data.table)
+  library(ggplot2)
+  library(patchwork)
+})
 
 # ── PATHS ─────────────────────────────────────────────────────────────────────
 LOAD_FILE <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/8.feature_load_callable/output/final/sample_feature_burden.tsv"
 RACE_FILE <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/7.feature_load_perMb/sorted_cluster_data.txt"
-OUT_PDF   <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/8.feature_load_callable/output/final/burden_per_callable_site_byrace.pdf"
+OUT_DIR   <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/3.plantcad/8.feature_load_callable/output/final"
+
+OUT_PDF      <- file.path(OUT_DIR, "burden_per_callable_site_byrace.pdf")
+OUT_PAIRWISE <- file.path(OUT_DIR, "burden_per_callable_site_byrace_pairwise_wilcox_bh.tsv")
+OUT_LETTERS  <- file.path(OUT_DIR, "burden_per_callable_site_byrace_compact_letters.tsv")
+
+dir.create(OUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
 # ── MAPPINGS ──────────────────────────────────────────────────────────────────
 cluster_to_race <- c(
@@ -236,93 +244,242 @@ FEAT_ORDER  <- c("exon","intron","upstream_2kb","downstream_2kb","intergenic")
 FEAT_LABELS <- c("Exon","Intron","Upstream\n2 kb","Downstream\n2 kb","Intergenic")
 
 feat_pal <- c(
-  "Exon"            = "#7B3F9E",
-  "Intron"          = "#E07B3A",
-  "Upstream\n2 kb"  = "#3A82C4",
-  "Downstream\n2 kb"= "#3AA87A",
-  "Intergenic"      = "#888888"
+  "Exon"             = "#7B3F9E",
+  "Intron"           = "#E07B3A",
+  "Upstream\n2 kb"   = "#3A82C4",
+  "Downstream\n2 kb" = "#3AA87A",
+  "Intergenic"       = "#888888"
 )
+
+# ── HELPERS: pairwise test + compact letters ─────────────────────────────────
+write_pairwise_wilcox <- function(dt, group_col, value_col, levels_order = NULL) {
+  lev_present <- unique(as.character(dt[[group_col]]))
+  if (!is.null(levels_order)) {
+    lev <- levels_order[levels_order %in% lev_present]
+  } else {
+    lev <- lev_present
+  }
+
+  if (length(lev) < 2) {
+    return(data.table(group1 = character(), group2 = character(), p_value = numeric(), p_adj_bh = numeric()))
+  }
+
+  cmb <- t(combn(lev, 2))
+  out <- vector("list", nrow(cmb))
+
+  for (i in seq_len(nrow(cmb))) {
+    g1 <- cmb[i, 1]
+    g2 <- cmb[i, 2]
+    x <- dt[get(group_col) == g1, get(value_col)]
+    y <- dt[get(group_col) == g2, get(value_col)]
+    p <- suppressWarnings(tryCatch(wilcox.test(x, y, exact = FALSE)$p.value, error = function(e) NA_real_))
+    out[[i]] <- data.table(group1 = g1, group2 = g2, p_value = p)
+  }
+
+  pw <- rbindlist(out)
+  pw[, p_adj_bh := p.adjust(p_value, method = "BH")]
+  pw[order(p_adj_bh)]
+}
+
+compact_letters <- function(pairwise_dt, groups, alpha = 0.05) {
+  g <- as.character(groups)
+  n <- length(g)
+
+  if (n == 0) return(data.table(group = character(), cld = character()))
+  if (n == 1) return(data.table(group = g, cld = "a"))
+
+  sig <- matrix(FALSE, nrow = n, ncol = n, dimnames = list(g, g))
+  if (nrow(pairwise_dt) > 0) {
+    for (i in seq_len(nrow(pairwise_dt))) {
+      a <- as.character(pairwise_dt$group1[i])
+      b <- as.character(pairwise_dt$group2[i])
+      if (a %in% g && b %in% g) {
+        s <- isTRUE(pairwise_dt$p_adj_bh[i] < alpha)
+        sig[a, b] <- s
+        sig[b, a] <- s
+      }
+    }
+  }
+  diag(sig) <- FALSE
+
+  pool <- c(letters, LETTERS, paste0("L", 1:200))
+  used <- character()
+  assign <- setNames(vector("list", n), g)
+
+  for (grp in g) {
+    ok_letters <- character()
+    for (L in used) {
+      members <- names(which(vapply(assign, function(x) L %in% x, logical(1))))
+      if (!length(members) || all(!sig[grp, members])) ok_letters <- c(ok_letters, L)
+    }
+
+    if (!length(ok_letters)) {
+      newL <- pool[!pool %in% used][1]
+      used <- c(used, newL)
+      assign[[grp]] <- newL
+    } else {
+      assign[[grp]] <- ok_letters[1]
+    }
+  }
+
+  nonsig_pairs <- as.data.table(which(upper.tri(sig) & !sig, arr.ind = TRUE))
+  if (nrow(nonsig_pairs) > 0) {
+    for (i in seq_len(nrow(nonsig_pairs))) {
+      g1 <- g[nonsig_pairs$row[i]]
+      g2 <- g[nonsig_pairs$col[i]]
+      if (length(intersect(assign[[g1]], assign[[g2]])) > 0) next
+
+      placed <- FALSE
+      for (L in used) {
+        mem <- names(which(vapply(assign, function(x) L %in% x, logical(1))))
+        cond1 <- all(!sig[g1, setdiff(mem, g1)])
+        cond2 <- all(!sig[g2, setdiff(mem, g2)])
+        if (cond1 && cond2) {
+          assign[[g1]] <- unique(c(assign[[g1]], L))
+          assign[[g2]] <- unique(c(assign[[g2]], L))
+          placed <- TRUE
+          break
+        }
+      }
+      if (!placed) {
+        newL <- pool[!pool %in% used][1]
+        used <- c(used, newL)
+        assign[[g1]] <- unique(c(assign[[g1]], newL))
+        assign[[g2]] <- unique(c(assign[[g2]], newL))
+      }
+    }
+  }
+
+  data.table(
+    group = g,
+    cld = vapply(assign[g], function(x) paste(sort(unique(x)), collapse = ""), character(1))
+  )
+}
 
 # ── LOAD & PREP ───────────────────────────────────────────────────────────────
 load_dt <- fread(LOAD_FILE)
 race_dt <- fread(RACE_FILE)
 
 race_dt[, sample := paste0(PI_numbers, "_", PI_numbers)]
-race_dt[, race   := cluster_to_race[as.character(Cluster)]]
+race_dt[, race := cluster_to_race[as.character(Cluster)]]
 
 dt <- merge(load_dt, race_dt[, .(sample, race)], by = "sample", all.x = TRUE)
-dt <- dt[!is.na(race)]
-dt <- dt[!is.na(burden_per_callable_site)]
+dt <- dt[!is.na(race) & !is.na(burden_per_callable_site)]
 
 dt[, feature := factor(feature, levels = FEAT_ORDER, labels = FEAT_LABELS)]
-dt[, race    := factor(race, levels = RACE_ORDER)]
+dt[, race := factor(race, levels = RACE_ORDER)]
 
 # ── SHARED Y RANGE ────────────────────────────────────────────────────────────
 y_min <- floor(min(dt$burden_per_callable_site, na.rm = TRUE) * 1000) / 1000
 y_max <- ceiling(max(dt$burden_per_callable_site, na.rm = TRUE) * 1000) / 1000
+y_span <- max(y_max - y_min, 1e-6)
+y_max_plot <- y_max + 0.08 * y_span
+y_label_offset <- 0.03 * y_span
 
 # ── FEATURE ORDER per race (high → low mean) ─────────────────────────────────
 feat_order_per_race <- dt[, .(
   mean_burden = mean(burden_per_callable_site, na.rm = TRUE)
 ), by = .(race, feature)][order(race, -mean_burden)]
 
+get_race_feat_order <- function(race_label) {
+  feat_order_per_race[race == race_label, as.character(feature)]
+}
+
+# ── PRECOMPUTE TESTS + LETTERS FOR EACH RACE ─────────────────────────────────
+pairwise_all <- list()
+letters_all <- list()
+
+for (r in RACE_ORDER) {
+  sub <- dt[race == r]
+  if (nrow(sub) == 0) next
+
+  race_feat_order <- get_race_feat_order(r)
+  sub[, feature_chr := as.character(feature)]
+
+  pw <- write_pairwise_wilcox(
+    dt = sub,
+    group_col = "feature_chr",
+    value_col = "burden_per_callable_site",
+    levels_order = race_feat_order
+  )
+
+  cld <- compact_letters(pw, race_feat_order, alpha = 0.05)
+  cld[, race := r]
+  pw[, race := r]
+
+  pairwise_all[[r]] <- pw
+  letters_all[[r]] <- cld
+}
+
+pairwise_dt <- rbindlist(pairwise_all, fill = TRUE)
+letters_dt  <- rbindlist(letters_all, fill = TRUE)
+
+# save test and letters tables
+fwrite(pairwise_dt, OUT_PAIRWISE, sep = "\t")
+fwrite(letters_dt, OUT_LETTERS, sep = "\t")
+
 # ── PANEL BUILDER ─────────────────────────────────────────────────────────────
 make_race_panel <- function(race_label, show_y = FALSE) {
-
   sub <- dt[race == race_label]
-  n   <- sub[, uniqueN(sample)]
+  n <- sub[, uniqueN(sample)]
 
-  race_feat_order <- feat_order_per_race[race == race_label, as.character(feature)]
-  sub[, feat_ordered := factor(feature, levels = race_feat_order)]
+  race_feat_order <- get_race_feat_order(race_label)
+  sub[, feat_ordered := factor(as.character(feature), levels = race_feat_order)]
+
+  # letters for this race
+  let_sub <- copy(letters_dt[race == race_label, .(group, cld)])
+  if (nrow(let_sub) > 0) {
+    ymax_by_feat <- sub[, .(y = max(burden_per_callable_site, na.rm = TRUE)), by = feat_ordered]
+    setnames(ymax_by_feat, "feat_ordered", "group")
+    let_sub <- merge(let_sub, ymax_by_feat, by = "group", all.x = TRUE)
+    let_sub[, feat_ordered := factor(group, levels = race_feat_order)]
+    let_sub[, y := pmin(y + y_label_offset, y_max_plot - 0.01 * y_span)]
+  }
 
   p <- ggplot(sub, aes(x = feat_ordered, y = burden_per_callable_site, fill = feature)) +
     geom_violin(
-      trim      = TRUE,
-      scale     = "width",
-      alpha     = 0.85,
-      linewidth = 0,
-      color     = NA
+      trim = TRUE, scale = "width", alpha = 0.85,
+      linewidth = 0, color = NA
     ) +
     geom_boxplot(
-      width         = 0.22,
-      outlier.shape = NA,
-      fill          = "white",
-      color         = "grey20",
-      linewidth     = 0.4,
-      alpha         = 0.9
+      width = 0.22, outlier.shape = NA,
+      fill = "white", color = "grey20", linewidth = 0.4, alpha = 0.9
     ) +
     stat_summary(fun = mean, geom = "point", shape = 18, size = 2.2, color = "grey15") +
-    scale_fill_manual(values = feat_pal, guide = "none") +
-    coord_cartesian(ylim = c(y_min, y_max)) +
-    labs(
-      title    = race_label,
-      subtitle = paste0("n = ", n)
+    geom_text(
+      data = let_sub,
+      aes(x = feat_ordered, y = y, label = cld),
+      inherit.aes = FALSE,
+      size = 3.1, fontface = "bold", color = "black"
     ) +
+    scale_fill_manual(values = feat_pal, guide = "none") +
+    coord_cartesian(ylim = c(y_min, y_max_plot)) +
+    labs(title = race_label, subtitle = paste0("n = ", n)) +
     theme_classic(base_size = 9.5) +
     theme(
-      plot.title         = element_text(size = 10, face = "bold", hjust = 0.5,
-                                        color = race_pal[race_label], margin = margin(b = 2)),
-      plot.subtitle      = element_text(size = 7.5, color = "grey50",
-                                        hjust = 0.5, margin = margin(b = 3)),
-      axis.text.x        = element_text(angle = 35, hjust = 1, size = 7.5, color = "grey20"),
-      axis.text.y        = element_text(size = 7.5, color = "grey20"),
-      axis.title.x       = element_blank(),
-      axis.line          = element_line(color = "grey40", linewidth = 0.35),
-      axis.ticks         = element_line(color = "grey40", linewidth = 0.3),
+      plot.title = element_text(size = 10, face = "bold", hjust = 0.5,
+                                color = race_pal[race_label], margin = margin(b = 2)),
+      plot.subtitle = element_text(size = 7.5, color = "grey50",
+                                   hjust = 0.5, margin = margin(b = 3)),
+      axis.text.x = element_text(angle = 35, hjust = 1, size = 7.5, color = "grey20"),
+      axis.text.y = element_text(size = 7.5, color = "grey20"),
+      axis.title.x = element_blank(),
+      axis.line = element_line(color = "grey40", linewidth = 0.35),
+      axis.ticks = element_line(color = "grey40", linewidth = 0.3),
       panel.grid.major.y = element_line(color = "grey93", linewidth = 0.3),
       panel.grid.major.x = element_blank(),
-      legend.position    = "none",
-      plot.background    = element_rect(fill = "white", color = NA),
-      panel.background   = element_rect(fill = "white", color = NA),
-      plot.margin        = margin(4, 4, 4, 4)
+      legend.position = "none",
+      plot.background = element_rect(fill = "white", color = NA),
+      panel.background = element_rect(fill = "white", color = NA),
+      plot.margin = margin(4, 4, 4, 4)
     )
 
   if (!show_y) {
     p <- p + theme(
-      axis.text.y  = element_blank(),
+      axis.text.y = element_blank(),
       axis.ticks.y = element_blank(),
       axis.title.y = element_blank(),
-      axis.line.y  = element_blank()
+      axis.line.y = element_blank()
     )
   } else {
     p <- p + labs(y = "Weighted burden per callable selected site") +
@@ -352,9 +509,9 @@ legend_plot <- ggplot(legend_data, aes(x = x, y = y, fill = feature)) +
   theme_void() +
   theme(
     legend.position = "right",
-    legend.title    = element_text(size = 9, face = "bold"),
-    legend.text     = element_text(size = 8.5),
-    legend.key.size = unit(0.5, "cm"),
+    legend.title = element_text(size = 9, face = "bold"),
+    legend.text = element_text(size = 8.5),
+    legend.key.size = grid::unit(0.5, "cm"),
     plot.background = element_rect(fill = "white", color = NA)
   ) +
   guides(fill = guide_legend(override.aes = list(size = 4, alpha = 1)))
@@ -366,16 +523,19 @@ fig <- (p1 | p2 | p3 | p4 | p5 | p6 | legend_plot) +
     title = "Weighted deleterious burden per callable site by sorghum race"
   ) &
   theme(
-    plot.title      = element_text(size = 12, face = "bold", hjust = 0),
+    plot.title = element_text(size = 12, face = "bold", hjust = 0),
     plot.background = element_rect(fill = "white", color = NA),
-    plot.margin     = margin(14, 14, 10, 14)
+    plot.margin = margin(14, 14, 10, 14)
   )
 
 # ── SAVE ──────────────────────────────────────────────────────────────────────
-cairo_pdf(OUT_PDF, width = 18, height = 5.5, family = "Arial")
+grDevices::cairo_pdf(OUT_PDF, width = 18, height = 5.5, family = "Arial")
 print(fig)
 dev.off()
 
-cat("Saved:", OUT_PDF, "\n")
+cat("Saved plot:   ", OUT_PDF, "\n")
+cat("Saved tests:  ", OUT_PAIRWISE, "\n")
+cat("Saved letters:", OUT_LETTERS, "\n")
+
 ```
 
