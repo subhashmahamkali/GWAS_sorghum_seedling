@@ -45,7 +45,6 @@ for (i in seq_along(multiplier_matrix)) {
 subset_df_final <- cbind(subset_df[, .(chr, pos, start_1, end_1, geneID)], multiplier_matrix)
 
 # --- SUMMARIZE ---
-
 # Create genetic load columns names
 genetic_load_cols <- names(multiplier_matrix)
 

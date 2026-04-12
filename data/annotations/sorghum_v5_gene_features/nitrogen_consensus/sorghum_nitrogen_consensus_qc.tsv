@@ -1,0 +1,10 @@
+metric	value
+n_candidate_kegg_genes_union	89
+n_with_pathway_00910	32
+n_with_pathway_01310	4
+n_with_keyword_core	73
+n_mapped_to_sobic_v5	83
+n_present_in_v5_gff	83
+n_high_confidence	16
+n_medium_confidence	16
+n_low_confidence	51

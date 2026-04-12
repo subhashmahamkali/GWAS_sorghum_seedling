@@ -329,3 +329,414 @@ ggsave(
 )
 ```
 
+
+#Violin plot for both in 5% of ZSS in balancing selection (b2) and positive selection(fst and XP-CLR)
+
+```{r}
+suppressPackageStartupMessages({
+  library(data.table)
+  library(vioplot)
+})
+
+# ==========================================================================
+# Absolute deleterious score (|ZSS|) in Peak vs Background regions
+# One-row plot: B2 (wild, landrace, improved) + Positive Selection (FST ∪ XPCLR)
+# ZSS cutoff: top 5% (≤ -5.150879)
+# Positive selection peaks = union of FST top 1% + XPCLR top 1% windows
+# ==========================================================================
+
+# --------------------------------------------------------------------------
+# 0. Paths
+# --------------------------------------------------------------------------
+BASE <- "/mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling"
+
+ZSS_BED <- file.path(BASE, "largedata/zeroscore.bed")
+
+# B2 balancing selection peak BEDs (already top 1%)
+B2_FILES <- list(
+  wild     = file.path(BASE, "data/3.1.1_sorghum_genetic_load_in_selection_sweeps/wild.top1.bed"),
+  landrace = file.path(BASE, "data/3.1.1_sorghum_genetic_load_in_selection_sweeps/land.top1.bed"),
+  improved = file.path(BASE, "data/3.1.1_sorghum_genetic_load_in_selection_sweeps/imp.top1.bed")
+)
+
+# FST windowed files (full — we take top 1%)
+FST_FILES <- list(
+  "wild vs landrace"     = file.path(BASE, "data/2.2_positive_selec/sorg_wild_vs_landrace.windowed.weir.fst"),
+  "landrace vs improved" = file.path(BASE, "data/2.2_positive_selec/landrace_vs_improved.windowed.weir.fst")
+)
+
+# XPCLR windowed files (full — we take top 1% by xpclr column)
+XPCLR_FILES <- list(
+  "wild vs landrace"     = file.path(BASE, "largedata/figure_2/domestication_landrace_vs_wild.all_chr.tsv"),
+  "landrace vs improved" = file.path(BASE, "largedata/figure_2/breeding_improved_vs_landrace.all_chr.tsv")
+)
+
+OUTDIR <- file.path(BASE, "graphs/01_publication/3.genetic_load/")
+dir.create(OUTDIR, recursive = TRUE, showWarnings = FALSE)
+
+# --------------------------------------------------------------------------
+# 1. Settings
+# --------------------------------------------------------------------------
+ZSS_CUTOFF     <- -5.150879   # top 5%
+cutoff_to_plot <- "5%"
+
+b2_groups  <- c("wild", "landrace", "improved")
+pos_groups <- c("wild vs landrace", "landrace vs improved")
+all_groups <- c(b2_groups, pos_groups)
+
+col_bg   <- adjustcolor("#7f8c8d", alpha.f = 0.85)
+col_peak <- adjustcolor("#f7a600", alpha.f = 0.85)
+cols     <- c(col_bg, col_peak)
+
+fmt_axis <- function(x) formatC(x, format = "fg", digits = 3)
+
+# --------------------------------------------------------------------------
+# 2. Helper functions
+# --------------------------------------------------------------------------
+to_num_chr <- function(x) {
+  x <- sub("^chr|^Chr", "", as.character(x))
+  x <- sub("^0+", "", x)
+  x[nchar(x) == 0] <- "0"
+  x
+}
+
+merge_overlaps <- function(dt) {
+  # Merge overlapping/adjacent intervals per chromosome
+  if (nrow(dt) == 0L) return(dt)
+  setorder(dt, start, end)
+  out_s <- integer(); out_e <- integer()
+  s <- dt$start[1]; e <- dt$end[1]
+  for (i in seq_len(nrow(dt))[-1]) {
+    if (dt$start[i] <= e) {
+      e <- max(e, dt$end[i])
+    } else {
+      out_s <- c(out_s, s); out_e <- c(out_e, e)
+      s <- dt$start[i]; e <- dt$end[i]
+    }
+  }
+  data.table(start = c(out_s, s), end = c(out_e, e))
+}
+
+draw_bracket <- function(x1, x2, y, p_val, tick, label_offset) {
+  sig <- if      (p_val < 0.0001) "****"
+         else if (p_val < 0.001)  "***"
+         else if (p_val < 0.01)   "**"
+         else if (p_val < 0.05)   "*"
+         else                     "ns"
+  segments(x1, y, x2, y, xpd = NA)
+  segments(x1, y - tick, x1, y, xpd = NA)
+  segments(x2, y - tick, x2, y, xpd = NA)
+  text((x1 + x2) / 2, y + label_offset, labels = sig, cex = 1.0, xpd = NA)
+}
+
+# --------------------------------------------------------------------------
+# 3. Load ZSS
+# --------------------------------------------------------------------------
+message("Loading ZSS BED ...")
+Z_all <- fread(ZSS_BED, header = FALSE)
+setnames(Z_all, paste0("V", seq_len(ncol(Z_all))))
+Z_all <- Z_all[, .(chr = to_num_chr(V1), pos = as.integer(V4), zss = as.numeric(V5))]
+Z_all <- Z_all[is.finite(zss)]
+setkey(Z_all, chr, pos)
+
+# Filter to top 5% deleterious
+Z_del <- Z_all[zss <= ZSS_CUTOFF]
+Z_del[, abs_zss := abs(zss)]
+message(sprintf("  Total ZSS sites: %s | Top 5%% deleterious (≤ %.3f): %s",
+                formatC(nrow(Z_all), big.mark = ","),
+                ZSS_CUTOFF,
+                formatC(nrow(Z_del), big.mark = ",")))
+
+# --------------------------------------------------------------------------
+# 4. B2 balancing selection: tag PEAK vs BACKGROUND
+# --------------------------------------------------------------------------
+message("Processing B2 peaks ...")
+
+b2_results <- list()
+
+for (grp in b2_groups) {
+  B2 <- fread(B2_FILES[[grp]], header = FALSE)[, .(
+    chr   = to_num_chr(V1),
+    start = as.integer(V2),
+    end   = as.integer(V3)
+  )]
+  setkey(B2, chr, start, end)
+
+  # Overlap
+  Zrng <- Z_del[, .(chr, start = pos, end = pos, pos, abs_zss)]
+  setkey(Zrng, chr, start, end)
+  ov <- foverlaps(Zrng, B2, nomatch = 0L)
+
+  Z_tag <- copy(Z_del)
+  Z_tag[, region := "BACKGROUND"]
+  if (nrow(ov)) Z_tag[pos %in% ov$pos, region := "PEAK"]
+
+  Z_tag[, GROUP  := grp]
+  Z_tag[, CUTOFF := cutoff_to_plot]
+  b2_results[[grp]] <- Z_tag
+
+  message(sprintf("  B2 %s: %d peaks, %d PEAK sites, %d BG sites",
+                  grp, nrow(B2),
+                  sum(Z_tag$region == "PEAK"),
+                  sum(Z_tag$region == "BACKGROUND")))
+}
+
+df_b2 <- rbindlist(b2_results)
+
+# --------------------------------------------------------------------------
+# 5. Positive selection: FST top 1% ∪ XPCLR top 1% → merged PEAK regions
+# --------------------------------------------------------------------------
+message("Processing positive selection (FST ∪ XPCLR) peaks ...")
+
+pos_results <- list()
+
+for (comp in pos_groups) {
+
+  # --- FST top 1% windows ---
+  fst_raw <- fread(FST_FILES[[comp]])
+  fst_col <- if ("WEIGHTED_FST" %in% names(fst_raw)) "WEIGHTED_FST" else "WEIR_AND_COCKERHAM_FST"
+  fst_dt <- fst_raw[, .(
+    chr   = to_num_chr(CHROM),
+    start = as.integer(BIN_START),
+    end   = as.integer(BIN_END),
+    val   = as.numeric(get(fst_col))
+  )]
+  fst_dt <- fst_dt[is.finite(val) & end > start]
+  fst_thr <- quantile(fst_dt$val, 0.99, na.rm = TRUE)
+  fst_peaks <- fst_dt[val >= fst_thr, .(chr, start, end)]
+  message(sprintf("  %s — FST top 1%% threshold: %.4f → %d windows",
+                  comp, fst_thr, nrow(fst_peaks)))
+
+  # --- XPCLR top 1% windows ---
+  xpclr_raw <- fread(XPCLR_FILES[[comp]])
+  xpclr_dt <- xpclr_raw[, .(
+    chr   = to_num_chr(chrom),
+    start = as.integer(start),
+    end   = as.integer(stop),
+    val   = as.numeric(xpclr)
+  )]
+  xpclr_dt <- xpclr_dt[is.finite(val) & end > start]
+  xpclr_thr <- quantile(xpclr_dt$val, 0.99, na.rm = TRUE)
+  xpclr_peaks <- xpclr_dt[val >= xpclr_thr, .(chr, start, end)]
+  message(sprintf("  %s — XPCLR top 1%% threshold: %.4f → %d windows",
+                  comp, xpclr_thr, nrow(xpclr_peaks)))
+
+  # --- Union of FST + XPCLR peaks, then merge overlapping intervals ---
+  all_peaks <- rbind(fst_peaks, xpclr_peaks)
+  merged_peaks <- all_peaks[, merge_overlaps(.SD), by = chr]
+  setkey(merged_peaks, chr, start, end)
+  message(sprintf("  %s — Merged (FST ∪ XPCLR) peak regions: %d",
+                  comp, nrow(merged_peaks)))
+
+  # --- Overlap with deleterious ZSS sites ---
+  Zrng <- Z_del[, .(chr, start = pos, end = pos, pos, abs_zss)]
+  setkey(Zrng, chr, start, end)
+  ov <- foverlaps(Zrng, merged_peaks, nomatch = 0L)
+
+  Z_tag <- copy(Z_del)
+  Z_tag[, region := "BACKGROUND"]
+  if (nrow(ov)) Z_tag[pos %in% ov$pos, region := "PEAK"]
+
+  Z_tag[, GROUP  := comp]
+  Z_tag[, CUTOFF := cutoff_to_plot]
+  pos_results[[comp]] <- Z_tag
+
+  message(sprintf("  %s — PEAK sites: %d, BG sites: %d",
+                  comp,
+                  sum(Z_tag$region == "PEAK"),
+                  sum(Z_tag$region == "BACKGROUND")))
+}
+
+df_pos <- rbindlist(pos_results)
+
+# --------------------------------------------------------------------------
+# 6. Build plotting vectors (same structure as original one-row code)
+# --------------------------------------------------------------------------
+df_b2[,  region := factor(region, levels = c("BACKGROUND", "PEAK"))]
+df_pos[, region := factor(region, levels = c("BACKGROUND", "PEAK"))]
+
+get_pair <- function(dat, grp) {
+  bg_v <- dat[GROUP == grp & region == "BACKGROUND", abs_zss]
+  pk_v <- dat[GROUP == grp & region == "PEAK",       abs_zss]
+
+  # Safety: vioplot needs ≥2 values
+  if (length(bg_v) < 2) bg_v <- rep(median(bg_v, na.rm = TRUE), 2)
+  if (length(pk_v) < 2) pk_v <- rep(median(pk_v, na.rm = TRUE), 2)
+
+  list(bg = bg_v, peak = pk_v)
+}
+
+pair_list <- list()
+for (grp in b2_groups)  pair_list[[grp]] <- get_pair(df_b2, grp)
+for (grp in pos_groups) pair_list[[grp]] <- get_pair(df_pos, grp)
+
+# Flatten for y-axis limits
+all_vals <- unlist(lapply(pair_list, function(z) c(z$bg, z$peak)))
+ylo   <- min(all_vals, na.rm = TRUE) * 0.92
+stepy <- (max(all_vals, na.rm = TRUE) - min(all_vals, na.rm = TRUE)) * 0.10
+yhi   <- max(all_vals, na.rm = TRUE) + stepy * 1.8
+ticks <- pretty(c(ylo, yhi), n = 5)
+
+# x positions: 5 pairs
+# B2: 1-2, 4-5, 7-8
+# Positive selection (FST ∪ XPCLR): 11-12, 14-15
+x_pos <- c(1, 2, 4, 5, 7, 8, 11, 12, 14, 15)
+
+plot_list <- list(
+  pair_list[["wild"]]$bg,
+  pair_list[["wild"]]$peak,
+  pair_list[["landrace"]]$bg,
+  pair_list[["landrace"]]$peak,
+  pair_list[["improved"]]$bg,
+  pair_list[["improved"]]$peak,
+  pair_list[["wild vs landrace"]]$bg,
+  pair_list[["wild vs landrace"]]$peak,
+  pair_list[["landrace vs improved"]]$bg,
+  pair_list[["landrace vs improved"]]$peak
+)
+
+col_vec <- rep(cols, 5)
+
+# --------------------------------------------------------------------------
+# 6b. Print median summary
+# --------------------------------------------------------------------------
+message("\n=== Median |ZSS| summary ===")
+message(sprintf("%-25s %10s %10s %10s", "Group", "BG median", "PK median", "Diff (BG-PK)"))
+message(paste(rep("-", 60), collapse = ""))
+
+for (grp in all_groups) {
+  med_bg <- median(pair_list[[grp]]$bg, na.rm = TRUE)
+  med_pk <- median(pair_list[[grp]]$peak, na.rm = TRUE)
+  message(sprintf("%-25s %10.4f %10.4f %10.4f", grp, med_bg, med_pk, med_bg - med_pk))
+}
+
+# --------------------------------------------------------------------------
+# 7. Main plotting function
+# --------------------------------------------------------------------------
+make_one_row_plot <- function() {
+  par(mar = c(6, 6, 4, 1), oma = c(0, 0, 0, 0))
+
+  vioplot(plot_list[[1]], plot_list[[2]], plot_list[[3]], plot_list[[4]],
+          plot_list[[5]], plot_list[[6]], plot_list[[7]], plot_list[[8]],
+          plot_list[[9]], plot_list[[10]],
+          at       = x_pos,
+          col      = col_vec,
+          border   = col_vec,
+          rectCol  = NA,
+          lineCol  = NA,
+          colMed   = NA,
+          ylim     = c(ylo, yhi),
+          xaxt     = "n",
+          yaxt     = "n",
+          las      = 1,
+          tck      = -0.03,
+          ylab     = "Absolute deleterious score (|ZSS|)",
+          main     = "Absolute deleterious score: Background vs Peak (Top 5% ZSS)",
+          cex.lab  = 1.1,
+          cex.axis = 0.9,
+          cex.main = 1.2,
+          font.main = 2)
+
+  # Horizontal grid
+  grid(nx = NA, ny = NULL, col = "gray70", lty = "solid", lwd = 0.6)
+
+  # Re-draw violins on top of grid
+  vioplot(plot_list[[1]], plot_list[[2]], plot_list[[3]], plot_list[[4]],
+          plot_list[[5]], plot_list[[6]], plot_list[[7]], plot_list[[8]],
+          plot_list[[9]], plot_list[[10]],
+          at       = x_pos,
+          col      = col_vec,
+          border   = col_vec,
+          rectCol  = NA,
+          lineCol  = NA,
+          colMed   = NA,
+          add      = TRUE)
+
+  # Boxplots inside violins
+  for (i in seq_along(plot_list)) {
+    boxplot(plot_list[[i]],
+            at        = x_pos[i],
+            add       = TRUE,
+            boxwex    = 0.22,
+            outline   = FALSE,
+            col       = adjustcolor("white", alpha.f = 0.6),
+            border    = "black",
+            staplewex = 0.5,
+            medcol    = "black",
+            medlwd    = 2,
+            whisklty  = 1,
+            xaxt      = "n",
+            yaxt      = "n")
+  }
+
+  # Y axis
+  axis(2, at = ticks, labels = fmt_axis(ticks), las = 1, cex.axis = 0.9)
+
+  # Group labels on x-axis
+  axis(1,
+       at     = c(1.5, 4.5, 7.5, 11.5, 14.5),
+       labels = c("wild", "landrace", "improved",
+                  "wild vs\nlandrace", "landrace vs\nimproved"),
+       tick   = FALSE, line = 1, cex.axis = 0.85)
+
+  # BG / PK sub-labels
+  text(x = x_pos,
+       y = par("usr")[3] - 0.04 * diff(par("usr")[3:4]),
+       labels = rep(c("BG", "PK"), 5),
+       xpd = NA, cex = 0.85)
+
+  # Section headers
+  text(x = mean(c(1.5, 7.5)),
+       y = yhi + 0.04 * diff(c(ylo, yhi)),
+       labels = "Balancing selection (B2)",
+       xpd = NA, cex = 1.1, font = 2)
+
+  text(x = mean(c(11.5, 14.5)),
+       y = yhi + 0.04 * diff(c(ylo, yhi)),
+       labels = expression(bold("Positive selection (FST" ~ union() ~ "XPCLR)")),
+       xpd = NA, cex = 1.1)
+
+  # Separator
+
+  abline(v = 9.5, lty = 2, col = "gray50")
+
+  # Significance brackets (Wilcoxon test for each pair)
+  tick_h <- stepy * 0.12
+  loff   <- stepy * 0.10
+
+  for (k in 1:5) {
+    i1 <- 2 * k - 1
+    i2 <- 2 * k
+    wt <- suppressWarnings(wilcox.test(plot_list[[i1]], plot_list[[i2]]))
+    pair_max <- max(c(plot_list[[i1]], plot_list[[i2]]), na.rm = TRUE)
+    bracket_y <- pair_max + stepy * 0.18
+    draw_bracket(x_pos[i1], x_pos[i2], bracket_y, wt$p.value, tick_h, loff)
+  }
+
+  # Legend
+  legend("topright",
+         legend = c("Background", "Peak"),
+         fill   = cols,
+         border = cols,
+         bty    = "n",
+         cex    = 0.95)
+}
+
+# --------------------------------------------------------------------------
+# 8. Save
+# --------------------------------------------------------------------------
+pdf(file.path(OUTDIR, "absZSS_5pct_one_row_B2_FST_XPCLR.pdf"),
+    width = 16, height = 5.8)
+make_one_row_plot()
+dev.off()
+
+png(file.path(OUTDIR, "absZSS_5pct_one_row_B2_FST_XPCLR.png"),
+    width = 16, height = 5.8, units = "in", res = 350, bg = "white")
+make_one_row_plot()
+dev.off()
+
+message("\n=== Done! Output saved to: ===")
+message(file.path(OUTDIR, "absZSS_5pct_one_row_B2_FST_XPCLR.pdf"))
+message(file.path(OUTDIR, "absZSS_5pct_one_row_B2_FST_XPCLR.png"))
+```
+

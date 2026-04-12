@@ -1,0 +1,7 @@
+metric	value
+kegg_pathway	sbi00910
+n_kegg_rows	32
+n_kegg_unique_genes	32
+n_with_sorbi_locus_tag	21
+n_mapped_to_sobic_v5	21
+n_present_in_v5_gff	21
