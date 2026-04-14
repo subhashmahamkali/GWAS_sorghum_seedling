@@ -1,0 +1,548 @@
+---
+title: "permutation"
+author: "subhash"
+date: "2026-04-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#enrichment test
+
+```{bash}
+#!/bin/bash
+#SBATCH --job-name=perm_v2
+#SBATCH --array=1-30
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=3:00:00
+#SBATCH --mem=32G
+#SBATCH --partition=jclarke,batch,guest
+#SBATCH --error=/mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/permutation_v2/results/logs/perm_%a_err.txt
+#SBATCH --output=/mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/permutation_v2/results/logs/perm_%a_out.txt
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=smahamkalivenkatas2@huskers.unl.edu
+
+ml R
+
+Rscript /mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/permutation_v2/scripts/permutation_test_array_v2.R ${SLURM_ARRAY_TASK_ID}
+```
+
+
+## /mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/permutation_v2/scripts/permutation_test_array_v2.R
+
+
+```{r}
+#!/usr/bin/env Rscript
+
+suppressPackageStartupMessages(library(data.table))
+
+args <- commandArgs(trailingOnly = TRUE)
+TASK_ID <- as.integer(args[1])
+cat("Array task ID:", TASK_ID, "\n\n")
+
+# ==============================================================================
+# PATHS
+# ==============================================================================
+repo_root <- "/mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling"
+outroot   <- file.path(repo_root, "largedata", "permutation_v2", "results")
+
+gwas_path    <- file.path(repo_root, "largedata", "All_GWAS_sorg.txt")
+b2_wild_path <- file.path(repo_root, "largedata", "wild_merged_chr.B2.txt")
+b2_land_path <- file.path(repo_root, "largedata", "Sorghum_landrace.AGPV5.B2_stat.txt")
+b2_imp_path  <- file.path(repo_root, "largedata", "imp_merged_chr.B2.txt")
+
+fst_wl_path  <- file.path(repo_root, "largedata", "figure_2",
+                          "sorg_wild_vs_landrace.windowed.weir.fst")
+fst_li_path  <- file.path(repo_root, "largedata", "figure_2",
+                          "landrace_vs_improved.windowed.weir.fst")
+
+xp_dom_path  <- file.path(repo_root, "largedata", "figure_2",
+                          "domestication_landrace_vs_wild.all_chr.tsv")
+xp_bre_path  <- file.path(repo_root, "largedata", "figure_2",
+                          "breeding_improved_vs_landrace.all_chr.tsv")
+
+dir.create(file.path(outroot, "summaries"), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path(outroot, "null_counts"), recursive = TRUE, showWarnings = FALSE)
+
+# ==============================================================================
+# PARAMETERS
+# ==============================================================================
+GWAS_THRESHOLD <- 5
+TOP_PERCENTILE <- 0.01
+B2_MERGE_DIST  <- 10000
+B2_BUFFER      <- 5000
+N_PERM         <- 10000
+
+set.seed(1000 + TASK_ID)
+
+# ==============================================================================
+# TASK MAP
+# ==============================================================================
+conditions <- c("HN", "LN", "NR")
+peak_names <- c(
+  "B2_wild", "B2_landrace", "B2_improved", "B2_combined",
+  "Fst_WL", "Fst_LI", "Fst_combined",
+  "XPCLR_dom", "XPCLR_bre", "XPCLR_combined"
+)
+
+stopifnot(TASK_ID >= 1, TASK_ID <= length(conditions) * length(peak_names))
+
+cond_idx <- ((TASK_ID - 1) %/% length(peak_names)) + 1
+peak_idx <- ((TASK_ID - 1) %%  length(peak_names)) + 1
+
+MY_COND <- conditions[cond_idx]
+MY_PEAK <- peak_names[peak_idx]
+
+cat("Running:", MY_COND, "x", MY_PEAK, "\n\n")
+
+# ==============================================================================
+# HELPERS
+# ==============================================================================
+count_snp_in_peaks <- function(snp_dt, peak_dt) {
+  if (nrow(peak_dt) == 0 || nrow(snp_dt) == 0) return(0L)
+  hits <- 0L
+  for (ch in unique(snp_dt$chr)) {
+    snp_pos <- snp_dt[chr == ch, pos]
+    pk <- peak_dt[chr == ch]
+    if (nrow(pk) == 0 || length(snp_pos) == 0) next
+    in_any <- sapply(snp_pos, function(p) any(p >= pk$start & p <= pk$end))
+    hits <- hits + sum(in_any)
+  }
+  hits
+}
+
+merge_snps_to_intervals <- function(dt, merge_dist = 10000, buffer = 5000) {
+  if (nrow(dt) == 0) return(data.table(chr=integer(), start=integer(), end=integer()))
+  setorder(dt, chr, pos)
+  dt[, {
+    s <- pos[1]
+    e <- pos[1]
+    starts <- integer()
+    ends <- integer()
+    if (.N > 1) {
+      for (i in 2:.N) {
+        if (pos[i] - e <= merge_dist) {
+          e <- pos[i]
+        } else {
+          starts <- c(starts, s)
+          ends   <- c(ends, e)
+          s <- pos[i]
+          e <- pos[i]
+        }
+      }
+    }
+    starts <- c(starts, s)
+    ends   <- c(ends, e)
+    .(start = pmax(1L, starts - buffer), end = ends + buffer)
+  }, by = chr]
+}
+
+merge_intervals <- function(dt) {
+  if (nrow(dt) == 0) return(dt)
+  setorder(dt, chr, start, end)
+  out <- dt[, {
+    cur_s <- start[1]
+    cur_e <- end[1]
+    starts <- integer()
+    ends <- integer()
+    if (.N > 1) {
+      for (i in 2:.N) {
+        if (start[i] <= cur_e + 1L) {
+          cur_e <- max(cur_e, end[i])
+        } else {
+          starts <- c(starts, cur_s)
+          ends   <- c(ends, cur_e)
+          cur_s  <- start[i]
+          cur_e  <- end[i]
+        }
+      }
+    }
+    starts <- c(starts, cur_s)
+    ends   <- c(ends, cur_e)
+    .(start = starts, end = ends)
+  }, by = chr]
+  out
+}
+
+load_b2_positions <- function(path, pop) {
+  d <- fread(path)
+  if (pop == "landrace") {
+    out <- data.table(chr = as.integer(d[[1]]), pos = as.integer(d[[2]]), b2 = as.numeric(d[[4]]))
+  } else {
+    out <- data.table(chr = as.integer(d[[7]]), pos = as.integer(d[[1]]), b2 = as.numeric(d[[3]]))
+  }
+  out <- out[is.finite(b2) & b2 > 0]
+  thr <- quantile(out$b2, 1 - TOP_PERCENTILE, na.rm = TRUE)
+  out[b2 >= thr, .(chr, pos)]
+}
+
+load_fst <- function(path) {
+  d <- fread(path)
+  d[, CHROM := as.integer(CHROM)]
+  d <- d[is.finite(WEIGHTED_FST)]
+  thr <- quantile(d$WEIGHTED_FST, 1 - TOP_PERCENTILE, na.rm = TRUE)
+  out <- d[WEIGHTED_FST >= thr, .(chr = CHROM, start = as.integer(BIN_START), end = as.integer(BIN_END))]
+  merge_intervals(out)
+}
+
+load_xp <- function(path) {
+  d <- fread(path)
+  d[, chrom := as.integer(chrom)]
+  d <- d[is.finite(xpclr) & xpclr > 0]
+  thr <- quantile(d$xpclr, 1 - TOP_PERCENTILE, na.rm = TRUE)
+  out <- d[xpclr >= thr, .(chr = chrom, start = as.integer(start), end = as.integer(stop))]
+  merge_intervals(out)
+}
+
+# ==============================================================================
+# LOAD GWAS
+# ==============================================================================
+cat("Loading GWAS...\n")
+gwas <- fread(gwas_path)
+setnames(gwas, c("CHROM", "POS", "Pvalue", "Trait", "Condition", "Trait_type"))
+gwas[, logp := -log10(Pvalue)]
+gwas[, CHROM := as.integer(CHROM)]
+gwas[, POS   := as.integer(POS)]
+
+gwas_sig <- gwas[is.finite(logp) & logp > GWAS_THRESHOLD]
+
+sig <- gwas_sig[Condition == MY_COND]
+sig_snps <- unique(sig[, .(chr = CHROM, pos = POS)])
+n_sig <- nrow(sig_snps)
+
+univ <- unique(gwas[Condition == MY_COND, .(chr = CHROM, pos = POS)])
+chr_counts <- sig_snps[, .N, by = chr]
+univ_split <- split(univ$pos, univ$chr)
+
+cat("Significant SNPs:", n_sig, "\n")
+
+# ==============================================================================
+# BUILD PEAKS
+# ==============================================================================
+cat("Building peak set...\n")
+
+b2_wild <- merge_snps_to_intervals(load_b2_positions(b2_wild_path, "wild"),      B2_MERGE_DIST, B2_BUFFER)
+b2_land <- merge_snps_to_intervals(load_b2_positions(b2_land_path, "landrace"),  B2_MERGE_DIST, B2_BUFFER)
+b2_imp  <- merge_snps_to_intervals(load_b2_positions(b2_imp_path,  "improved"),  B2_MERGE_DIST, B2_BUFFER)
+b2_comb <- merge_intervals(rbindlist(list(b2_wild, b2_land, b2_imp), use.names = TRUE))
+
+fst_wl  <- load_fst(fst_wl_path)
+fst_li  <- load_fst(fst_li_path)
+fst_comb <- merge_intervals(rbindlist(list(fst_wl, fst_li), use.names = TRUE))
+
+xp_dom  <- load_xp(xp_dom_path)
+xp_bre  <- load_xp(xp_bre_path)
+xp_comb <- merge_intervals(rbindlist(list(xp_dom, xp_bre), use.names = TRUE))
+
+pk <- switch(MY_PEAK,
+  "B2_wild"       = b2_wild,
+  "B2_landrace"   = b2_land,
+  "B2_improved"   = b2_imp,
+  "B2_combined"   = b2_comb,
+  "Fst_WL"        = fst_wl,
+  "Fst_LI"        = fst_li,
+  "Fst_combined"  = fst_comb,
+  "XPCLR_dom"     = xp_dom,
+  "XPCLR_bre"     = xp_bre,
+  "XPCLR_combined"= xp_comb
+)
+
+cat("Peak intervals:", nrow(pk), "\n")
+cat("Peak bp:", sum(pk$end - pk$start + 1L), "\n\n")
+
+# ==============================================================================
+# OBSERVED + PERMUTATION
+# ==============================================================================
+obs <- count_snp_in_peaks(sig_snps, pk)
+cat("Observed overlap:", obs, "\n")
+cat("Running", N_PERM, "permutations...\n")
+
+null_counts <- integer(N_PERM)
+
+for (p in seq_len(N_PERM)) {
+  rand_list <- lapply(seq_len(nrow(chr_counts)), function(j) {
+    ch <- chr_counts$chr[j]
+    n  <- chr_counts$N[j]
+    pool <- univ_split[[as.character(ch)]]
+    if (is.null(pool) || length(pool) == 0) return(NULL)
+    if (n > length(pool)) n <- length(pool)
+    data.table(chr = ch, pos = sample(pool, n, replace = FALSE))
+  })
+  rand_dt <- rbindlist(rand_list)
+  null_counts[p] <- count_snp_in_peaks(rand_dt, pk)
+  if (p %% 1000 == 0) cat("  done", p, "\n")
+}
+
+null_mean <- mean(null_counts)
+null_sd   <- sd(null_counts)
+fold      <- if (null_mean > 0) obs / null_mean else NA_real_
+pval      <- (sum(null_counts >= obs) + 1) / (N_PERM + 1)
+zscore    <- if (null_sd > 0) (obs - null_mean) / null_sd else NA_real_
+
+result <- data.table(
+  condition       = MY_COND,
+  selection       = MY_PEAK,
+  n_gwas_sig      = n_sig,
+  observed        = obs,
+  null_mean       = round(null_mean, 3),
+  null_sd         = round(null_sd, 3),
+  fold_enrichment = round(fold, 3),
+  z_score         = round(zscore, 3),
+  perm_pvalue     = pval,
+  peak_bp         = sum(pk$end - pk$start + 1L),
+  n_peak_intervals = nrow(pk)
+)
+
+result[, sig := fifelse(perm_pvalue < 0.001, "***",
+                 fifelse(perm_pvalue < 0.01,  "**",
+                 fifelse(perm_pvalue < 0.05,  "*", "ns")))]
+
+# ==============================================================================
+# SAVE
+# ==============================================================================
+sum_file  <- file.path(outroot, "summaries",   paste0("perm_", MY_COND, "_", MY_PEAK, "_summary.tsv"))
+null_file <- file.path(outroot, "null_counts", paste0("perm_", MY_COND, "_", MY_PEAK, "_null_counts.tsv"))
+
+fwrite(result, sum_file, sep = "\t")
+fwrite(data.table(iteration = seq_len(N_PERM), null_count = null_counts), null_file, sep = "\t")
+
+cat("\nSaved summary:", sum_file, "\n")
+cat("Saved null counts:", null_file, "\n")
+cat("=== Done ===\n")
+```
+
+
+### combine_perm_results_v2.R
+```{r}
+
+#!/usr/bin/env Rscript
+suppressPackageStartupMessages(library(data.table))
+
+repo_root <- "/mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling"
+resdir <- file.path(repo_root, "largedata", "permutation_v2", "results", "summaries")
+outdir <- file.path(repo_root, "largedata", "permutation_v2", "results", "combined")
+dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
+
+files <- list.files(resdir, pattern = "_summary\\.tsv$", full.names = TRUE)
+cat("Found", length(files), "summary files\n")
+
+results <- rbindlist(lapply(files, fread), fill = TRUE)
+
+# FDR across all tests
+results[, fdr_bh := p.adjust(perm_pvalue, method = "BH")]
+
+results[, sig_fdr := fifelse(fdr_bh < 0.001, "***",
+                      fifelse(fdr_bh < 0.01,  "**",
+                      fifelse(fdr_bh < 0.05,  "*", "ns")))]
+
+setorder(results, condition, selection)
+
+print(results[, .(
+  condition, selection, n_gwas_sig, observed, null_mean,
+  fold_enrichment, perm_pvalue, fdr_bh, sig, sig_fdr
+)])
+
+fwrite(results, file.path(outdir, "permutation_results_v2_combined.tsv"), sep = "\t")
+cat("\nSaved combined results.\n")
+
+
+```
+
+
+#### Plotting
+
+```{r}
+#!/usr/bin/env Rscript
+
+suppressPackageStartupMessages({
+  library(data.table)
+  library(ggplot2)
+})
+
+# ==============================================================================
+# PATHS
+# ==============================================================================
+BASE <- "/mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/permutation_v2/results"
+NULL_DIR <- file.path(BASE, "null_counts")
+COMBINED_FILE <- file.path(BASE, "combined", "permutation_results_v2_combined.tsv")
+OUTDIR <- "/mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/permutation_v2/plots/histograms"
+
+dir.create(OUTDIR, recursive = TRUE, showWarnings = FALSE)
+
+# ==============================================================================
+# LOAD SUMMARY RESULTS
+# ==============================================================================
+res <- fread(COMBINED_FILE)
+res[, test_id := paste(condition, selection, sep = "_")]
+
+# ==============================================================================
+# PLOT ONE HISTOGRAM
+# ==============================================================================
+plot_one_hist <- function(cond, sel, res_dt, null_dir, outdir) {
+  test_id <- paste(cond, sel, sep = "_")
+  null_file <- file.path(null_dir, paste0("perm_", test_id, "_null_counts.tsv"))
+  
+  if (!file.exists(null_file)) {
+    message("Missing null file: ", null_file)
+    return(NULL)
+  }
+  
+  rr <- res_dt[condition == cond & selection == sel]
+  if (nrow(rr) != 1) {
+    message("Missing or duplicated summary row for: ", test_id)
+    return(NULL)
+  }
+  
+  null_dt <- fread(null_file)
+  
+  obs <- rr$observed
+  null_mean <- rr$null_mean
+  pval <- rr$perm_pvalue
+  fdr <- rr$fdr_bh
+  fold <- rr$fold_enrichment
+  
+  p <- ggplot(null_dt, aes(x = null_count)) +
+    geom_histogram(bins = 40, fill = "grey75", color = "black") +
+    geom_vline(xintercept = null_mean, linetype = "dashed", linewidth = 0.9) +
+    geom_vline(xintercept = obs, color = "red", linewidth = 1.1) +
+    theme_bw(base_size = 12) +
+    labs(
+      title = paste0(cond, " × ", sel),
+      subtitle = paste0(
+        "Observed = ", obs,
+        " | Null mean = ", round(null_mean, 2),
+        " | Fold = ", round(fold, 3),
+        " | P = ", format(pval, scientific = TRUE, digits = 3),
+        " | FDR = ", format(fdr, scientific = TRUE, digits = 3)
+      ),
+      x = "Permutation overlap count",
+      y = "Frequency"
+    )
+  
+  outfile <- file.path(outdir, paste0("Hist_", test_id, ".pdf"))
+  ggsave(outfile, p, width = 5.8, height = 4.3, dpi = 300)
+  message("Saved: ", outfile)
+  
+  invisible(p)
+}
+
+# ==============================================================================
+# MAKE ALL HISTOGRAMS
+# ==============================================================================
+for (i in seq_len(nrow(res))) {
+  plot_one_hist(
+    cond = res$condition[i],
+    sel  = res$selection[i],
+    res_dt = res,
+    null_dir = NULL_DIR,
+    outdir = OUTDIR
+  )
+}
+
+cat("All histograms saved to:\n", OUTDIR, "\n")
+```
+
+
+###### plotting _ dot plot
+```{r}
+#!/usr/bin/env Rscript
+
+suppressPackageStartupMessages({
+  library(data.table)
+  library(ggplot2)
+})
+
+BASE <- "/mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/permutation_v2"
+INFILE <- file.path(BASE, "results", "combined", "permutation_results_v2_combined.tsv")
+OUTDIR <- file.path(BASE, "plots", "panelB")
+dir.create(OUTDIR, recursive = TRUE, showWarnings = FALSE)
+
+d <- fread(INFILE)
+
+keep_levels <- c(
+  "B2_wild",
+  "B2_landrace",
+  "B2_improved",
+  "Fst_WL",
+  "Fst_LI",
+  "XPCLR_dom",
+  "XPCLR_bre"
+)
+
+d <- d[selection %in% keep_levels]
+
+label_map <- c(
+  B2_wild     = "B2 wild",
+  B2_landrace = "B2 landrace",
+  B2_improved = "B2 improved",
+  Fst_WL      = "FST wild vs landrace",
+  Fst_LI      = "FST landrace vs improved",
+  XPCLR_dom   = "XP-CLR domestication",
+  XPCLR_bre   = "XP-CLR breeding"
+)
+
+d[, selection_label := label_map[selection]]
+
+row_order <- c(
+  "B2 wild",
+  "B2 landrace",
+  "B2 improved",
+  "FST wild vs landrace",
+  "FST landrace vs improved",
+  "XP-CLR domestication",
+  "XP-CLR breeding"
+)
+
+d[, selection_label := factor(selection_label, levels = rev(row_order))]
+d[, condition := factor(condition, levels = c("HN", "LN", "NR"))]
+
+d[, direction := fifelse(fold_enrichment >= 1, "Enriched", "Depleted")]
+d[, sig_plot := fifelse(fdr_bh < 0.001, "***",
+                 fifelse(fdr_bh < 0.01,  "**",
+                 fifelse(fdr_bh < 0.05,  "*", "")))]
+
+# safer for plotting size
+d[, logFDR := -log10(pmax(fdr_bh, 1e-300))]
+d[, plot_size := pmax(logFDR, 0.3)]
+
+p <- ggplot(d, aes(x = fold_enrichment, y = selection_label)) +
+  geom_vline(xintercept = 1, linetype = "dashed", linewidth = 0.5, color = "grey40") +
+  geom_segment(aes(x = 1, xend = fold_enrichment,
+                   y = selection_label, yend = selection_label),
+               linewidth = 0.5, color = "grey75") +
+  geom_point(aes(size = plot_size, fill = direction),
+             shape = 21, color = "black", stroke = 0.4) +
+  geom_text(aes(label = sig_plot), nudge_x = 0.10, size = 4) +
+  facet_wrap(~ condition, nrow = 1, scales = "free_x") +
+  scale_fill_manual(values = c("Enriched" = "#D95F02", "Depleted" = "#BDBDBD")) +
+  scale_size_continuous(
+    name = expression(-log[10](FDR)),
+    range = c(2.8, 8)
+  ) +
+  labs(
+    x = "Fold enrichment of GWAS hits in selection peaks",
+    y = NULL
+  ) +
+  theme_bw(base_size = 12) +
+  theme(
+    strip.background = element_rect(fill = "grey92", color = "black"),
+    strip.text = element_text(face = "bold"),
+    legend.position = "right",
+    panel.grid.minor = element_blank(),
+    panel.grid.major.y = element_blank(),
+    axis.text.y = element_text(size = 10)
+  )
+
+ggsave(file.path(OUTDIR, "Fig4_panelB_dotplot_7rows.pdf"), p, width = 11, height = 5.2)
+ggsave(file.path(OUTDIR, "Fig4_panelB_dotplot_7rows.png"), p, width = 11, height = 5.2, dpi = 400)
+
+cat("Saved:\n")
+cat(file.path(OUTDIR, "Fig4_panelB_dotplot_7rows.pdf"), "\n")
+cat(file.path(OUTDIR, "Fig4_panelB_dotplot_7rows.png"), "\n")
+
+```
+

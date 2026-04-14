@@ -1,0 +1,432 @@
+---
+title: "zoom_in and pheno _geno"
+author: "subhash"
+date: "2026-04-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+#plotting the violin plot for the lead SNP in PFK gene (Sobic.009G204633) for tillersPerPlant NR trait
+
+```{bash}
+#!/bin/bash
+# ============================================================================
+# Step 1: Extract lead SNP genotype from PLINK
+# Step 2: Run R to make violin plot
+# ============================================================================
+# Usage: bash run_violin_PFK.sh
+# ============================================================================
+
+set -e
+
+# --- Paths ---
+PLINK_PREFIX="/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/2.filtered_vcf/1.het_0.1_SAP"
+OUT_DIR="/mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/zoom_inplot"
+PHENO_FILE="/mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/1.BLUEs_SAP_2020_2021.csv"
+
+# Lead SNP info
+SNP_ID="Chr09_59161829"
+OUT_PREFIX="${OUT_DIR}/leadSNP_PFK"
+
+mkdir -p ${OUT_DIR}
+
+# --- Step 1: Extract genotype with PLINK ---
+echo "=== Extracting genotype at ${SNP_ID} ==="
+
+plink \
+  --bfile ${PLINK_PREFIX} \
+  --snp ${SNP_ID} \
+  --recode A \
+  --out ${OUT_PREFIX}
+
+echo "=== Genotype extracted: ${OUT_PREFIX}.raw ==="
+echo ""
+
+# --- Step 2: Run R violin plot ---
+echo "=== Running R violin plot ==="
+
+Rscript - <<'RSCRIPT'
+
+# ============================================================================
+# Violin plot: Genotype effect at PFK lead SNP (tillersPerPlant NR)
+# ============================================================================
+
+suppressPackageStartupMessages({
+  library(ggplot2)
+})
+
+# --- Paths ---
+out_dir    <- "/mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/zoom_inplot"
+geno_file  <- file.path(out_dir, "leadSNP_PFK.raw")
+pheno_file <- "/mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/1.BLUEs_SAP_2020_2021.csv"
+
+# --- Read genotype (PLINK --recode A output) ---
+cat("Reading genotype data...\n")
+geno <- read.table(geno_file, header = TRUE, stringsAsFactors = FALSE)
+
+# The dosage column name will be like Chr09_59161829_X (where X is ALT allele)
+# Find it dynamically
+dosage_col <- grep("^Chr09_59161829", names(geno), value = TRUE)
+if (length(dosage_col) == 0) stop("Lead SNP dosage column not found in .raw file!")
+dosage_col <- dosage_col[1]
+cat(sprintf("  Dosage column: %s\n", dosage_col))
+
+# Extract sample ID and dosage (0 = hom REF, 1 = het, 2 = hom ALT)
+geno_df <- data.frame(
+  sample = gsub("\\s+", "", geno$IID),   # remove any spaces
+  dosage = geno[[dosage_col]],
+  stringsAsFactors = FALSE
+)
+
+# --- Read phenotype ---
+cat("Reading phenotype data...\n")
+pheno <- read.csv(pheno_file, header = TRUE, stringsAsFactors = FALSE)
+
+# Normalize phenotype sample IDs: remove spaces (e.g., "PI 17548" -> "PI17548")
+pheno$genotype <- gsub("\\s+", "", pheno$genotype)
+
+# The NR tillers column (BLUEs across years)
+# Look for "tillersPerPlant:NR" or "tillersPerPlant.NR" (R may convert : to .)
+nr_col <- grep("^tillersPerPlant.NR$", names(pheno), value = TRUE)
+if (length(nr_col) == 0) nr_col <- grep("tillersPerPlant.*NR$", names(pheno), value = TRUE)
+# Use the last match which should be the combined BLUE across years
+nr_col <- tail(nr_col, 1)
+cat(sprintf("  Phenotype column: %s\n", nr_col))
+
+pheno_df <- data.frame(
+  sample = pheno$genotype,
+  trait  = as.numeric(pheno[[nr_col]]),
+  stringsAsFactors = FALSE
+)
+
+# --- Merge ---
+merged <- merge(geno_df, pheno_df, by = "sample")
+merged <- merged[complete.cases(merged), ]
+cat(sprintf("  Merged samples: %d\n", nrow(merged)))
+
+# --- Assign genotype labels ---
+# Read .bim to get REF/ALT alleles
+bim_file <- "/mnt/nrdstor/jyanglab/subhash/datasets/1.SAP_SNPs/2.filtered_vcf/1.het_0.1_SAP.bim"
+bim <- read.table(bim_file, header = FALSE, stringsAsFactors = FALSE)
+snp_row <- bim[bim$V2 == "Chr09_59161829", ]
+
+if (nrow(snp_row) > 0) {
+  # In PLINK .bim: V5 = allele1 (minor/ALT counted), V6 = allele2
+  # In --recode A: dosage counts V5 (the A1/minor allele)
+  a1 <- snp_row$V5  # counted allele (dosage 2 = homozygous for this)
+  a2 <- snp_row$V6  # other allele   (dosage 0 = homozygous for this)
+  cat(sprintf("  A1 (counted): %s, A2: %s\n", a1, a2))
+  
+  merged$geno_label <- ifelse(merged$dosage == 0, paste0(a2, a2),
+                        ifelse(merged$dosage == 1, paste0(a1, a2),
+                        ifelse(merged$dosage == 2, paste0(a1, a1), NA)))
+} else {
+  # Fallback generic labels
+  merged$geno_label <- ifelse(merged$dosage == 0, "REF/REF",
+                        ifelse(merged$dosage == 1, "REF/ALT",
+                        ifelse(merged$dosage == 2, "ALT/ALT", NA)))
+}
+
+# --- Drop heterozygotes ---
+merged <- merged[merged$dosage != 1, ]
+merged <- merged[complete.cases(merged), ]
+cat(sprintf("  Homozygous samples only: %d\n", nrow(merged)))
+
+# --- Order genotype factor (REF first, then ALT) ---
+geno_levels <- unique(merged$geno_label)
+# Put dosage=0 label first
+ref_label <- unique(merged$geno_label[merged$dosage == 0])
+alt_label <- unique(merged$geno_label[merged$dosage == 2])
+merged$geno_label <- factor(merged$geno_label, levels = c(ref_label, alt_label))
+
+# --- Statistics: Wilcoxon test ---
+grp0 <- merged$trait[merged$dosage == 0]
+grp2 <- merged$trait[merged$dosage == 2]
+wt <- wilcox.test(grp0, grp2)
+pval <- wt$p.value
+
+sig_label <- if (pval < 0.001) "***" else if (pval < 0.01) "**" else if (pval < 0.05) "*" else "ns"
+
+cat(sprintf("  Wilcoxon p-value: %.4e (%s)\n", pval, sig_label))
+cat(sprintf("  n(%s) = %d, n(%s) = %d\n", ref_label, length(grp0), alt_label, length(grp2)))
+cat(sprintf("  mean(%s) = %.3f, mean(%s) = %.3f\n", ref_label, mean(grp0), alt_label, mean(grp2)))
+
+# --- Sample sizes for labels ---
+n_tab <- table(merged$geno_label)
+
+# --- Build violin plot ---
+cat("Generating violin plot...\n")
+
+# Colors matching reference figure style
+fill_cols <- c("#7FC97F", "#BEAED4")  # green-ish for REF, purple-ish for ALT
+names(fill_cols) <- c(ref_label, alt_label)
+
+# Y-range for bracket placement
+ymax <- max(merged$trait, na.rm = TRUE)
+ymin <- min(merged$trait, na.rm = TRUE)
+bracket_y <- ymax + (ymax - ymin) * 0.15
+
+p <- ggplot(merged, aes(x = geno_label, y = trait, fill = geno_label)) +
+  geom_violin(trim = TRUE, color = "grey40", linewidth = 0.4, alpha = 0.85) +
+  scale_fill_manual(values = fill_cols) +
+  
+  # Sample size labels above each violin
+  annotate("text",
+           x = 1:2,
+           y = rep(ymax + (ymax - ymin) * 0.05, 2),
+           label = paste0("n=", n_tab),
+           size = 3.5, fontface = "plain") +
+  
+  # Significance bracket
+  annotate("segment",
+           x = 1, xend = 2,
+           y = bracket_y, yend = bracket_y,
+           linewidth = 0.5) +
+  annotate("segment",
+           x = 1, xend = 1,
+           y = bracket_y, yend = bracket_y - (ymax - ymin) * 0.02,
+           linewidth = 0.5) +
+  annotate("segment",
+           x = 2, xend = 2,
+           y = bracket_y, yend = bracket_y - (ymax - ymin) * 0.02,
+           linewidth = 0.5) +
+  annotate("text",
+           x = 1.5, y = bracket_y + (ymax - ymin) * 0.03,
+           label = sig_label,
+           size = 5, fontface = "bold") +
+  
+  labs(x = "Genotype",
+       y = "Tillers per plant (NR)",
+       title = "Sobic.009G204633 — Lead SNP Chr9:59,161,829") +
+  
+  theme_classic(base_size = 14) +
+  theme(
+    legend.position  = "none",
+    plot.title        = element_text(size = 12, face = "bold", hjust = 0.5,
+                                     color = "#33A02C"),
+    axis.title        = element_text(size = 13),
+    axis.text         = element_text(size = 12),
+    panel.grid        = element_blank()
+  )
+
+# --- Save ---
+out_pdf <- file.path(out_dir, "PFK_violin_genotype_effect.pdf")
+ggsave(out_pdf, p, width = 4.5, height = 5.5, device = cairo_pdf)
+cat(sprintf("\nDone! Violin plot saved to:\n  %s\n", out_pdf))
+
+RSCRIPT
+
+echo "=== All done! ==="
+```
+
+
+## plotting zoom in manhattan plots
+
+```{r}
+#!/usr/bin/env Rscript
+# ============================================================================
+# Zoom-in plot: GWAS (tillersPerPlant.NR) + FST (landrace vs improved)
+# around PFK gene (Sobic.009G204633) on Chr9
+# ============================================================================
+# Output: cairo_pdf to largedata/zoom_inplot/
+# Style: matches reference figure (panels A + B, yellow dashed gene line)
+# ============================================================================
+
+# --- Paths (edit if needed) -------------------------------------------------
+gwas_file   <- "/mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/All_GWAS_sorg.txt"
+fst_file    <- "/mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/figure_2/landrace_vs_improved.windowed.weir.fst"
+out_dir     <- "/mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/zoom_inplot/"
+
+# --- Gene & region info -----------------------------------------------------
+gene_name   <- "Sobic.009G204633"
+gene_desc   <- "Phosphofructokinase (PFK)"
+gene_start  <- 59112999
+gene_end    <- 59123212
+gene_mid    <- (gene_start + gene_end) / 2
+lead_snp    <- 59161829   # lead GWAS SNP position
+
+chr_num     <- 9
+# Zoom window: ~500 kb on each side of gene (adjust as needed)
+window_pad  <- 500000
+region_start <- gene_start - window_pad
+region_end   <- gene_end + window_pad
+
+# --- Create output directory ------------------------------------------------
+dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+
+# ============================================================================
+# 1. Read & subset GWAS data
+# ============================================================================
+cat("Reading GWAS data...\n")
+gwas <- read.delim(gwas_file, header = TRUE, stringsAsFactors = FALSE)
+
+# Filter: trait = tillersPerPlant.NR, Chr9, within window
+gwas_sub <- gwas[gwas$Trait == "tillersPerPlant.NR" &
+                   gwas$CHROM == chr_num &
+                   gwas$POS >= region_start &
+                   gwas$POS <= region_end, ]
+
+gwas_sub$logP <- -log10(gwas_sub$P.value)
+gwas_sub$pos_mb <- gwas_sub$POS / 1e6
+
+cat(sprintf("  GWAS SNPs in window: %d\n", nrow(gwas_sub)))
+
+# ============================================================================
+# 2. Read & subset FST data
+# ============================================================================
+cat("Reading FST data...\n")
+fst <- read.delim(fst_file, header = TRUE, stringsAsFactors = FALSE)
+
+# Filter: Chr9, within window
+fst_sub <- fst[fst$CHROM == chr_num &
+                 fst$BIN_START >= region_start &
+                 fst$BIN_END <= region_end, ]
+
+# Use midpoint of each window
+fst_sub$pos_mid <- (fst_sub$BIN_START + fst_sub$BIN_END) / 2
+fst_sub$pos_mb  <- fst_sub$pos_mid / 1e6
+
+# Clamp negative FST to 0
+fst_sub$WEIGHTED_FST[fst_sub$WEIGHTED_FST < 0] <- 0
+
+cat(sprintf("  FST windows in region: %d\n", nrow(fst_sub)))
+
+# ============================================================================
+# 3. Compute significance thresholds
+# ============================================================================
+# GWAS threshold: -log10(1e-5) = 5 (genome-wide suggestive, matching ref fig)
+gwas_thresh <- 5
+
+# FST threshold: top 1% genome-wide (matches Fig 2 main script: quantile 0.99)
+cat("Computing genome-wide FST threshold (top 1%)...\n")
+fst_all <- fst$WEIGHTED_FST
+fst_all[fst_all < 0] <- 0
+fst_thresh <- quantile(fst_all, 0.99, na.rm = TRUE)
+cat(sprintf("  FST 99th percentile threshold: %.4f\n", fst_thresh))
+
+# ============================================================================
+# 4. Plot
+# ============================================================================
+cat("Generating plot...\n")
+
+out_file <- file.path(out_dir, "PFK_chr9_zoom_in.pdf")
+
+cairo_pdf(out_file, width = 7, height = 7)
+
+# Layout: 2 panels stacked
+par(mfrow = c(2, 1),
+    mar = c(1.5, 5, 2.5, 1),   # bottom, left, top, right
+    oma = c(3, 0, 2, 0),        # outer margins
+    mgp = c(3, 0.7, 0))
+
+# --- Shared x-axis limits ---
+xlim <- c(region_start / 1e6, region_end / 1e6)
+
+# ========== Panel A: GWAS ==================================================
+plot(gwas_sub$pos_mb, gwas_sub$logP,
+     pch = 19, cex = 0.8,
+     col = adjustcolor("#6A5ACD", alpha.f = 0.7),  # slate blue like ref
+     xlim = xlim,
+     ylim = c(0, max(c(gwas_sub$logP, gwas_thresh + 1), na.rm = TRUE)),
+     xlab = "",
+     ylab = expression(-log[10](italic(P))),
+     xaxt = "n",
+     las = 1,
+     cex.lab = 1.3, cex.axis = 1.1)
+
+# Gene body shaded rectangle (full height of plot)
+rect(gene_start / 1e6, par("usr")[3],
+     gene_end / 1e6, par("usr")[4],
+     col = adjustcolor("#DAA520", alpha.f = 0.25), border = NA)
+
+# Re-draw points on top of shading
+points(gwas_sub$pos_mb, gwas_sub$logP,
+       pch = 19, cex = 0.8,
+       col = adjustcolor("#6A5ACD", alpha.f = 0.7))
+
+# Significance threshold line
+abline(h = gwas_thresh, col = "red", lty = 2, lwd = 1.5)
+
+# --- Highlight lead SNP with green color (#33A02C) ---
+lead_snp_mb  <- lead_snp / 1e6
+lead_snp_row <- gwas_sub[which.min(abs(gwas_sub$POS - lead_snp)), ]
+if (nrow(lead_snp_row) > 0) {
+  # Large green dot on the lead SNP
+  points(lead_snp_row$pos_mb, lead_snp_row$logP,
+         pch = 18, cex = 2.2, col = "#33A02C")
+  # Arrow pointing down to lead SNP with label
+  arrows(x0 = lead_snp_mb + 0.03, y0 = lead_snp_row$logP + 0.6,
+         x1 = lead_snp_mb, y1 = lead_snp_row$logP + 0.15,
+         length = 0.08, lwd = 1.5, col = "#33A02C")
+  text(lead_snp_mb + 0.035, lead_snp_row$logP + 0.7,
+       labels = paste0("Lead SNP\np = 2.09e-06"),
+       cex = 0.6, col = "#33A02C", adj = 0, font = 2)
+}
+
+# Gene label at top of shaded region (green #33A02C)
+text(gene_mid / 1e6, par("usr")[4] * 0.92,
+     labels = gene_name, cex = 0.75, font = 4, col = "#33A02C", srt = 0)
+
+# Panel label
+mtext("A", side = 3, line = 0.5, at = par("usr")[1], adj = 0, font = 2, cex = 1.4)
+
+# X-axis tick marks (no labels yet — shared axis at bottom)
+axis(1, labels = FALSE)
+
+# ========== Panel B: FST ===================================================
+par(mar = c(4, 5, 1, 1))
+
+plot(fst_sub$pos_mb, fst_sub$WEIGHTED_FST,
+     type = "l", lwd = 1.2,
+     col = "black",
+     xlim = xlim,
+     ylim = c(0, max(c(fst_sub$WEIGHTED_FST, fst_thresh * 1.2), na.rm = TRUE)),
+     xlab = "",
+     ylab = expression(F[ST]),
+     las = 1,
+     cex.lab = 1.3, cex.axis = 1.1)
+
+# Gene body shaded rectangle (full height of plot)
+rect(gene_start / 1e6, par("usr")[3],
+     gene_end / 1e6, par("usr")[4],
+     col = adjustcolor("#DAA520", alpha.f = 0.25), border = NA)
+
+# Re-draw FST line and polygon on top of shading
+polygon(c(fst_sub$pos_mb[1], fst_sub$pos_mb, tail(fst_sub$pos_mb, 1)),
+        c(0, fst_sub$WEIGHTED_FST, 0),
+        col = adjustcolor("grey30", alpha.f = 0.15), border = NA)
+lines(fst_sub$pos_mb, fst_sub$WEIGHTED_FST, lwd = 1.2, col = "black")
+
+# FST threshold line
+abline(h = fst_thresh, col = "red", lty = 2, lwd = 1.5)
+
+# Panel label
+mtext("B", side = 3, line = 0.3, at = par("usr")[1], adj = 0, font = 2, cex = 1.4)
+
+# Shared x-axis label
+mtext("Chr9 (Mb)", side = 1, line = 2.5, cex = 1.2)
+
+# Overall title
+mtext(paste0("Tillers per plant (NR) — ", gene_desc, " (", gene_name, ")"),
+      side = 3, outer = TRUE, line = 0.3, cex = 1.1, font = 2)
+
+dev.off()
+
+cat(sprintf("\nDone! Plot saved to:\n  %s\n", out_file))
+
+# ============================================================================
+# Quick diagnostic: print what we see in the region
+# ============================================================================
+cat("\n--- Region summary ---\n")
+cat(sprintf("Region: Chr%d: %.2f - %.2f Mb\n", chr_num, xlim[1], xlim[2]))
+cat(sprintf("Gene midpoint: %.4f Mb\n", gene_mid / 1e6))
+cat(sprintf("Lead GWAS SNP: %.4f Mb (p = 2.09e-06)\n", lead_snp / 1e6))
+cat(sprintf("Max -log10(P) in window: %.2f\n", max(gwas_sub$logP, na.rm = TRUE)))
+cat(sprintf("Max FST in window: %.4f\n", max(fst_sub$WEIGHTED_FST, na.rm = TRUE)))
+cat(sprintf("FST threshold (95%%): %.4f\n", fst_thresh))
+```
+
