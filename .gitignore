@@ -14,3 +14,5 @@ largedata/
 large_data/
 Large_data/
 largeData/
+*.tiff
+*.tif
