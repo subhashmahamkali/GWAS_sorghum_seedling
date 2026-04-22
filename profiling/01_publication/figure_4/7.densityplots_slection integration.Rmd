@@ -1,0 +1,133 @@
+---
+title: "distribution"
+author: "subhash"
+date: "2026-01-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE) 
+knitr::opts_knit$set(root.dir=normalizePath('..//..//'))   
+```
+
+# density plots for balancing selection GWAS
+
+```{r}
+library(data.table)
+library(ggplot2)
+
+BASE_DIR <- "data/4.GWAS_selection/A.balancing_selection"
+OUTDIR   <- "graphs/01_publication/4.GWAS_selection_integration/"
+dir.create(OUTDIR, recursive = TRUE, showWarnings = FALSE)
+
+traits <- c("Developmental", "Architecture", "Panicle", "Seed")
+
+cols <- c(
+  Wild     = "#1b9e77",
+  Landrace = "#d95f02",
+  Improved = "#7570b3"
+)
+
+for (trait in traits) {
+
+  file <- file.path(
+    BASE_DIR,
+    paste0("NR_", trait, "_B2_top1_pooled_curves.tsv")
+  )
+
+  if (!file.exists(file)) {
+    warning("Missing: ", file)
+    next
+  }
+
+  d <- fread(file)
+  d[, population := factor(population,
+                            levels = c("Wild", "Landrace", "Improved"))]
+
+  p <- ggplot(d, aes(x = anc_effect, fill = population, color = population)) +
+    geom_density(
+      alpha = 0.35,
+      adjust = 1.2,        
+      linewidth = 0.8
+    ) +
+    geom_vline(xintercept = 0, linetype = "dashed") +
+    scale_fill_manual(values = cols) +
+    scale_color_manual(values = cols) +
+    theme_bw(base_size = 13) +
+    labs(
+      title = paste("B2_NR", trait),
+      x = "Ancestral allele effect size",
+      y = "Density",
+      fill = "Population",
+      color = "Population"
+    )
+
+  ggsave(
+    file.path(OUTDIR, paste0("NR_", trait, "_B2_density.pdf")),
+    p,
+    width = 4.5,
+    height = 3.5,
+    dpi = 300
+  )
+}
+```
+# density plots for positive selection GWAS
+
+```{r}
+library(data.table)
+library(ggplot2)
+
+BASE_DIR <- "data/4.GWAS_selection/B.positive_selection"
+OUTDIR   <- "graphs/01_publication/4.GWAS_selection_integration/"
+dir.create(OUTDIR, recursive = TRUE, showWarnings = FALSE)
+
+traits <- c("Developmental", "Architecture", "Panicle", "Seed")
+
+cols <- c(
+  Landrace = "#E69F00",
+  Improved = "#009E73"
+)
+
+for (trait in traits) {
+
+  file <- file.path(
+    BASE_DIR,
+    paste0("NR_", trait, "_PosSel_top1_pooled_curves.tsv")
+  )
+
+  if (!file.exists(file)) {
+    warning("Missing: ", file)
+    next
+  }
+
+  d <- fread(file)
+  d[, population := factor(population,
+                            levels = c("Landrace", "Improved"))]
+
+  p <- ggplot(d, aes(x = anc_effect, fill = population, color = population)) +
+    geom_density(
+      alpha = 0.4,
+      adjust = 1.2,
+      linewidth = 0.8
+    ) +
+    geom_vline(xintercept = 0, linetype = "dashed") +
+    scale_fill_manual(values = cols) +
+    scale_color_manual(values = cols) +
+    theme_bw(base_size = 13) +
+    labs(
+      title = paste("Pos_NR", trait),
+      x = "Ancestral allele effect size",
+      y = "Density",
+      fill = "Population",
+      color = "Population"
+    )
+
+  ggsave(
+    file.path(OUTDIR, paste0("NR_", trait, "_PosSel_density.pdf")),
+    p,
+    width = 4.5,
+    height = 3.5,
+    dpi = 300
+  )
+}
+```

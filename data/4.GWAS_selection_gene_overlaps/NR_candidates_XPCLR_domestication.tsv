@@ -1,0 +1,46 @@
+selection_class	gene_id	best_neglog10p	best_gwas_pvalue	best_selection_score	best_selection_region	gwas_traits	gene_region	gene_description	overlap_rows
+XPCLR_domestication	Sobic.002G399200	5.99567862621736	1.01e-06	653.6217452	domestication_landrace_vs_wild	X2021.tillersPerPlant.N	Chr2:76368069-76377083(+)	helicase superfamily c-terminal domain	1
+XPCLR_domestication	Sobic.002G399300	5.99567862621736	1.01e-06	653.6217452	domestication_landrace_vs_wild	X2021.tillersPerPlant.N	Chr2:76373564-76381119(+)	-	1
+XPCLR_domestication	Sobic.002G399400	5.99567862621736	1.01e-06	653.6217452	domestication_landrace_vs_wild	X2021.tillersPerPlant.N	Chr2:76390718-76398813(-)	PMR5 N terminal Domain	1
+XPCLR_domestication	Sobic.002G399500	5.99567862621736	1.01e-06	653.6217452	domestication_landrace_vs_wild	X2021.tillersPerPlant.N	Chr2:76397020-76406285(-)	SNARE associated Golgi protein	1
+XPCLR_domestication	Sobic.002G399600	5.99567862621736	1.01e-06	653.6217452	domestication_landrace_vs_wild	X2021.tillersPerPlant.N	Chr2:76407948-76412844(-)	Plant lipid transfer protein / seed storage protein / trypsin-alpha amylase inhibitor domain family	1
+XPCLR_domestication	Sobic.002G399700	5.99567862621736	1.01e-06	653.6217452	domestication_landrace_vs_wild	X2021.tillersPerPlant.N	Chr2:76411104-76416927(-)	Acts in the modification of cell walls via demethylesterification of cell wall pectin	1
+XPCLR_domestication	Sobic.002G399800	5.99567862621736	1.01e-06	653.6217452	domestication_landrace_vs_wild	X2021.tillersPerPlant.N	Chr2:76414772-76430327(-)	HUA2-like protein	1
+XPCLR_domestication	Sobic.002G149200	5.99567862621736	1.01e-06	450.3128874	domestication_landrace_vs_wild	X2020.estimatedPlotYield.N	Chr2:42183702-42190747(+)	Domain of unknown function	1
+XPCLR_domestication	Sobic.001G223300	5.80966830182971	1.55e-06	588.0444669	domestication_landrace_vs_wild	X2021.tillersPerPlant.N	Chr1:21594609-21602010(-)	-	1
+XPCLR_domestication	Sobic.003G144950	5.71444269099223	1.93e-06	868.9330206	domestication_landrace_vs_wild	X2021.tillersPerPlant.N	Chr3:14943005-14947708(+)		1
+XPCLR_domestication	Sobic.003G145000	5.71444269099223	1.93e-06	868.9330206	domestication_landrace_vs_wild	X2021.tillersPerPlant.N	Chr3:14944672-14951281(+)		1
+XPCLR_domestication	Sobic.006G103400	5.62342304294349	2.38e-06	634.7670149	domestication_landrace_vs_wild	X2021.tillersPerPlant.N	Chr6:48716524-48723438(-)	Protein disulfide-isomerase LQY1	1
+XPCLR_domestication	Sobic.006G103500	5.62342304294349	2.38e-06	634.7670149	domestication_landrace_vs_wild	X2021.tillersPerPlant.N	Chr6:48719828-48725180(+)		1
+XPCLR_domestication	Sobic.006G103550	5.62342304294349	2.38e-06	634.7670149	domestication_landrace_vs_wild	X2021.tillersPerPlant.N	Chr6:48724633-48729914(-)		1
+XPCLR_domestication	Sobic.006G103601	5.62342304294349	2.38e-06	634.7670149	domestication_landrace_vs_wild	X2021.tillersPerPlant.N	Chr6:48728410-48733316(-)		1
+XPCLR_domestication	Sobic.006G103700	5.62342304294349	2.38e-06	634.7670149	domestication_landrace_vs_wild	X2021.tillersPerPlant.N	Chr6:48729317-48744509(+)	Belongs to the class-I aminoacyl-tRNA synthetase family	1
+XPCLR_domestication	Sobic.004G324500	5.40011692792631	3.98e-06	476.1799878	domestication_landrace_vs_wild	X2020.paniclesPerPlot.N	Chr4:68507883-68517772(-)		1
+XPCLR_domestication	Sobic.004G324600	5.40011692792631	3.98e-06	476.1799878	domestication_landrace_vs_wild	X2020.paniclesPerPlot.N	Chr4:68515736-68524265(-)		1
+XPCLR_domestication	Sobic.004G324800	5.40011692792631	3.98e-06	476.1799878	domestication_landrace_vs_wild	X2020.paniclesPerPlot.N	Chr4:68557177-68563429(+)	Protein of unknown function (DUF1668)	1
+XPCLR_domestication	Sobic.004G324850	5.40011692792631	3.98e-06	476.1799878	domestication_landrace_vs_wild	X2020.paniclesPerPlot.N	Chr4:68560308-68564776(-)		1
+XPCLR_domestication	Sobic.004G324900	5.40011692792631	3.98e-06	476.1799878	domestication_landrace_vs_wild	X2020.paniclesPerPlot.N	Chr4:68563767-68569348(-)	Domain of unknown function (DUF4440)	1
+XPCLR_domestication	Sobic.004G325000	5.40011692792631	3.98e-06	476.1799878	domestication_landrace_vs_wild	X2020.paniclesPerPlot.N	Chr4:68578870-68586627(-)	chaperone protein	1
+XPCLR_domestication	Sobic.001G121700	5.1890957193313	6.47e-06	445.611712	domestication_landrace_vs_wild	X2020.panicleGrainWeight.N	Chr1:9611477-9617716(-)	Fantastic Four meristem regulator	1
+XPCLR_domestication	Sobic.001G121800	5.1890957193313	6.47e-06	445.611712	domestication_landrace_vs_wild	X2020.panicleGrainWeight.N	Chr1:9621006-9628249(+)		1
+XPCLR_domestication	Sobic.005G082000	5.18575240426808	6.52e-06	398.3328534	domestication_landrace_vs_wild	X2021.tillersPerPlant.N	Chr5:10973103-10977542(-)	Cysteine-rich antifungal protein 2, defensin-like	1
+XPCLR_domestication	Sobic.005G082100	5.18575240426808	6.52e-06	398.3328534	domestication_landrace_vs_wild	X2021.tillersPerPlant.N	Chr5:10977790-10984734(+)	Pectinesterase	1
+XPCLR_domestication	Sobic.001G377600	5.17979854051436	6.61e-06	390.3086295	domestication_landrace_vs_wild	X2021.plantHeight.N	Chr1:70699010-70707151(-)	Mediates both low-affinity uptake and efflux of sugar across the	1
+XPCLR_domestication	Sobic.001G377700	5.17979854051436	6.61e-06	390.3086295	domestication_landrace_vs_wild	X2021.plantHeight.N	Chr1:70704876-70714808(+)	FANCI solenoid 4	1
+XPCLR_domestication	Sobic.001G377800	5.17979854051436	6.61e-06	390.3086295	domestication_landrace_vs_wild	X2021.plantHeight.N	Chr1:70713483-70720305(+)	60S ribosomal protein L18	1
+XPCLR_domestication	Sobic.004G323300	5.12842706445412	7.44e-06	910.1199007	domestication_landrace_vs_wild	X2020.estimatedPlotYield.N	Chr4:68337897-68342815(-)	Belongs to the CRISP family	1
+XPCLR_domestication	Sobic.004G323400	5.12842706445412	7.44e-06	910.1199007	domestication_landrace_vs_wild	X2020.estimatedPlotYield.N	Chr4:68341993-68349969(+)	Putative serine esterase (DUF676)	1
+XPCLR_domestication	Sobic.004G323500	5.12842706445412	7.44e-06	910.1199007	domestication_landrace_vs_wild	X2020.estimatedPlotYield.N	Chr4:68346211-68353506(+)	Protein kinase domain	1
+XPCLR_domestication	Sobic.004G323600	5.12842706445412	7.44e-06	910.1199007	domestication_landrace_vs_wild	X2020.estimatedPlotYield.N	Chr4:68357268-68363296(-)	belongs to the protein kinase superfamily	1
+XPCLR_domestication	Sobic.004G323700	5.12842706445412	7.44e-06	910.1199007	domestication_landrace_vs_wild	X2020.estimatedPlotYield.N	Chr4:68379048-68389284(+)	Ring finger domain	1
+XPCLR_domestication	Sobic.004G323800	5.12842706445412	7.44e-06	910.1199007	domestication_landrace_vs_wild	X2020.estimatedPlotYield.N	Chr4:68385334-68392337(-)	PCRF	1
+XPCLR_domestication	Sobic.004G323900	5.12842706445412	7.44e-06	910.1199007	domestication_landrace_vs_wild	X2020.estimatedPlotYield.N	Chr4:68390562-68399126(+)	-	1
+XPCLR_domestication	Sobic.004G324000	5.12842706445412	7.44e-06	910.1199007	domestication_landrace_vs_wild	X2020.estimatedPlotYield.N	Chr4:68398377-68409236(+)	Glutamate-gated receptor that probably acts as non- selective cation channel	1
+XPCLR_domestication	Sobic.003G226800	5.08830984124614	8.16e-06	660.3302769	domestication_landrace_vs_wild	X2020.medianLeafAngle.N	Chr3:62679658-62685769(+)	Heat stress transcription factor C-1a	1
+XPCLR_domestication	Sobic.003G226900	5.08830984124614	8.16e-06	660.3302769	domestication_landrace_vs_wild	X2020.medianLeafAngle.N	Chr3:62695895-62704613(-)	Belongs to the peptidase A1 family	1
+XPCLR_domestication	Sobic.003G226950	5.08830984124614	8.16e-06	660.3302769	domestication_landrace_vs_wild	X2020.medianLeafAngle.N	Chr3:62698265-62703443(+)		1
+XPCLR_domestication	Sobic.001G374400	5.07883394936226	8.34e-06	575.8210161	domestication_landrace_vs_wild	X2021.tillersPerPlant.N	Chr1:70441825-70448500(+)	Heavy-metal-associated domain	1
+XPCLR_domestication	Sobic.007G079101	5.07675598136972	8.38e-06	794.2255497	domestication_landrace_vs_wild	X2021.tillersPerPlant.N	Chr7:9254251-9261349(+)		1
+XPCLR_domestication	Sobic.006G244800	5.03621217265444	9.2e-06	645.012225	domestication_landrace_vs_wild	X2020.medianLeafAngle.N	Chr6:59880647-59888672(+)	TIFY	1
+XPCLR_domestication	Sobic.006G244900	5.03621217265444	9.2e-06	645.012225	domestication_landrace_vs_wild	X2020.medianLeafAngle.N	Chr6:59886071-59893225(-)	Transmembrane proteins 14C	1
+XPCLR_domestication	Sobic.006G245100	5.03621217265444	9.2e-06	645.012225	domestication_landrace_vs_wild	X2020.medianLeafAngle.N	Chr6:59892667-59901265(+)	Belongs to the Ca(2 ) cation antiporter (CaCA) (TC 2.A.19) family	1

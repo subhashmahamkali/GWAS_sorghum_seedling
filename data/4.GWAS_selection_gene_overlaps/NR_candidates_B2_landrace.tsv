@@ -1,0 +1,89 @@
+selection_class	gene_id	best_neglog10p	best_gwas_pvalue	best_selection_score	best_selection_region	gwas_traits	gene_region	gene_description	overlap_rows
+B2_landrace	Sobic.004G313800	8.46852108295774	3.4e-09	1126.97519	Chr4:67558639-67639884	X2020.panicleGrainWeight.N	Chr4:67573347-67578049(-)	-	1
+B2_landrace	Sobic.004G313900	8.46852108295774	3.4e-09	1126.97519	Chr4:67558639-67639884	X2020.panicleGrainWeight.N	Chr4:67579659-67588966(+)	in StAR and phosphatidylcholine transfer protein	1
+B2_landrace	Sobic.004G314000	8.46852108295774	3.4e-09	1126.97519	Chr4:67558639-67639884	X2020.panicleGrainWeight.N	Chr4:67591915-67604999(+)	NRDE-2, necessary for RNA interference	1
+B2_landrace	Sobic.004G314100	8.46852108295774	3.4e-09	1126.97519	Chr4:67558639-67639884	X2020.panicleGrainWeight.N	Chr4:67600825-67607909(-)	-	1
+B2_landrace	Sobic.004G314200	8.46852108295774	3.4e-09	1126.97519	Chr4:67558639-67639884	X2020.panicleGrainWeight.N	Chr4:67614061-67620778(+)	Lignin degradation and detoxification of lignin-derived products	1
+B2_landrace	Sobic.004G314300	8.46852108295774	3.4e-09	1126.97519	Chr4:67558639-67639884	X2020.panicleGrainWeight.N	Chr4:67624264-67630847(+)	Lignin degradation and detoxification of lignin-derived products	1
+B2_landrace	Sobic.007G080300	7.36251027048749	4.34e-08	1458.807393	Chr7:9443389-9551719	X2021.tillersPerPlant.N	Chr7:9504460-9511344(+)	BTB POZ and MATH domain-containing protein	1
+B2_landrace	Sobic.006G206600	7.32148162095989	4.77e-08	1146.09356	Chr6:57025424-57107016	X2020.estimatedPlotYield.N	Chr6:57022600-57028055(+)	Peptidyl-tRNA hydrolase PTH2	1
+B2_landrace	Sobic.006G206700	7.32148162095989	4.77e-08	1146.09356	Chr6:57025424-57107016	X2020.estimatedPlotYield.N	Chr6:57025296-57033470(-)	Leucine-rich repeats, typical (most populated) subfamily	1
+B2_landrace	Sobic.006G206800	7.32148162095989	4.77e-08	1146.09356	Chr6:57025424-57107016	X2020.estimatedPlotYield.N	Chr6:57040772-57058525(-)	This magnesium-dependent enzyme catalyzes the hydrolysis of ATP coupled with the transport of calcium	1
+B2_landrace	Sobic.003G366850	6.64397414280688	2.27e-07	1328.525719	Chr3:74711942-74803992	X2020.estimatedPlotYield.N	Chr3:74678988-74712223(+)	Protein HASTY 1 isoform X1	1
+B2_landrace	Sobic.003G367000	6.64397414280688	2.27e-07	1328.525719	Chr3:74711942-74803992	X2020.estimatedPlotYield.N	Chr3:74710343-74715841(-)	RING-type E3 ubiquitin transferase	1
+B2_landrace	Sobic.003G367100	6.64397414280688	2.27e-07	1328.525719	Chr3:74711942-74803992	X2020.estimatedPlotYield.N	Chr3:74721114-74726774(-)	Dof domain, zinc finger	1
+B2_landrace	Sobic.003G367150	6.64397414280688	2.27e-07	1328.525719	Chr3:74711942-74803992	X2020.estimatedPlotYield.N	Chr3:74730784-74735960(+)		1
+B2_landrace	Sobic.003G367200	6.64397414280688	2.27e-07	1328.525719	Chr3:74711942-74803992	X2020.estimatedPlotYield.N	Chr3:74733929-74738932(+)	Anaphase-promoting complex subunit 11 RING-H2 finger	1
+B2_landrace	Sobic.003G367300	6.64397414280688	2.27e-07	1328.525719	Chr3:74711942-74803992	X2020.estimatedPlotYield.N	Chr3:74738877-74746516(+)	Belongs to the actin family	1
+B2_landrace	Sobic.003G367402	6.64397414280688	2.27e-07	1328.525719	Chr3:74711942-74803992	X2020.estimatedPlotYield.N	Chr3:74746948-74751693(+)	Histone H3	1
+B2_landrace	Sobic.003G367451	6.64397414280688	2.27e-07	1328.525719	Chr3:74711942-74803992	X2020.estimatedPlotYield.N	Chr3:74747761-74756290(+)	Belongs to the synaptobrevin family	1
+B2_landrace	Sobic.003G367500	6.64397414280688	2.27e-07	1328.525719	Chr3:74711942-74803992	X2020.estimatedPlotYield.N	Chr3:74753287-74759659(+)	Belongs to the FBPase class 1 family	1
+B2_landrace	Sobic.003G367601	6.64397414280688	2.27e-07	1328.525719	Chr3:74711942-74803992	X2020.estimatedPlotYield.N	Chr3:74755756-74760762(-)	Soluble inorganic pyrophosphatase	1
+B2_landrace	Sobic.003G367701	6.64397414280688	2.27e-07	1328.525719	Chr3:74711942-74803992	X2020.estimatedPlotYield.N	Chr3:74756789-74762756(-)	Soluble inorganic pyrophosphatase	1
+B2_landrace	Sobic.003G367800	6.64397414280688	2.27e-07	1328.525719	Chr3:74711942-74803992	X2020.estimatedPlotYield.N	Chr3:74759907-74764866(-)	Belongs to the BolA IbaG family	1
+B2_landrace	Sobic.003G367900	6.64397414280688	2.27e-07	1328.525719	Chr3:74711942-74803992	X2020.estimatedPlotYield.N	Chr3:74761280-74767998(-)	LSM domain	1
+B2_landrace	Sobic.003G368000	6.64397414280688	2.27e-07	1328.525719	Chr3:74711942-74803992	X2020.estimatedPlotYield.N	Chr3:74767867-74776799(+)	Belongs to the TUB family	1
+B2_landrace	Sobic.003G368100	6.64397414280688	2.27e-07	1328.525719	Chr3:74711942-74803992	X2020.estimatedPlotYield.N	Chr3:74773499-74780693(-)	Transferase family	1
+B2_landrace	Sobic.003G368200	6.64397414280688	2.27e-07	1328.525719	Chr3:74711942-74803992	X2020.estimatedPlotYield.N	Chr3:74782529-74790610(+)	WD40 repeats	1
+B2_landrace	Sobic.003G368300	6.64397414280688	2.27e-07	1328.525719	Chr3:74711942-74803992	X2020.estimatedPlotYield.N	Chr3:74787040-74794386(-)	basic region leucin zipper	1
+B2_landrace	Sobic.003G368400	6.64397414280688	2.27e-07	1328.525719	Chr3:74711942-74803992	X2020.estimatedPlotYield.N	Chr3:74799987-74814794(+)	Glycosyltransferase family 28 N-terminal domain	1
+B2_landrace	Sobic.004G103400	6.1518108830086	7.05e-07	1179.668064	Chr4:9833885-9913885	X2020.panicleGrainWeight.N	Chr4:9874142-9886801(-)	Leucine Rich Repeat	1
+B2_landrace	Sobic.004G103500	6.1518108830086	7.05e-07	1179.668064	Chr4:9833885-9913885	X2020.panicleGrainWeight.N	Chr4:9892526-9897403(-)	-	1
+B2_landrace	Sobic.004G103600	6.1518108830086	7.05e-07	1179.668064	Chr4:9833885-9913885	X2020.panicleGrainWeight.N	Chr4:9899217-9906642(+)	Functions as component of the Arp2 3 complex which is involved in regulation of actin polymerization and together with an activating nucleation-promoting factor (NPF) mediates the formation of branched actin networks	1
+B2_landrace	Sobic.004G103700	6.1518108830086	7.05e-07	1179.668064	Chr4:9833885-9913885	X2020.panicleGrainWeight.N	Chr4:9903498-9909823(-)	Ribosomal protein L16p/L10e	1
+B2_landrace	Sobic.008G024100	5.84771165561694	1.42e-06	1230.22052	Chr8:2167950-2254806	X2020.panicleGrainWeight.N;X2020.rachisLength.N	Chr8:2191305-2201536(-)	BEST Arabidopsis thaliana protein match is	2
+B2_landrace	Sobic.008G024200	5.84771165561694	1.42e-06	1230.22052	Chr8:2167950-2254806	X2020.panicleGrainWeight.N;X2020.rachisLength.N	Chr8:2217649-2224388(+)	Belongs to the universal ribosomal protein uL11 family	2
+B2_landrace	Sobic.002G073200	5.7281583934635	1.87e-06	1189.469698	Chr2:7510124-7599931	X2020.rachisLength.N	Chr2:7556510-7568005(-)	Belongs to the peptidase M24B family	1
+B2_landrace	Sobic.002G073300	5.7281583934635	1.87e-06	1189.469698	Chr2:7510124-7599931	X2020.rachisLength.N	Chr2:7585231-7592482(+)		1
+B2_landrace	Sobic.002G073350	5.7281583934635	1.87e-06	1189.469698	Chr2:7510124-7599931	X2020.rachisLength.N	Chr2:7589320-7594574(+)		1
+B2_landrace	Sobic.002G073475	5.7281583934635	1.87e-06	1189.469698	Chr2:7510124-7599931	X2020.rachisLength.N	Chr2:7596917-7602833(-)		1
+B2_landrace	Sobic.009G127900	5.65560772631489	2.21e-06	1295.993472	Chr9:51845691-51932685	X2020.rachisLength.N	Chr9:51839644-51847701(-)		1
+B2_landrace	Sobic.005G102300	5.54821356447571	2.83e-06	1867.445306	Chr5:17962546-18087601	X2021.tillersPerPlant.N	Chr5:18061046-18065942(-)	Dirigent proteins impart stereoselectivity on the phenoxy radical-coupling reaction, yielding optically active lignans from two molecules of coniferyl alcohol in the biosynthesis of lignans, flavonolignans, and alkaloids and thus plays a central role in plant secondary metabolism	1
+B2_landrace	Sobic.005G102351	5.54821356447571	2.83e-06	1867.445306	Chr5:17962546-18087601	X2021.tillersPerPlant.N	Chr5:18065849-18070443(+)		1
+B2_landrace	Sobic.005G102401	5.54821356447571	2.83e-06	1867.445306	Chr5:17962546-18087601	X2021.tillersPerPlant.N	Chr5:18069198-18074176(-)	Dirigent proteins impart stereoselectivity on the phenoxy radical-coupling reaction, yielding optically active lignans from two molecules of coniferyl alcohol in the biosynthesis of lignans, flavonolignans, and alkaloids and thus plays a central role in plant secondary metabolism	1
+B2_landrace	Sobic.005G177900	5.48545224733971	3.27e-06	1228.027944	Chr5:71080478-71193030	X2021.tillersPerPlant.N	Chr5:71078959-71087370(+)	TB2/DP1, HVA22 family	1
+B2_landrace	Sobic.005G178001	5.48545224733971	3.27e-06	1228.027944	Chr5:71080478-71193030	X2021.tillersPerPlant.N	Chr5:71090223-71095193(-)		1
+B2_landrace	Sobic.005G178100	5.48545224733971	3.27e-06	1228.027944	Chr5:71080478-71193030	X2021.tillersPerPlant.N	Chr5:71094338-71100697(-)	Kelch motif	1
+B2_landrace	Sobic.010G208300	5.42250820016277	3.78e-06	1242.170782	Chr10:56722232-56808066	X2021.tillersPerPlant.N	Chr10:56735860-56742067(+)	Transcriptional activator that binds specific DNA sequence	1
+B2_landrace	Sobic.010G208400	5.42250820016277	3.78e-06	1242.170782	Chr10:56722232-56808066	X2021.tillersPerPlant.N	Chr10:56738477-56750837(-)	Lysosomal Pro-X carboxypeptidase	1
+B2_landrace	Sobic.010G208600	5.42250820016277	3.78e-06	1242.170782	Chr10:56722232-56808066	X2021.tillersPerPlant.N	Chr10:56756908-56772865(-)	Lysosomal Pro-X carboxypeptidase	1
+B2_landrace	Sobic.010G208700	5.42250820016277	3.78e-06	1242.170782	Chr10:56722232-56808066	X2021.tillersPerPlant.N	Chr10:56773885-56785276(-)	Lysosomal Pro-X carboxypeptidase	1
+B2_landrace	Sobic.006G135600	5.28819277095881	5.15e-06	1149.369243	Chr6:51263377-51347208	X2021.tillersPerPlant.N	Chr6:51259218-51264782(+)	S-adenosylmethionine decarboxylase proenzyme	1
+B2_landrace	Sobic.006G135800	5.28819277095881	5.15e-06	1149.369243	Chr6:51263377-51347208	X2021.tillersPerPlant.N	Chr6:51267769-51275457(-)	cytoskeletal protein binding	1
+B2_landrace	Sobic.006G135900	5.28819277095881	5.15e-06	1149.369243	Chr6:51263377-51347208	X2021.tillersPerPlant.N	Chr6:51275999-51283930(+)	Belongs to the AAA ATPase family	1
+B2_landrace	Sobic.006G136000	5.28819277095881	5.15e-06	1149.369243	Chr6:51263377-51347208	X2021.tillersPerPlant.N	Chr6:51279856-51286290(-)	zinc-finger of acetyl-transferase ESCO	1
+B2_landrace	Sobic.006G136100	5.28819277095881	5.15e-06	1149.369243	Chr6:51263377-51347208	X2021.tillersPerPlant.N	Chr6:51285360-51292578(+)	BT1 family	1
+B2_landrace	Sobic.006G136200	5.28819277095881	5.15e-06	1149.369243	Chr6:51263377-51347208	X2021.tillersPerPlant.N	Chr6:51288363-51296223(-)	May have a role in the cell cycle	1
+B2_landrace	Sobic.007G048500	5.16367588429325	6.86e-06	1199.42502	Chr7:4799977-4885574	X2020.leafAngleStandardDeviation.N	Chr7:4796690-4801049(-)	-	1
+B2_landrace	Sobic.007G048600	5.16367588429325	6.86e-06	1199.42502	Chr7:4799977-4885574	X2020.leafAngleStandardDeviation.N	Chr7:4801777-4808513(-)	Belongs to the oxygen-dependent FAD-linked oxidoreductase family	1
+B2_landrace	Sobic.004G220200	5.15242734085789	7.04e-06	1159.326607	Chr4:59476746-59557150	X2021.plantHeight.N	Chr4:59538684-59553117(+)	-	1
+B2_landrace	Sobic.009G035000	5.11918640771921	7.6e-06	1990.552313	Chr9:3216568-3344963	X2020.estimatedPlotYield.N	Chr9:3233450-3240422(+)	-	1
+B2_landrace	Sobic.009G035100	5.11918640771921	7.6e-06	1990.552313	Chr9:3216568-3344963	X2020.estimatedPlotYield.N	Chr9:3234971-3241360(-)	Thioesterase superfamily	1
+B2_landrace	Sobic.009G035200	5.11918640771921	7.6e-06	1990.552313	Chr9:3216568-3344963	X2020.estimatedPlotYield.N	Chr9:3237249-3246065(-)	Thioesterase superfamily	1
+B2_landrace	Sobic.001G155400	5.10182351650232	7.91e-06	1135.117652	Chr1:12675784-12757615	X2021.plantHeight.N	Chr1:12712369-12722094(+)	Belongs to the eIF-2B alpha beta delta subunits family	1
+B2_landrace	Sobic.001G155500	5.10182351650232	7.91e-06	1135.117652	Chr1:12675784-12757615	X2021.plantHeight.N	Chr1:12718316-12725611(-)	Pyruvate dehydrogenase E1 component subunit	1
+B2_landrace	Sobic.001G155600	5.10182351650232	7.91e-06	1135.117652	Chr1:12675784-12757615	X2021.plantHeight.N	Chr1:12721933-12729746(-)	Belongs to the expansin family	1
+B2_landrace	Sobic.001G155700	5.10182351650232	7.91e-06	1135.117652	Chr1:12675784-12757615	X2021.plantHeight.N	Chr1:12727206-12735566(-)	Belongs to the expansin family	1
+B2_landrace	Sobic.001G155800	5.10182351650232	7.91e-06	1135.117652	Chr1:12675784-12757615	X2021.plantHeight.N	Chr1:12734306-12740167(-)	Piriformospora indica-insensitive protein	1
+B2_landrace	Sobic.001G155900	5.10182351650232	7.91e-06	1135.117652	Chr1:12675784-12757615	X2021.plantHeight.N	Chr1:12746843-12752137(+)	Cotton fibre expressed protein	1
+B2_landrace	Sobic.001G156000	5.10182351650232	7.91e-06	1135.117652	Chr1:12675784-12757615	X2021.plantHeight.N	Chr1:12750138-12755514(+)	Glutathione S-transferase, C-terminal domain	1
+B2_landrace	Sobic.001G156100	5.10182351650232	7.91e-06	1135.117652	Chr1:12675784-12757615	X2021.plantHeight.N	Chr1:12753521-12762825(+)	Belongs to the class-III pyridoxal-phosphate-dependent aminotransferase family	1
+B2_landrace	Sobic.005G174750	5.09366495819491	8.06e-06	1940.714921	Chr5:70464355-70584818	X2020.medianLeafAngle.N	Chr5:70567600-70572918(-)		1
+B2_landrace	Sobic.005G174800	5.09366495819491	8.06e-06	1940.714921	Chr5:70464355-70584818	X2020.medianLeafAngle.N	Chr5:70577241-70581754(+)		1
+B2_landrace	Sobic.005G174900	5.09366495819491	8.06e-06	1940.714921	Chr5:70464355-70584818	X2020.medianLeafAngle.N	Chr5:70581858-70586461(+)		1
+B2_landrace	Sobic.003G226800	5.08830984124614	8.16e-06	1780.274094	Chr3:62585879-62679802	X2020.medianLeafAngle.N	Chr3:62679658-62685769(+)	Heat stress transcription factor C-1a	1
+B2_landrace	Sobic.002G122900	5.04191415147891	9.08e-06	1605.143132	Chr2:16509705-16642226	X2020.daysToFlower.N	Chr2:16583999-16589512(-)	Protein of unknown function (DUF707)	1
+B2_landrace	Sobic.002G123000	5.04191415147891	9.08e-06	1605.143132	Chr2:16509705-16642226	X2020.daysToFlower.N	Chr2:16588652-16604173(-)	Mut7-C RNAse domain	1
+B2_landrace	Sobic.002G123100	5.04191415147891	9.08e-06	1605.143132	Chr2:16509705-16642226	X2020.daysToFlower.N	Chr2:16601865-16610808(-)	Alpha galactosidase A	1
+B2_landrace	Sobic.002G123201	5.04191415147891	9.08e-06	1605.143132	Chr2:16509705-16642226	X2020.daysToFlower.N	Chr2:16613151-16620754(-)	DNA-directed RNA	1
+B2_landrace	Sobic.002G123300	5.04191415147891	9.08e-06	1605.143132	Chr2:16509705-16642226	X2020.daysToFlower.N	Chr2:16616986-16622457(+)	Encoded by	1
+B2_landrace	Sobic.003G246100	5.03338901331807	9.26e-06	1152.079226	Chr3:64816433-64900644	X2021.plantHeight.N	Chr3:64809141-64818223(+)	JAB1/Mov34/MPN/PAD-1 ubiquitin protease	1
+B2_landrace	Sobic.003G246200	5.03338901331807	9.26e-06	1152.079226	Chr3:64816433-64900644	X2021.plantHeight.N	Chr3:64819165-64825081(-)	Protein of unknown function (DUF1645)	1
+B2_landrace	Sobic.003G246300	5.03338901331807	9.26e-06	1152.079226	Chr3:64816433-64900644	X2021.plantHeight.N	Chr3:64823164-64828745(-)	-	1
+B2_landrace	Sobic.003G246400	5.03338901331807	9.26e-06	1152.079226	Chr3:64816433-64900644	X2021.plantHeight.N	Chr3:64841287-64846241(+)	Ribosomal protein L7/L12 C-terminal domain	1
+B2_landrace	Sobic.003G246500	5.03338901331807	9.26e-06	1152.079226	Chr3:64816433-64900644	X2021.plantHeight.N	Chr3:64843664-64850088(+)	3'-5' exonuclease	1
+B2_landrace	Sobic.003G246600	5.03338901331807	9.26e-06	1152.079226	Chr3:64816433-64900644	X2021.plantHeight.N	Chr3:64847706-64852489(+)	Family of unknown function (DUF5323)	1
+B2_landrace	Sobic.003G246700	5.03338901331807	9.26e-06	1152.079226	Chr3:64816433-64900644	X2021.plantHeight.N	Chr3:64851097-64861651(-)	Scaffold protein for the de novo synthesis of iron- sulfur (Fe-S) clusters within mitochondria, which is required for maturation of both mitochondrial and cytoplasmic 2Fe-2S and 4Fe-4S proteins	1
+B2_landrace	Sobic.003G246800	5.03338901331807	9.26e-06	1152.079226	Chr3:64816433-64900644	X2021.plantHeight.N	Chr3:64862533-64868250(-)	GATA zinc finger	1
+B2_landrace	Sobic.003G246900	5.03338901331807	9.26e-06	1152.079226	Chr3:64816433-64900644	X2021.plantHeight.N	Chr3:64878755-64884266(-)	Myb-like DNA-binding domain	1
+B2_landrace	Sobic.008G024300	5.01099538430146	9.75e-06	1230.22052	Chr8:2167950-2254806	X2020.rachisLength.N	Chr8:2239444-2248854(+)	belongs to the protein kinase superfamily	1

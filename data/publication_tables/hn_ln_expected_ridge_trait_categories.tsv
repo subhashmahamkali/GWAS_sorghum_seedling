@@ -1,0 +1,24 @@
+category	trait	year	plot_label	condition_values
+Architecture	branchInternodeLength	2020	Branch internode length (2020)	HN and LN expected BLUE values
+Architecture	plantHeight	2020	Plant height (2020)	HN and LN expected BLUE values
+Architecture	plantHeight	2021	Plant height (2021)	HN and LN expected BLUE values
+Architecture	primaryBranchNumber	2020	Primary branch number (2020)	HN and LN expected BLUE values
+Architecture	tillersPerPlant	2020	Tillers per plant (2020)	HN and LN expected BLUE values
+Developmental	daysToFlower	2020	Days to flower (2020)	HN and LN expected BLUE values
+Developmental	daysToFlower	2021	Days to flower (2021)	HN and LN expected BLUE values
+Developmental	extantLeafNumber	2020	Extant leaf number (2020)	HN and LN expected BLUE values
+Developmental	flagLeafLength	2020	Flag leaf length (2020)	HN and LN expected BLUE values
+Developmental	flagLeafWidth	2020	Flag leaf width (2020)	HN and LN expected BLUE values
+Developmental	leafAngleStandardDeviation	2020	Leaf angle standard deviation (2020)	HN and LN expected BLUE values
+Developmental	medianLeafAngle	2020	Median leaf angle (2020)	HN and LN expected BLUE values
+Developmental	stemDiameterLower	2020	Stem diameter lower (2020)	HN and LN expected BLUE values
+Developmental	stemDiameterLower	2021	Stem diameter lower (2021)	HN and LN expected BLUE values
+Developmental	stemDiameterUpper	2020	Stem diameter upper (2020)	HN and LN expected BLUE values
+Developmental	stemDiameterUpper	2021	Stem diameter upper (2021)	HN and LN expected BLUE values
+Developmental	thirdLeafLength	2020	Third leaf length (2020)	HN and LN expected BLUE values
+Developmental	thirdLeafWidth	2020	Third leaf width (2020)	HN and LN expected BLUE values
+Panicle	panicleGrainWeight	2020	Panicle grain weight (2020)	HN and LN expected BLUE values
+Panicle	paniclesPerPlot	2020	Panicles per plot (2020)	HN and LN expected BLUE values
+Panicle	rachisDiameterLower	2020	Rachis diameter lower (2020)	HN and LN expected BLUE values
+Panicle	rachisDiameterUpper	2020	Rachis diameter upper (2020)	HN and LN expected BLUE values
+Panicle	rachisLength	2020	Rachis length (2020)	HN and LN expected BLUE values

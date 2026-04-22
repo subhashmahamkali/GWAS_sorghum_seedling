@@ -1,0 +1,7 @@
+input_gene_id	balancing_wild_only	balancing_landrace_only	balancing_improved_only	FST_breeding_improved_vs_landrace	FST_domestication_landrace_vs_wild	XPCLR_breeding_improved_vs_landrace	XPCLR_domestication_landrace_vs_wild
+Sobic.001G355600	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+Sobic.003G197200	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+Sobic.010G031900	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+Sobic.002G212000	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+Sobic.009G01633	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE
+Sobic.004G229100	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE	FALSE

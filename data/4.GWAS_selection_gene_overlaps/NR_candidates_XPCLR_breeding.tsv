@@ -1,0 +1,55 @@
+selection_class	gene_id	best_neglog10p	best_gwas_pvalue	best_selection_score	best_selection_region	gwas_traits	gene_region	gene_description	overlap_rows
+XPCLR_breeding	Sobic.001G208166	7.76447155309245	1.72e-08	154.1223761	breeding_improved_vs_landrace	X2020.estimatedPlotYield.N;X2020.panicleGrainWeight.N	Chr1:19248278-19252909(+)		2
+XPCLR_breeding	Sobic.001G208200	7.76447155309245	1.72e-08	154.1223761	breeding_improved_vs_landrace	X2020.estimatedPlotYield.N;X2020.panicleGrainWeight.N	Chr1:19250346-19257396(-)	Alpha galactosidase A	2
+XPCLR_breeding	Sobic.001G208300	7.76447155309245	1.72e-08	154.1223761	breeding_improved_vs_landrace	X2020.estimatedPlotYield.N;X2020.panicleGrainWeight.N	Chr1:19260215-19268370(+)	Calcineurin-like phosphoesterase	2
+XPCLR_breeding	Sobic.001G197225	7.07058107428571	8.5e-08	191.3631515	breeding_improved_vs_landrace	X2020.stemDiameterLower.N;X2021.tillersPerPlant.N	Chr1:17987240-17994333(-)	Belongs to the actin family	2
+XPCLR_breeding	Sobic.001G197250	7.07058107428571	8.5e-08	191.3631515	breeding_improved_vs_landrace	X2020.stemDiameterLower.N;X2021.tillersPerPlant.N	Chr1:17990511-17996651(+)	Plant organelle RNA recognition domain	2
+XPCLR_breeding	Sobic.001G197275	7.07058107428571	8.5e-08	191.3631515	breeding_improved_vs_landrace	X2020.stemDiameterLower.N;X2021.tillersPerPlant.N	Chr1:17992951-17998190(-)	Arabidopsis protein of unknown function	2
+XPCLR_breeding	Sobic.001G197300	7.07058107428571	8.5e-08	191.3631515	breeding_improved_vs_landrace	X2020.stemDiameterLower.N;X2021.tillersPerPlant.N	Chr1:17994905-18003661(-)	Serine threonine-protein kinase	2
+XPCLR_breeding	Sobic.001G197400	7.07058107428571	8.5e-08	191.3631515	breeding_improved_vs_landrace	X2020.stemDiameterLower.N;X2021.tillersPerPlant.N	Chr1:18006124-18013600(-)	Belongs to the actin family	2
+XPCLR_breeding	Sobic.001G197500	7.07058107428571	8.5e-08	191.3631515	breeding_improved_vs_landrace	X2020.stemDiameterLower.N;X2021.tillersPerPlant.N	Chr1:18012256-18017847(+)		2
+XPCLR_breeding	Sobic.003G199900	6.51712641639125	3.04e-07	318.1648419	breeding_improved_vs_landrace	X2020.panicleGrainWeight.N	Chr3:58993955-59005267(-)	Aminotransferase class I and II	1
+XPCLR_breeding	Sobic.008G059200	6.44129142946683	3.62e-07	219.0669402	breeding_improved_vs_landrace	X2020.primaryBranchNumber.N	Chr8:6429996-6436291(-)	Transmembrane amino acid transporter protein	1
+XPCLR_breeding	Sobic.008G059400	6.44129142946683	3.62e-07	219.0669402	breeding_improved_vs_landrace	X2020.primaryBranchNumber.N	Chr8:6465992-6472578(-)	Transmembrane amino acid transporter protein	1
+XPCLR_breeding	Sobic.008G059500	6.44129142946683	3.62e-07	219.0669402	breeding_improved_vs_landrace	X2020.primaryBranchNumber.N	Chr8:6487994-6495764(-)		1
+XPCLR_breeding	Sobic.008G059533	6.44129142946683	3.62e-07	219.0669402	breeding_improved_vs_landrace	X2020.primaryBranchNumber.N	Chr8:6495841-6500344(+)	source UniProtKB	1
+XPCLR_breeding	Sobic.004G270600	6.43533393574791	3.67e-07	352.757521	breeding_improved_vs_landrace	X2020.rachisDiameterLower.N;X2020.rachisLength.N	Chr4:64010105-64018021(-)	MYB-CC type transfactor, LHEQLE motif	2
+XPCLR_breeding	Sobic.004G270700	6.43533393574791	3.67e-07	352.757521	breeding_improved_vs_landrace	X2020.rachisDiameterLower.N;X2020.rachisLength.N	Chr4:64015177-64019938(+)		2
+XPCLR_breeding	Sobic.004G270750	6.43533393574791	3.67e-07	352.757521	breeding_improved_vs_landrace	X2020.rachisDiameterLower.N;X2020.rachisLength.N	Chr4:64016325-64021346(-)		2
+XPCLR_breeding	Sobic.004G270800	6.43533393574791	3.67e-07	352.757521	breeding_improved_vs_landrace	X2020.rachisDiameterLower.N;X2020.rachisLength.N	Chr4:64017654-64025038(-)	Anaphase-promoting complex subunit 4 WD40 domain	2
+XPCLR_breeding	Sobic.004G270900	6.43533393574791	3.67e-07	352.757521	breeding_improved_vs_landrace	X2020.rachisDiameterLower.N;X2020.rachisLength.N	Chr4:64022920-64028974(+)	Helix-loop-helix DNA-binding domain	2
+XPCLR_breeding	Sobic.004G271000	6.43533393574791	3.67e-07	352.757521	breeding_improved_vs_landrace	X2020.rachisDiameterLower.N;X2020.rachisLength.N	Chr4:64029107-64040972(+)	PWWP domain	2
+XPCLR_breeding	Sobic.004G271100	6.43533393574791	3.67e-07	352.757521	breeding_improved_vs_landrace	X2020.rachisDiameterLower.N;X2020.rachisLength.N	Chr4:64037272-64042003(+)	-	2
+XPCLR_breeding	Sobic.004G271200	6.43533393574791	3.67e-07	352.757521	breeding_improved_vs_landrace	X2020.rachisDiameterLower.N;X2020.rachisLength.N	Chr4:64038022-64044731(-)	Bromodomain transcription factors and PHD domain containing proteins	2
+XPCLR_breeding	Sobic.004G271300	6.43533393574791	3.67e-07	352.757521	breeding_improved_vs_landrace	X2020.rachisDiameterLower.N;X2020.rachisLength.N	Chr4:64052537-64064153(+)	Control of topological states of DNA by transient breakage and subsequent rejoining of DNA strands. Topoisomerase II makes double-strand breaks	2
+XPCLR_breeding	Sobic.004G271350	6.43533393574791	3.67e-07	352.757521	breeding_improved_vs_landrace	X2020.rachisLength.N	Chr4:64060395-64065580(-)		1
+XPCLR_breeding	Sobic.004G271400	6.43533393574791	3.67e-07	352.757521	breeding_improved_vs_landrace	X2020.rachisLength.N	Chr4:64063244-64068554(-)	Belongs to the universal ribosomal protein uL11 family	1
+XPCLR_breeding	Sobic.009G141201	5.94309514866353	1.14e-06	347.9853693	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr9:53559960-53566778(-)	-	1
+XPCLR_breeding	Sobic.009G141300	5.94309514866353	1.14e-06	347.9853693	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr9:53565997-53573456(+)	GDSL-like Lipase/Acylhydrolase	1
+XPCLR_breeding	Sobic.009G141400	5.94309514866353	1.14e-06	347.9853693	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr9:53575877-53582860(+)	Uncharacterized ACR, COG1678	1
+XPCLR_breeding	Sobic.009G141500	5.94309514866353	1.14e-06	347.9853693	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr9:53580433-53585334(-)	DNA-binding domain in plant proteins such as APETALA2 and EREBPs	1
+XPCLR_breeding	Sobic.008G002500	5.59345981956604	2.55e-06	146.8556618	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr8:283181-294658(+)	Poly (ADP-ribose) polymerase	1
+XPCLR_breeding	Sobic.008G002600	5.59345981956604	2.55e-06	146.8556618	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr8:294595-300775(+)	Belongs to the iron ascorbate-dependent oxidoreductase family	1
+XPCLR_breeding	Sobic.008G002700	5.59345981956604	2.55e-06	146.8556618	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr8:299474-306001(-)	Protein kinase domain	1
+XPCLR_breeding	Sobic.008G002800	5.59345981956604	2.55e-06	146.8556618	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr8:304107-310819(-)	unsaturated fatty acid metabolic process	1
+XPCLR_breeding	Sobic.009G130966	5.56224943717961	2.74e-06	235.2324078	breeding_improved_vs_landrace	X2020.rachisLength.N	Chr9:52153412-52158183(+)		1
+XPCLR_breeding	Sobic.009G131100	5.56224943717961	2.74e-06	235.2324078	breeding_improved_vs_landrace	X2020.rachisLength.N	Chr9:52162663-52170947(-)	Belongs to the BI1 family	1
+XPCLR_breeding	Sobic.009G131200	5.56224943717961	2.74e-06	235.2324078	breeding_improved_vs_landrace	X2020.rachisLength.N	Chr9:52171913-52180198(-)	-	1
+XPCLR_breeding	Sobic.009G131300	5.56224943717961	2.74e-06	235.2324078	breeding_improved_vs_landrace	X2020.rachisLength.N	Chr9:52177985-52198683(-)	cation-transporting ATPase	1
+XPCLR_breeding	Sobic.008G047600	5.32239304727951	4.76e-06	154.1412257	breeding_improved_vs_landrace	X2020.estimatedPlotYield.N	Chr8:4812043-4819566(+)	Protein BYPASS1-related	1
+XPCLR_breeding	Sobic.008G047700	5.32239304727951	4.76e-06	154.1412257	breeding_improved_vs_landrace	X2020.estimatedPlotYield.N	Chr8:4814389-4825847(-)	Protein FAM135	1
+XPCLR_breeding	Sobic.008G047800	5.32239304727951	4.76e-06	154.1412257	breeding_improved_vs_landrace	X2020.estimatedPlotYield.N	Chr8:4823850-4836452(-)	Domain of unknown function (DUF3337)	1
+XPCLR_breeding	Sobic.006G026400	5.24488773360493	5.69e-06	247.4848763	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr6:4878979-4883557(-)	-	1
+XPCLR_breeding	Sobic.006G026500	5.24488773360493	5.69e-06	247.4848763	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr6:4885956-4890718(+)	-	1
+XPCLR_breeding	Sobic.009G109300	5.22621355501881	5.94e-06	333.7060162	breeding_improved_vs_landrace	X2021.plantHeight.N	Chr9:47824222-47832879(-)	Belongs to the eukaryotic-type primase small subunit family	1
+XPCLR_breeding	Sobic.008G080400	5.21112488422458	6.15e-06	175.0302182	breeding_improved_vs_landrace	X2020.panicleGrainWeight.N	Chr8:14043121-14051972(-)	Belongs to the glycosyl hydrolase 1 family	1
+XPCLR_breeding	Sobic.007G174300	5.18775530319963	6.49e-06	223.2806413	breeding_improved_vs_landrace	X2020.estimatedPlotYield.N	Chr7:64240065-64250393(-)	Arabidopsis protein of unknown function	1
+XPCLR_breeding	Sobic.007G174500	5.18775530319963	6.49e-06	223.2806413	breeding_improved_vs_landrace	X2020.estimatedPlotYield.N	Chr7:64242709-64249440(+)	Arabidopsis protein of unknown function	1
+XPCLR_breeding	Sobic.007G174600	5.18775530319963	6.49e-06	223.2806413	breeding_improved_vs_landrace	X2020.estimatedPlotYield.N	Chr7:64249611-64259135(-)	Glutamine amidotransferases class-II	1
+XPCLR_breeding	Sobic.001G375100	5.07883394936226	8.34e-06	168.3965588	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr1:70490174-70506197(+)	ATPase family associated with various cellular activities (AAA)	1
+XPCLR_breeding	Sobic.001G375200	5.07883394936226	8.34e-06	168.3965588	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr1:70502333-70507935(-)	LURP-one-related	1
+XPCLR_breeding	Sobic.001G375300	5.07883394936226	8.34e-06	168.3965588	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr1:70509947-70521258(+)	Ulp1 protease family, C-terminal catalytic domain	1
+XPCLR_breeding	Sobic.001G196500	5.06148027482351	8.68e-06	164.0313369	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr1:17853995-17869359(-)	Short conserved domain in transcriptional regulators.	1
+XPCLR_breeding	Sobic.001G196550	5.06148027482351	8.68e-06	164.0313369	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr1:17872444-17881658(-)	Zinc finger BED domain-containing protein RICESLEEPER	1
+XPCLR_breeding	Sobic.001G196600	5.06148027482351	8.68e-06	164.0313369	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr1:17877319-17884965(-)	Serine carboxypeptidase S28	1
+XPCLR_breeding	Sobic.001G196700	5.06148027482351	8.68e-06	164.0313369	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr1:17881711-17891255(-)	Serine carboxypeptidase S28	1

@@ -1,0 +1,118 @@
+selection_class	gene_id	best_neglog10p	best_gwas_pvalue	best_selection_score	best_selection_region	gwas_traits	gene_region	gene_description	overlap_rows	keyword_hit
+FST_breeding	Sobic.004G031100	5.47366072261016	3.36e-06	0.307263	Chr4:2495001-2585000	X2020.primaryBranchNumber.N	Chr4:2541063-2546241(-)	bZIP transcription factor	1	TRUE
+FST_breeding	Sobic.004G324000	5.12842706445412	7.44e-06	0.277638	Chr4:68365001-68410000	X2020.estimatedPlotYield.N	Chr4:68398377-68409236(+)	Glutamate-gated receptor that probably acts as non- selective cation channel	1	TRUE
+FST_breeding	Sobic.001G249200	6.07727454200674	8.37e-07	0.274236	Chr1:27065001-27120000	X2020.thirdLeafLength.N	Chr1:27057733-27067348(-)	KH domain	1	FALSE
+FST_breeding	Sobic.001G249233	6.07727454200674	8.37e-07	0.274236	Chr1:27065001-27120000	X2020.thirdLeafLength.N	Chr1:27067424-27074175(-)		1	FALSE
+FST_breeding	Sobic.001G249266	6.07727454200674	8.37e-07	0.274236	Chr1:27065001-27120000	X2020.thirdLeafLength.N	Chr1:27084624-27089075(+)		1	FALSE
+FST_breeding	Sobic.001G249300	6.07727454200674	8.37e-07	0.274236	Chr1:27065001-27120000	X2020.thirdLeafLength.N	Chr1:27090570-27097296(+)	Leucine Rich Repeat	1	FALSE
+FST_breeding	Sobic.001G249400	6.07727454200674	8.37e-07	0.274236	Chr1:27065001-27120000	X2020.thirdLeafLength.N	Chr1:27110641-27119264(+)	Tetrapyrrole (Corrin/Porphyrin) Methylases	1	FALSE
+FST_breeding	Sobic.004G030600	5.47366072261016	3.36e-06	0.307263	Chr4:2495001-2585000	X2020.primaryBranchNumber.N	Chr4:2500847-2509315(-)	PPR repeat	1	FALSE
+FST_breeding	Sobic.004G030700	5.47366072261016	3.36e-06	0.307263	Chr4:2495001-2585000	X2020.primaryBranchNumber.N	Chr4:2505548-2513188(-)	conserved protein UCP030365	1	FALSE
+FST_breeding	Sobic.004G030800	5.47366072261016	3.36e-06	0.307263	Chr4:2495001-2585000	X2020.primaryBranchNumber.N	Chr4:2514642-2527732(+)	Proline-, glutamic acid- and leucine-rich protein	1	FALSE
+FST_breeding	Sobic.004G030900	5.47366072261016	3.36e-06	0.307263	Chr4:2495001-2585000	X2020.primaryBranchNumber.N	Chr4:2528150-2537894(+)	The RING-variant domain is a C4HC3 zinc-finger like motif found in a number of cellular and viral proteins. Some of these proteins have been shown both in vivo and in vitro to have ubiquitin E3 ligase activity.	1	FALSE
+FST_breeding	Sobic.004G030966	5.47366072261016	3.36e-06	0.307263	Chr4:2495001-2585000	X2020.primaryBranchNumber.N	Chr4:2537382-2541720(+)		1	FALSE
+FST_breeding	Sobic.004G031032	5.47366072261016	3.36e-06	0.307263	Chr4:2495001-2585000	X2020.primaryBranchNumber.N	Chr4:2539644-2544198(-)		1	FALSE
+FST_breeding	Sobic.004G031200	5.47366072261016	3.36e-06	0.307263	Chr4:2495001-2585000	X2020.primaryBranchNumber.N	Chr4:2542451-2546576(-)	expressed protein	1	FALSE
+FST_breeding	Sobic.004G031300	5.47366072261016	3.36e-06	0.307263	Chr4:2495001-2585000	X2020.primaryBranchNumber.N	Chr4:2557003-2571049(-)	Pentatricopeptide repeat domain	1	FALSE
+FST_breeding	Sobic.006G154600	5.27083521030723	5.36e-06	0.244564	Chr6:52825001-52870000	X2020.panicleGrainWeight.N	Chr6:52840413-52845383(-)	-	1	FALSE
+FST_breeding	Sobic.006G154800	5.27083521030723	5.36e-06	0.244564	Chr6:52825001-52870000	X2020.panicleGrainWeight.N	Chr6:52852112-52861174(+)	BRO1-like domain	1	FALSE
+FST_breeding	Sobic.006G154900	5.27083521030723	5.36e-06	0.244564	Chr6:52825001-52870000	X2020.panicleGrainWeight.N	Chr6:52856971-52863863(-)	Belongs to the mitochondrial carrier (TC 2.A.29) family	1	FALSE
+FST_breeding	Sobic.006G155000	5.27083521030723	5.36e-06	0.244564	Chr6:52825001-52870000	X2020.panicleGrainWeight.N	Chr6:52859490-52866830(+)	Mitochondrial intermembrane space import and assembly protein	1	FALSE
+FST_breeding	Sobic.006G155100	5.27083521030723	5.36e-06	0.244564	Chr6:52825001-52870000	X2020.panicleGrainWeight.N	Chr6:52863689-52871251(+)	RNA splicing	1	FALSE
+FST_breeding	Sobic.006G155150	5.27083521030723	5.36e-06	0.244564	Chr6:52825001-52870000	X2020.panicleGrainWeight.N	Chr6:52869087-52873398(+)		1	FALSE
+FST_breeding	Sobic.008G080400	5.21112488422458	6.15e-06	0.274558	Chr8:14040001-14085000	X2020.panicleGrainWeight.N	Chr8:14043121-14051972(-)	Belongs to the glycosyl hydrolase 1 family	1	FALSE
+FST_breeding	Sobic.004G323700	5.12842706445412	7.44e-06	0.277638	Chr4:68365001-68410000	X2020.estimatedPlotYield.N	Chr4:68379048-68389284(+)	Ring finger domain	1	FALSE
+FST_breeding	Sobic.004G323800	5.12842706445412	7.44e-06	0.277638	Chr4:68365001-68410000	X2020.estimatedPlotYield.N	Chr4:68385334-68392337(-)	PCRF	1	FALSE
+FST_breeding	Sobic.004G323900	5.12842706445412	7.44e-06	0.277638	Chr4:68365001-68410000	X2020.estimatedPlotYield.N	Chr4:68390562-68399126(+)	-	1	FALSE
+FST_breeding	Sobic.004G324100	5.12842706445412	7.44e-06	0.277638	Chr4:68365001-68410000	X2020.estimatedPlotYield.N	Chr4:68405333-68417162(-)	Diacylglycerol kinase accessory domain (presumed)	1	FALSE
+FST_breeding	Sobic.002G179700	5.06398920428479	8.63e-06	0.310007	Chr2:57275001-57335000	X2020.rachisLength.N	Chr2:57328904-57334720(-)	3-ketoacyl-CoA synthase	1	FALSE
+FST_breeding	Sobic.001G279500	5.0287241512619	9.36e-06	0.356079	Chr1:58630001-58705000	X2020.panicleGrainWeight.N	Chr1:58679418-58684139(+)	VQ motif	1	FALSE
+FST_breeding	Sobic.001G279601	5.0287241512619	9.36e-06	0.319154	Chr1:58725001-58770000	X2020.panicleGrainWeight.N	Chr1:58726537-58733384(+)		1	FALSE
+FST_breeding	Sobic.001G279701	5.0287241512619	9.36e-06	0.319154	Chr1:58725001-58770000	X2020.panicleGrainWeight.N	Chr1:58741681-58746505(-)	-	1	FALSE
+B2_improved	Sobic.003G366850	6.64397414280688	2.27e-07	2297.11703396143	Chr3:74619147-74699147	X2020.estimatedPlotYield.N	Chr3:74678988-74712223(+)	Protein HASTY 1 isoform X1	864	FALSE
+B2_improved	Sobic.003G367000	6.64397414280688	2.27e-07	2083.82813526544	Chr3:74633189-74713189	X2020.estimatedPlotYield.N	Chr3:74710343-74715841(-)	RING-type E3 ubiquitin transferase	105	FALSE
+B2_improved	Sobic.003G367100	6.64397414280688	2.27e-07	1952.78722864029	Chr3:74641486-74721486	X2020.estimatedPlotYield.N	Chr3:74721114-74726774(-)	Dof domain, zinc finger	42	FALSE
+B2_improved	Sobic.003G367150	6.64397414280688	2.27e-07	1744.48436382621	Chr3:74651022-74731022	X2020.estimatedPlotYield.N	Chr3:74730784-74735960(+)		4	FALSE
+B2_improved	Sobic.009G230800	5.91364016932525	1.22e-06	2073.40568990843	Chr9:60813367-60893367	X2020.rachisLength.N	Chr9:60892509-60901170(-)	Belongs to the iron ascorbate-dependent oxidoreductase family	608	FALSE
+B2_improved	Sobic.009G230900	5.91364016932525	1.22e-06	2039.43668323115	Chr9:60827446-60907446	X2020.rachisLength.N	Chr9:60906793-60911543(+)	-	415	FALSE
+B2_improved	Sobic.009G231000	5.91364016932525	1.22e-06	2018.53803806327	Chr9:60831334-60911334	X2020.rachisLength.N	Chr9:60911333-60915817(+)		314	FALSE
+B2_improved	Sobic.009G231100	5.91364016932525	1.22e-06	2001.43448416184	Chr9:60834456-60914456	X2020.rachisLength.N	Chr9:60914369-60921739(-)	Cytidylyltransferase	291	FALSE
+B2_improved	Sobic.009G231200	5.91364016932525	1.22e-06	1949.03183642655	Chr9:60840877-60920877	X2020.rachisLength.N	Chr9:60920559-60928826(+)	UBA-like domain (DUF1421)	257	FALSE
+B2_improved	Sobic.009G231300	5.91364016932525	1.22e-06	1939.36809950571	Chr9:60846678-60926678	X2020.rachisLength.N	Chr9:60925646-60933126(-)	Stress-induced protein Di19, C-terminal	191	FALSE
+B2_improved	Sobic.009G231400	5.91364016932525	1.22e-06	1907.45915089162	Chr9:60850738-60930738	X2020.rachisLength.N	Chr9:60930612-60937291(-)	DnaJ C terminal domain	169	FALSE
+B2_improved	Sobic.009G231500	5.91364016932525	1.22e-06	1715.72318596023	Chr9:60861013-60941013	X2020.rachisLength.N	Chr9:60940762-60945812(-)	Protein of unknown function (DUF679)	28	FALSE
+B2_improved	Sobic.003G066600	5.61261017366127	2.44e-06	1762.25031276865	Chr3:5723158-5803158	X2020.daysToFlower.N	Chr3:5718327-5724464(+)	Protein of unknown function (DUF674)	66	FALSE
+B2_improved	Sobic.003G066700	5.61261017366127	2.44e-06	1762.25031276865	Chr3:5723158-5803158	X2020.daysToFlower.N	Chr3:5720548-5726590(-)	A Receptor for Ubiquitination Targets	84	FALSE
+B2_improved	Sobic.003G066801	5.61261017366127	2.44e-06	1762.25031276865	Chr3:5723158-5803158	X2020.daysToFlower.N	Chr3:5723524-5729449(+)		84	FALSE
+B2_improved	Sobic.003G066900	5.61261017366127	2.44e-06	1762.25031276865	Chr3:5723158-5803158	X2020.daysToFlower.N	Chr3:5731969-5736871(-)	Protein of unknown function (DUF674)	84	FALSE
+B2_improved	Sobic.003G067000	5.61261017366127	2.44e-06	1762.25031276865	Chr3:5723158-5803158	X2020.daysToFlower.N	Chr3:5738730-5743723(-)	Protein of unknown function (DUF674)	84	FALSE
+B2_improved	Sobic.003G067100	5.61261017366127	2.44e-06	1762.25031276865	Chr3:5723158-5803158	X2020.daysToFlower.N	Chr3:5746346-5760814(-)	GAD domain	84	FALSE
+B2_improved	Sobic.003G067201	5.61261017366127	2.44e-06	1762.25031276865	Chr3:5723158-5803158	X2020.daysToFlower.N	Chr3:5756073-5765421(+)	Pentacotripeptide-repeat region of PRORP	84	FALSE
+B2_improved	Sobic.005G102300	5.54821356447571	2.83e-06	3450.78869176053	Chr5:17991752-18071752	X2021.tillersPerPlant.N	Chr5:18061046-18065942(-)	Dirigent proteins impart stereoselectivity on the phenoxy radical-coupling reaction, yielding optically active lignans from two molecules of coniferyl alcohol in the biosynthesis of lignans, flavonolignans, and alkaloids and thus plays a central role in plant secondary metabolism	947	FALSE
+B2_improved	Sobic.005G102351	5.54821356447571	2.83e-06	3450.78869176053	Chr5:17991752-18071752	X2021.tillersPerPlant.N	Chr5:18065849-18070443(+)		786	FALSE
+B2_improved	Sobic.005G102401	5.54821356447571	2.83e-06	3450.78869176053	Chr5:17991752-18071752	X2021.tillersPerPlant.N	Chr5:18069198-18074176(-)	Dirigent proteins impart stereoselectivity on the phenoxy radical-coupling reaction, yielding optically active lignans from two molecules of coniferyl alcohol in the biosynthesis of lignans, flavonolignans, and alkaloids and thus plays a central role in plant secondary metabolism	753	FALSE
+B2_improved	Sobic.001G189500	5.10402526764094	7.87e-06	1700.80657404909	Chr1:16870106-16950106	X2020.estimatedPlotYield.N	Chr1:16888998-16898653(-)	D-arabinono-1,4-lactone oxidase	24	FALSE
+B2_improved	Sobic.001G189600	5.10402526764094	7.87e-06	1700.80657404909	Chr1:16870106-16950106	X2020.estimatedPlotYield.N	Chr1:16903427-16913043(+)	F-box LRR-repeat protein	24	FALSE
+B2_improved	Sobic.001G189700	5.10402526764094	7.87e-06	1700.80657404909	Chr1:16870106-16950106	X2020.estimatedPlotYield.N	Chr1:16909452-16914783(-)	DnaJ molecular chaperone homology domain	24	FALSE
+B2_improved	Sobic.001G189800	5.10402526764094	7.87e-06	1700.80657404909	Chr1:16870106-16950106	X2020.estimatedPlotYield.N	Chr1:16918235-16922978(-)	DnaJ molecular chaperone homology domain	24	FALSE
+B2_improved	Sobic.001G189900	5.10402526764094	7.87e-06	1700.80657404909	Chr1:16870106-16950106	X2020.estimatedPlotYield.N	Chr1:16922246-16927609(+)	-	24	FALSE
+B2_improved	Sobic.001G189950	5.10402526764094	7.87e-06	1700.80657404909	Chr1:16870106-16950106	X2020.estimatedPlotYield.N	Chr1:16938634-16943663(+)	-	24	FALSE
+B2_improved	Sobic.001G190000	5.10402526764094	7.87e-06	1700.80657404909	Chr1:16870106-16950106	X2020.estimatedPlotYield.N	Chr1:16939764-16946312(+)	SANT  SWI3, ADA2, N-CoR and TFIIIB'' DNA-binding domains	24	FALSE
+B2_improved	Sobic.001G190100	5.10402526764094	7.87e-06	1700.80657404909	Chr1:16870106-16950106	X2020.estimatedPlotYield.N	Chr1:16944102-16952873(-)	divergent subfamily of APPLE domains	24	FALSE
+B2_improved	Sobic.005G174750	5.09366495819491	8.06e-06	2252.12930747436	Chr5:70487893-70567893	X2020.medianLeafAngle.N	Chr5:70567600-70572918(-)		232	FALSE
+B2_improved	Sobic.005G174800	5.09366495819491	8.06e-06	2119.88413752853	Chr5:70499351-70579351	X2020.medianLeafAngle.N	Chr5:70577241-70581754(+)		16	FALSE
+B2_improved	Sobic.005G174900	5.09366495819491	8.06e-06	2034.37977916542	Chr5:70502220-70582220	X2020.medianLeafAngle.N	Chr5:70581858-70586461(+)		10	FALSE
+XPCLR_breeding	Sobic.004G271200	6.43533393574791	3.67e-07	352.757521	breeding_improved_vs_landrace	X2020.rachisDiameterLower.N;X2020.rachisLength.N	Chr4:64038022-64044731(-)	Bromodomain transcription factors and PHD domain containing proteins	2	TRUE
+XPCLR_breeding	Sobic.007G174600	5.18775530319963	6.49e-06	223.2806413	breeding_improved_vs_landrace	X2020.estimatedPlotYield.N	Chr7:64249611-64259135(-)	Glutamine amidotransferases class-II	1	TRUE
+XPCLR_breeding	Sobic.001G196500	5.06148027482351	8.68e-06	164.0313369	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr1:17853995-17869359(-)	Short conserved domain in transcriptional regulators.	1	TRUE
+XPCLR_breeding	Sobic.001G208166	7.76447155309245	1.72e-08	154.1223761	breeding_improved_vs_landrace	X2020.estimatedPlotYield.N;X2020.panicleGrainWeight.N	Chr1:19248278-19252909(+)		2	FALSE
+XPCLR_breeding	Sobic.001G208200	7.76447155309245	1.72e-08	154.1223761	breeding_improved_vs_landrace	X2020.estimatedPlotYield.N;X2020.panicleGrainWeight.N	Chr1:19250346-19257396(-)	Alpha galactosidase A	2	FALSE
+XPCLR_breeding	Sobic.001G208300	7.76447155309245	1.72e-08	154.1223761	breeding_improved_vs_landrace	X2020.estimatedPlotYield.N;X2020.panicleGrainWeight.N	Chr1:19260215-19268370(+)	Calcineurin-like phosphoesterase	2	FALSE
+XPCLR_breeding	Sobic.001G197225	7.07058107428571	8.5e-08	191.3631515	breeding_improved_vs_landrace	X2020.stemDiameterLower.N;X2021.tillersPerPlant.N	Chr1:17987240-17994333(-)	Belongs to the actin family	2	FALSE
+XPCLR_breeding	Sobic.001G197250	7.07058107428571	8.5e-08	191.3631515	breeding_improved_vs_landrace	X2020.stemDiameterLower.N;X2021.tillersPerPlant.N	Chr1:17990511-17996651(+)	Plant organelle RNA recognition domain	2	FALSE
+XPCLR_breeding	Sobic.001G197275	7.07058107428571	8.5e-08	191.3631515	breeding_improved_vs_landrace	X2020.stemDiameterLower.N;X2021.tillersPerPlant.N	Chr1:17992951-17998190(-)	Arabidopsis protein of unknown function	2	FALSE
+XPCLR_breeding	Sobic.001G197300	7.07058107428571	8.5e-08	191.3631515	breeding_improved_vs_landrace	X2020.stemDiameterLower.N;X2021.tillersPerPlant.N	Chr1:17994905-18003661(-)	Serine threonine-protein kinase	2	FALSE
+XPCLR_breeding	Sobic.001G197400	7.07058107428571	8.5e-08	191.3631515	breeding_improved_vs_landrace	X2020.stemDiameterLower.N;X2021.tillersPerPlant.N	Chr1:18006124-18013600(-)	Belongs to the actin family	2	FALSE
+XPCLR_breeding	Sobic.001G197500	7.07058107428571	8.5e-08	191.3631515	breeding_improved_vs_landrace	X2020.stemDiameterLower.N;X2021.tillersPerPlant.N	Chr1:18012256-18017847(+)		2	FALSE
+XPCLR_breeding	Sobic.003G199900	6.51712641639125	3.04e-07	318.1648419	breeding_improved_vs_landrace	X2020.panicleGrainWeight.N	Chr3:58993955-59005267(-)	Aminotransferase class I and II	1	FALSE
+XPCLR_breeding	Sobic.008G059200	6.44129142946683	3.62e-07	219.0669402	breeding_improved_vs_landrace	X2020.primaryBranchNumber.N	Chr8:6429996-6436291(-)	Transmembrane amino acid transporter protein	1	FALSE
+XPCLR_breeding	Sobic.008G059400	6.44129142946683	3.62e-07	219.0669402	breeding_improved_vs_landrace	X2020.primaryBranchNumber.N	Chr8:6465992-6472578(-)	Transmembrane amino acid transporter protein	1	FALSE
+XPCLR_breeding	Sobic.008G059500	6.44129142946683	3.62e-07	219.0669402	breeding_improved_vs_landrace	X2020.primaryBranchNumber.N	Chr8:6487994-6495764(-)		1	FALSE
+XPCLR_breeding	Sobic.008G059533	6.44129142946683	3.62e-07	219.0669402	breeding_improved_vs_landrace	X2020.primaryBranchNumber.N	Chr8:6495841-6500344(+)	source UniProtKB	1	FALSE
+XPCLR_breeding	Sobic.004G270600	6.43533393574791	3.67e-07	352.757521	breeding_improved_vs_landrace	X2020.rachisDiameterLower.N;X2020.rachisLength.N	Chr4:64010105-64018021(-)	MYB-CC type transfactor, LHEQLE motif	2	FALSE
+XPCLR_breeding	Sobic.004G270700	6.43533393574791	3.67e-07	352.757521	breeding_improved_vs_landrace	X2020.rachisDiameterLower.N;X2020.rachisLength.N	Chr4:64015177-64019938(+)		2	FALSE
+XPCLR_breeding	Sobic.004G270750	6.43533393574791	3.67e-07	352.757521	breeding_improved_vs_landrace	X2020.rachisDiameterLower.N;X2020.rachisLength.N	Chr4:64016325-64021346(-)		2	FALSE
+XPCLR_breeding	Sobic.004G270800	6.43533393574791	3.67e-07	352.757521	breeding_improved_vs_landrace	X2020.rachisDiameterLower.N;X2020.rachisLength.N	Chr4:64017654-64025038(-)	Anaphase-promoting complex subunit 4 WD40 domain	2	FALSE
+XPCLR_breeding	Sobic.004G270900	6.43533393574791	3.67e-07	352.757521	breeding_improved_vs_landrace	X2020.rachisDiameterLower.N;X2020.rachisLength.N	Chr4:64022920-64028974(+)	Helix-loop-helix DNA-binding domain	2	FALSE
+XPCLR_breeding	Sobic.004G271000	6.43533393574791	3.67e-07	352.757521	breeding_improved_vs_landrace	X2020.rachisDiameterLower.N;X2020.rachisLength.N	Chr4:64029107-64040972(+)	PWWP domain	2	FALSE
+XPCLR_breeding	Sobic.004G271100	6.43533393574791	3.67e-07	352.757521	breeding_improved_vs_landrace	X2020.rachisDiameterLower.N;X2020.rachisLength.N	Chr4:64037272-64042003(+)	-	2	FALSE
+XPCLR_breeding	Sobic.004G271300	6.43533393574791	3.67e-07	352.757521	breeding_improved_vs_landrace	X2020.rachisDiameterLower.N;X2020.rachisLength.N	Chr4:64052537-64064153(+)	Control of topological states of DNA by transient breakage and subsequent rejoining of DNA strands. Topoisomerase II makes double-strand breaks	2	FALSE
+XPCLR_breeding	Sobic.004G271350	6.43533393574791	3.67e-07	352.757521	breeding_improved_vs_landrace	X2020.rachisLength.N	Chr4:64060395-64065580(-)		1	FALSE
+XPCLR_breeding	Sobic.004G271400	6.43533393574791	3.67e-07	352.757521	breeding_improved_vs_landrace	X2020.rachisLength.N	Chr4:64063244-64068554(-)	Belongs to the universal ribosomal protein uL11 family	1	FALSE
+XPCLR_breeding	Sobic.009G141201	5.94309514866353	1.14e-06	347.9853693	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr9:53559960-53566778(-)	-	1	FALSE
+XPCLR_breeding	Sobic.009G141300	5.94309514866353	1.14e-06	347.9853693	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr9:53565997-53573456(+)	GDSL-like Lipase/Acylhydrolase	1	FALSE
+XPCLR_breeding	Sobic.009G141400	5.94309514866353	1.14e-06	347.9853693	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr9:53575877-53582860(+)	Uncharacterized ACR, COG1678	1	FALSE
+XPCLR_breeding	Sobic.009G141500	5.94309514866353	1.14e-06	347.9853693	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr9:53580433-53585334(-)	DNA-binding domain in plant proteins such as APETALA2 and EREBPs	1	FALSE
+XPCLR_breeding	Sobic.008G002500	5.59345981956604	2.55e-06	146.8556618	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr8:283181-294658(+)	Poly (ADP-ribose) polymerase	1	FALSE
+XPCLR_breeding	Sobic.008G002600	5.59345981956604	2.55e-06	146.8556618	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr8:294595-300775(+)	Belongs to the iron ascorbate-dependent oxidoreductase family	1	FALSE
+XPCLR_breeding	Sobic.008G002700	5.59345981956604	2.55e-06	146.8556618	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr8:299474-306001(-)	Protein kinase domain	1	FALSE
+XPCLR_breeding	Sobic.008G002800	5.59345981956604	2.55e-06	146.8556618	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr8:304107-310819(-)	unsaturated fatty acid metabolic process	1	FALSE
+XPCLR_breeding	Sobic.009G130966	5.56224943717961	2.74e-06	235.2324078	breeding_improved_vs_landrace	X2020.rachisLength.N	Chr9:52153412-52158183(+)		1	FALSE
+XPCLR_breeding	Sobic.009G131100	5.56224943717961	2.74e-06	235.2324078	breeding_improved_vs_landrace	X2020.rachisLength.N	Chr9:52162663-52170947(-)	Belongs to the BI1 family	1	FALSE
+XPCLR_breeding	Sobic.009G131200	5.56224943717961	2.74e-06	235.2324078	breeding_improved_vs_landrace	X2020.rachisLength.N	Chr9:52171913-52180198(-)	-	1	FALSE
+XPCLR_breeding	Sobic.009G131300	5.56224943717961	2.74e-06	235.2324078	breeding_improved_vs_landrace	X2020.rachisLength.N	Chr9:52177985-52198683(-)	cation-transporting ATPase	1	FALSE
+XPCLR_breeding	Sobic.008G047600	5.32239304727951	4.76e-06	154.1412257	breeding_improved_vs_landrace	X2020.estimatedPlotYield.N	Chr8:4812043-4819566(+)	Protein BYPASS1-related	1	FALSE
+XPCLR_breeding	Sobic.008G047700	5.32239304727951	4.76e-06	154.1412257	breeding_improved_vs_landrace	X2020.estimatedPlotYield.N	Chr8:4814389-4825847(-)	Protein FAM135	1	FALSE
+XPCLR_breeding	Sobic.008G047800	5.32239304727951	4.76e-06	154.1412257	breeding_improved_vs_landrace	X2020.estimatedPlotYield.N	Chr8:4823850-4836452(-)	Domain of unknown function (DUF3337)	1	FALSE
+XPCLR_breeding	Sobic.006G026400	5.24488773360493	5.69e-06	247.4848763	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr6:4878979-4883557(-)	-	1	FALSE
+XPCLR_breeding	Sobic.006G026500	5.24488773360493	5.69e-06	247.4848763	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr6:4885956-4890718(+)	-	1	FALSE
+XPCLR_breeding	Sobic.009G109300	5.22621355501881	5.94e-06	333.7060162	breeding_improved_vs_landrace	X2021.plantHeight.N	Chr9:47824222-47832879(-)	Belongs to the eukaryotic-type primase small subunit family	1	FALSE
+XPCLR_breeding	Sobic.008G080400	5.21112488422458	6.15e-06	175.0302182	breeding_improved_vs_landrace	X2020.panicleGrainWeight.N	Chr8:14043121-14051972(-)	Belongs to the glycosyl hydrolase 1 family	1	FALSE
+XPCLR_breeding	Sobic.007G174300	5.18775530319963	6.49e-06	223.2806413	breeding_improved_vs_landrace	X2020.estimatedPlotYield.N	Chr7:64240065-64250393(-)	Arabidopsis protein of unknown function	1	FALSE
+XPCLR_breeding	Sobic.007G174500	5.18775530319963	6.49e-06	223.2806413	breeding_improved_vs_landrace	X2020.estimatedPlotYield.N	Chr7:64242709-64249440(+)	Arabidopsis protein of unknown function	1	FALSE
+XPCLR_breeding	Sobic.001G375100	5.07883394936226	8.34e-06	168.3965588	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr1:70490174-70506197(+)	ATPase family associated with various cellular activities (AAA)	1	FALSE
+XPCLR_breeding	Sobic.001G375200	5.07883394936226	8.34e-06	168.3965588	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr1:70502333-70507935(-)	LURP-one-related	1	FALSE
+XPCLR_breeding	Sobic.001G375300	5.07883394936226	8.34e-06	168.3965588	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr1:70509947-70521258(+)	Ulp1 protease family, C-terminal catalytic domain	1	FALSE
+XPCLR_breeding	Sobic.001G196550	5.06148027482351	8.68e-06	164.0313369	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr1:17872444-17881658(-)	Zinc finger BED domain-containing protein RICESLEEPER	1	FALSE
+XPCLR_breeding	Sobic.001G196600	5.06148027482351	8.68e-06	164.0313369	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr1:17877319-17884965(-)	Serine carboxypeptidase S28	1	FALSE
+XPCLR_breeding	Sobic.001G196700	5.06148027482351	8.68e-06	164.0313369	breeding_improved_vs_landrace	X2021.tillersPerPlant.N	Chr1:17881711-17891255(-)	Serine carboxypeptidase S28	1	FALSE

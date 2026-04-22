@@ -1,0 +1,49 @@
+selection_class	gene_id	best_neglog10p	best_gwas_pvalue	best_selection_score	best_selection_region	gwas_traits	gene_region	gene_description	overlap_rows
+FST_domestication	Sobic.003G369200	7.00261361560269	9.94e-08	0.614442	Chr3:74920001-7.5e+07	X2020.estimatedPlotYield.N	Chr3:74909588-74925728(-)	DNA polymerase	1
+FST_domestication	Sobic.003G369400	7.00261361560269	9.94e-08	0.614442	Chr3:74920001-7.5e+07	X2020.estimatedPlotYield.N	Chr3:74937218-74948584(-)	Plant protein of unknown function (DUF639)	1
+FST_domestication	Sobic.003G369500	7.00261361560269	9.94e-08	0.614442	Chr3:74920001-7.5e+07	X2020.estimatedPlotYield.N	Chr3:74944931-74953687(-)	NPL4 family	1
+FST_domestication	Sobic.003G369600	7.00261361560269	9.94e-08	0.614442	Chr3:74920001-7.5e+07	X2020.estimatedPlotYield.N	Chr3:74950842-74957627(+)	magnesium transporter	1
+FST_domestication	Sobic.003G369700	7.00261361560269	9.94e-08	0.614442	Chr3:74920001-7.5e+07	X2020.estimatedPlotYield.N	Chr3:74954287-74975843(-)	Sister chromatid cohesion protein PDS5 homolog	1
+FST_domestication	Sobic.003G370100	6.97469413473523	1.06e-07	0.614442	Chr3:74920001-7.5e+07	X2020.estimatedPlotYield.N	Chr3:74990971-75000294(+)	belongs to the protein kinase superfamily	1
+FST_domestication	Sobic.003G370200	6.97469413473523	1.06e-07	0.614442	Chr3:74920001-7.5e+07	X2020.estimatedPlotYield.N	Chr3:74996540-75006492(-)	Castor and Pollux, part of voltage-gated ion channel	1
+FST_domestication	Sobic.001G248900	6.07727454200674	8.37e-07	0.461071	Chr1:27020001-27060000	X2020.thirdLeafLength.N	Chr1:27044963-27053312(+)	Component of the exocyst complex involved in the docking of exocytic vesicles with fusion sites on the plasma membrane	1
+FST_domestication	Sobic.001G249000	6.07727454200674	8.37e-07	0.461071	Chr1:27020001-27060000	X2020.thirdLeafLength.N	Chr1:27049492-27056023(-)	Transmembrane amino acid transporter protein	1
+FST_domestication	Sobic.001G249100	6.07727454200674	8.37e-07	0.461071	Chr1:27020001-27060000	X2020.thirdLeafLength.N	Chr1:27054243-27061589(-)	Zein-binding	1
+FST_domestication	Sobic.001G249200	6.07727454200674	8.37e-07	0.461071	Chr1:27020001-27060000	X2020.thirdLeafLength.N	Chr1:27057733-27067348(-)	KH domain	1
+FST_domestication	Sobic.001G224200	5.80966830182971	1.55e-06	0.528532	Chr1:21665001-21720000	X2021.tillersPerPlant.N	Chr1:21660359-21670555(-)	RNA recognition motif	1
+FST_domestication	Sobic.003G145100	5.71444269099223	1.93e-06	0.568031	Chr3:14960001-15025000	X2021.tillersPerPlant.N	Chr3:15006713-15016954(+)	Myb-like DNA-binding domain	1
+FST_domestication	Sobic.003G145200	5.71444269099223	1.93e-06	0.568031	Chr3:14960001-15025000	X2021.tillersPerPlant.N	Chr3:15013094-15019776(-)	Plant specific eukaryotic initiation factor 4B	1
+FST_domestication	Sobic.003G145300	5.71444269099223	1.93e-06	0.568031	Chr3:14960001-15025000	X2021.tillersPerPlant.N	Chr3:15018356-15022666(-)	Domain of unknown function (DUF3511)	1
+FST_domestication	Sobic.001G314000	5.46852108295774	3.4e-06	0.641601	Chr1:64270001-64340000	X2020.panicleGrainWeight.N	Chr1:64265896-64272072(-)	Belongs to the peroxidase family. Classical plant (class III) peroxidase subfamily	1
+FST_domestication	Sobic.001G314100	5.46852108295774	3.4e-06	0.641601	Chr1:64270001-64340000	X2020.panicleGrainWeight.N	Chr1:64274022-64279688(-)	Removal of H(2)O(2), oxidation of toxic reductants, biosynthesis and degradation of lignin, suberization, auxin catabolism, response to environmental stresses such as wounding, pathogen attack and oxidative stress	1
+FST_domestication	Sobic.001G314200	5.46852108295774	3.4e-06	0.641601	Chr1:64270001-64340000	X2020.panicleGrainWeight.N	Chr1:64277388-64283179(-)	CAAD domains of cyanobacterial aminoacyl-tRNA synthetase	1
+FST_domestication	Sobic.001G314300	5.46852108295774	3.4e-06	0.641601	Chr1:64270001-64340000	X2020.panicleGrainWeight.N	Chr1:64281690-64290086(-)	Belongs to the iron ascorbate-dependent oxidoreductase family	1
+FST_domestication	Sobic.001G314350	5.46852108295774	3.4e-06	0.641601	Chr1:64270001-64340000	X2020.panicleGrainWeight.N	Chr1:64285998-64291547(+)		1
+FST_domestication	Sobic.001G314400	5.46852108295774	3.4e-06	0.641601	Chr1:64270001-64340000	X2020.panicleGrainWeight.N	Chr1:64302781-64319939(-)	K-box region	1
+FST_domestication	Sobic.001G313400	5.46852108295774	3.4e-06	0.48197	Chr1:64180001-64220000	X2020.panicleGrainWeight.N	Chr1:64179080-64190822(+)	AAA domain	1
+FST_domestication	Sobic.001G313500	5.46852108295774	3.4e-06	0.48197	Chr1:64180001-64220000	X2020.panicleGrainWeight.N	Chr1:64188236-64196375(-)	Protein of unknown function (DUF1084)	1
+FST_domestication	Sobic.001G313600	5.46852108295774	3.4e-06	0.48197	Chr1:64180001-64220000	X2020.panicleGrainWeight.N	Chr1:64193597-64198909(-)	Heavy-metal-associated domain	1
+FST_domestication	Sobic.001G313700	5.46852108295774	3.4e-06	0.48197	Chr1:64180001-64220000	X2020.panicleGrainWeight.N	Chr1:64195690-64206169(+)	-	1
+FST_domestication	Sobic.001G313800	5.46852108295774	3.4e-06	0.48197	Chr1:64180001-64220000	X2020.panicleGrainWeight.N	Chr1:64214479-64220118(+)	B3 DNA binding domain	1
+FST_domestication	Sobic.001G121700	5.1890957193313	6.47e-06	0.64333	Chr1:9540001-9615000	X2020.panicleGrainWeight.N	Chr1:9611477-9617716(-)	Fantastic Four meristem regulator	1
+FST_domestication	Sobic.006G131500	5.16367588429325	6.86e-06	0.467505	Chr6:50990001-51030000	X2021.tillersPerPlant.N	Chr6:50974557-50995055(+)	serine threonine-protein kinase GCN2	1
+FST_domestication	Sobic.006G131600	5.16367588429325	6.86e-06	0.467505	Chr6:50990001-51030000	X2021.tillersPerPlant.N	Chr6:50994406-50999564(+)	EF-hand domain	1
+FST_domestication	Sobic.006G131700	5.16367588429325	6.86e-06	0.467505	Chr6:50990001-51030000	X2021.tillersPerPlant.N	Chr6:51005263-51013088(+)	CRS1 / YhbY (CRM) domain	1
+FST_domestication	Sobic.006G131800	5.16367588429325	6.86e-06	0.467505	Chr6:50990001-51030000	X2021.tillersPerPlant.N	Chr6:51008388-51014251(-)	B-Box-type zinc finger	1
+FST_domestication	Sobic.006G131900	5.16367588429325	6.86e-06	0.467505	Chr6:50990001-51030000	X2021.tillersPerPlant.N	Chr6:51017372-51022442(-)	helix loop helix domain	1
+FST_domestication	Sobic.006G132000	5.16367588429325	6.86e-06	0.467505	Chr6:50990001-51030000	X2021.tillersPerPlant.N	Chr6:51025335-51032979(-)	glycine-rich protein	1
+FST_domestication	Sobic.006G132100	5.16367588429325	6.86e-06	0.467505	Chr6:50990001-51030000	X2021.tillersPerPlant.N	Chr6:51029807-51034937(-)	atchitiv,atep3,chiv,ep3	1
+FST_domestication	Sobic.006G229600	5.13018179202067	7.41e-06	0.465893	Chr6:58785001-58835000	X2020.stemDiameterUpper.N	Chr6:58777979-58785532(-)	Serine threonine-protein kinase	1
+FST_domestication	Sobic.006G229800	5.13018179202067	7.41e-06	0.465893	Chr6:58785001-58835000	X2020.stemDiameterUpper.N	Chr6:58783943-58791555(-)	Serine threonine-protein kinase	1
+FST_domestication	Sobic.006G229901	5.13018179202067	7.41e-06	0.465893	Chr6:58785001-58835000	X2020.stemDiameterUpper.N	Chr6:58789471-58798799(-)	Serine threonine-protein kinase	1
+FST_domestication	Sobic.006G230100	5.13018179202067	7.41e-06	0.465893	Chr6:58785001-58835000	X2020.stemDiameterUpper.N	Chr6:58802718-58810721(+)	Serine threonine-protein kinase	1
+FST_domestication	Sobic.006G230200	5.13018179202067	7.41e-06	0.465893	Chr6:58785001-58835000	X2020.stemDiameterUpper.N	Chr6:58809919-58818886(+)	Wall-associated receptor kinase	1
+FST_domestication	Sobic.006G230300	5.13018179202067	7.41e-06	0.465893	Chr6:58785001-58835000	X2020.stemDiameterUpper.N	Chr6:58814890-58822414(-)	Protein kinase domain	1
+FST_domestication	Sobic.006G230400	5.13018179202067	7.41e-06	0.465893	Chr6:58785001-58835000	X2020.stemDiameterUpper.N	Chr6:58822982-58831343(+)	Diacylglycerol kinase	1
+FST_domestication	Sobic.006G230500	5.13018179202067	7.41e-06	0.465893	Chr6:58785001-58835000	X2020.stemDiameterUpper.N	Chr6:58827838-58832297(+)	Wound-induced protein	1
+FST_domestication	Sobic.006G230600	5.13018179202067	7.41e-06	0.465893	Chr6:58785001-58835000	X2020.stemDiameterUpper.N	Chr6:58828624-58833677(-)	-	1
+FST_domestication	Sobic.006G230700	5.13018179202067	7.41e-06	0.465893	Chr6:58785001-58835000	X2020.stemDiameterUpper.N	Chr6:58830778-58835621(-)	Wound-induced protein	1
+FST_domestication	Sobic.006G230800	5.13018179202067	7.41e-06	0.465893	Chr6:58785001-58835000	X2020.stemDiameterUpper.N	Chr6:58833121-58838361(-)	Wound-induced protein	1
+FST_domestication	Sobic.003G246100	5.03338901331807	9.26e-06	0.554349	Chr3:64780001-64835000	X2021.plantHeight.N	Chr3:64809141-64818223(+)	JAB1/Mov34/MPN/PAD-1 ubiquitin protease	1
+FST_domestication	Sobic.003G246200	5.03338901331807	9.26e-06	0.554349	Chr3:64780001-64835000	X2021.plantHeight.N	Chr3:64819165-64825081(-)	Protein of unknown function (DUF1645)	1
+FST_domestication	Sobic.003G246300	5.03338901331807	9.26e-06	0.554349	Chr3:64780001-64835000	X2021.plantHeight.N	Chr3:64823164-64828745(-)	-	1

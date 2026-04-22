@@ -738,5 +738,16 @@ dev.off()
 message("\n=== Done! Output saved to: ===")
 message(file.path(OUTDIR, "absZSS_5pct_one_row_B2_FST_XPCLR.pdf"))
 message(file.path(OUTDIR, "absZSS_5pct_one_row_B2_FST_XPCLR.png"))
+
+cat("\n=== Wilcoxon p-values: Background vs Peak ===\n")
+group_names <- c("wild", "landrace", "improved",
+                 "wild vs landrace", "landrace vs improved")
+
+for (k in 1:5) {
+  i1 <- 2 * k - 1
+  i2 <- 2 * k
+  wt <- suppressWarnings(wilcox.test(plot_list[[i1]], plot_list[[i2]]))
+  cat(sprintf("%-22s  p = %.6g\n", group_names[k], wt$p.value))
+}
 ```
 

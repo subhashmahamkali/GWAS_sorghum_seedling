@@ -2,6 +2,18 @@ library(data.table)
 library(grDevices)
 
 # =========================
+# helper: merge nearby x-positions
+# =========================
+merge_close_positions <- function(x, tol = 0.15) {
+  x <- sort(x[is.finite(x)])
+  if (length(x) <= 1) return(x)
+  
+  groups <- cumsum(c(TRUE, diff(x) > tol))
+  merged <- tapply(x, groups, mean)
+  as.numeric(merged)
+}
+
+# =========================
 # 1. Read files
 # =========================
 a <- fread(
@@ -136,7 +148,6 @@ col_vec <- adjustcolor(col_vec, alpha.f = 0.5)
 d$CHROM <- gsub("Chr", "", d$CHROM)
 d$CHROM <- as.integer(d$CHROM)
 
-# cumulative positions
 dd_list <- list()
 for (k in 1:10) {
   sub <- subset(d, CHROM == k)
@@ -170,18 +181,48 @@ for (k in 1:10) {
   sub[,21] <- sub[,21] + ch[k,4]
   d3 <- rbind(d3, sub)
 }
+
 d3[,5]  <- d3[,5]  / 1e6
 d3[,13] <- d3[,13] / 1e6
 d3[,21] <- d3[,21] / 1e6
 
 # =========================
-# 7. Tick positions
+# 7. One representative x-position per common locus
+#    then merge nearby loci to avoid many duplicate dotted lines
+# =========================
+overlap_x <- rowMeans(cbind(d3[,5], d3[,13], d3[,21]), na.rm = TRUE)
+overlap_x <- overlap_x[is.finite(overlap_x)]
+overlap_x <- merge_close_positions(overlap_x, tol = 0.15)   # try 0.25 if still crowded
+
+# =========================
+# 8. Tick positions
 # =========================
 y_ticks <- c(2, 4, 6, 8, 10, 12)
 x_ticks <- (ch[,3] - ch[,2] / 2) / 1e6
 
 # =========================
-# 8. TIFF output
+# 9. Plot settings
+# =========================
+xlim_range <- c(0, 720)
+ylim_range <- c(2, 12)
+sig_line_y <- 5
+
+draw_vertical_overlap_lines <- function(xpos, ylim_range,
+                                        col = adjustcolor("black", alpha.f = 0.75),
+                                        lty = 3, lwd = 1.0) {
+  segments(
+    x0 = xpos,
+    y0 = ylim_range[1],
+    x1 = xpos,
+    y1 = ylim_range[2],
+    col = col,
+    lty = lty,
+    lwd = lwd
+  )
+}
+
+# =========================
+# 10. TIFF output
 # =========================
 tiff(
   "/Users/subhashmahamkali/Documents/gwas_sap/graphs/01_publication/up_fig/GWAS_HN_LN_NR_selected_traits_clean_no_text.tiff",
@@ -192,73 +233,98 @@ tiff(
   compression = "lzw"
 )
 
-par(mar = c(1.5, 2.5, 0.4, 0.5), mfrow = c(3, 1), oma = c(0.3, 0.3, 0.3, 0.3))
+par(
+  mfrow = c(3, 1),
+  mar   = c(0.35, 2.5, 0.25, 0.5),
+  oma   = c(0.45, 0.3, 0.3, 0.3),
+  xaxs  = "i",
+  yaxs  = "i"
+)
 
 # =========================
-# 9. HN panel
+# 11. HN panel
 # =========================
 d1 <- dd[dd$Nitrogen_Treatment == "HN", ]
 
 plot(
   d1$POS_MB, -log10(d1$`P-value`),
-  col = d1$col1, pch = 16, cex = 0.45,
-  bty = "l", xlim = c(0, 720), ylim = c(2, 12),
-  axes = FALSE, xlab = "", ylab = ""
+  col = d1$col1,
+  pch = 16,
+  cex = 0.45,
+  bty = "l",
+  xlim = xlim_range,
+  ylim = ylim_range,
+  axes = FALSE,
+  xlab = "",
+  ylab = ""
 )
 
 axis(2, at = y_ticks, labels = FALSE, las = 2, tck = -0.03)
-segments(0, 5, 720, 5, col = "red", lty = 2, lwd = 2)
+segments(
+  xlim_range[1], sig_line_y,
+  xlim_range[2], sig_line_y,
+  col = "red", lty = 2, lwd = 2
+)
 abline(v = ch[,4] / 1e6, col = adjustcolor("gray", alpha.f = 0.3))
 
-points(
-  d3[,5], -log10(d3[,4]),
-  col = adjustcolor("violetred", alpha.f = 0.7),
-  pch = 8, cex = 0.8, type = "h", lwd = 1.3
-)
+# draw dotted lines LAST so they are visible on top of peaks
+draw_vertical_overlap_lines(overlap_x, ylim_range)
 
 # =========================
-# 10. LN panel
+# 12. LN panel
 # =========================
 d1 <- dd[dd$Nitrogen_Treatment == "LN", ]
 
 plot(
   d1$POS_MB, -log10(d1$`P-value`),
-  col = d1$col1, pch = 16, cex = 0.45,
-  bty = "l", xlim = c(0, 720), ylim = c(2, 12),
-  axes = FALSE, xlab = "", ylab = ""
+  col = d1$col1,
+  pch = 16,
+  cex = 0.45,
+  bty = "l",
+  xlim = xlim_range,
+  ylim = ylim_range,
+  axes = FALSE,
+  xlab = "",
+  ylab = ""
 )
 
 axis(2, at = y_ticks, labels = FALSE, las = 2, tck = -0.03)
-segments(0, 5, 720, 5, col = "red", lty = 2, lwd = 2)
-abline(v = ch[,4] / 1e6, col = adjustcolor("gray", alpha.f = 0.6))
-
-points(
-  d3[,13], -log10(d3[,12]),
-  col = adjustcolor("violetred", alpha.f = 0.7),
-  pch = 8, cex = 0.8, type = "h", lwd = 1.3
+segments(
+  xlim_range[1], sig_line_y,
+  xlim_range[2], sig_line_y,
+  col = "red", lty = 2, lwd = 2
 )
+abline(v = ch[,4] / 1e6, col = adjustcolor("gray", alpha.f = 0.3))
+
+draw_vertical_overlap_lines(overlap_x, ylim_range)
 
 # =========================
-# 11. NR panel
+# 13. NR panel
 # =========================
 d1 <- dd[dd$Nitrogen_Treatment == "NR", ]
 
 plot(
   d1$POS_MB, -log10(d1$`P-value`),
-  col = d1$col1, pch = 16, cex = 0.45,
-  bty = "l", xlim = c(0, 720), ylim = c(2, 12),
-  axes = FALSE, xlab = "", ylab = ""
+  col = d1$col1,
+  pch = 16,
+  cex = 0.45,
+  bty = "l",
+  xlim = xlim_range,
+  ylim = ylim_range,
+  axes = FALSE,
+  xlab = "",
+  ylab = ""
 )
 
 axis(2, at = y_ticks, labels = FALSE, las = 2, tck = -0.03)
 axis(1, at = x_ticks, labels = FALSE, tck = -0.03)
-segments(0, 5, 720, 5, col = "red", lty = 2, lwd = 2)
-abline(v = ch[,4] / 1e6, col = adjustcolor("gray", alpha.f = 0.6))
-
-points(
-  d3[,21], -log10(d3[,20]),
-  col = adjustcolor("violetred", alpha.f = 0.7),
-  pch = 8, cex = 0.8, type = "h", lwd = 1.3
+segments(
+  xlim_range[1], sig_line_y,
+  xlim_range[2], sig_line_y,
+  col = "red", lty = 2, lwd = 2
 )
+abline(v = ch[,4] / 1e6, col = adjustcolor("gray", alpha.f = 0.3))
+
+draw_vertical_overlap_lines(overlap_x, ylim_range)
 
 dev.off()

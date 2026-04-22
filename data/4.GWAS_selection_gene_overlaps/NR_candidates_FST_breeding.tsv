@@ -1,0 +1,31 @@
+selection_class	gene_id	best_neglog10p	best_gwas_pvalue	best_selection_score	best_selection_region	gwas_traits	gene_region	gene_description	overlap_rows
+FST_breeding	Sobic.001G249200	6.07727454200674	8.37e-07	0.274236	Chr1:27065001-27120000	X2020.thirdLeafLength.N	Chr1:27057733-27067348(-)	KH domain	1
+FST_breeding	Sobic.001G249233	6.07727454200674	8.37e-07	0.274236	Chr1:27065001-27120000	X2020.thirdLeafLength.N	Chr1:27067424-27074175(-)		1
+FST_breeding	Sobic.001G249266	6.07727454200674	8.37e-07	0.274236	Chr1:27065001-27120000	X2020.thirdLeafLength.N	Chr1:27084624-27089075(+)		1
+FST_breeding	Sobic.001G249300	6.07727454200674	8.37e-07	0.274236	Chr1:27065001-27120000	X2020.thirdLeafLength.N	Chr1:27090570-27097296(+)	Leucine Rich Repeat	1
+FST_breeding	Sobic.001G249400	6.07727454200674	8.37e-07	0.274236	Chr1:27065001-27120000	X2020.thirdLeafLength.N	Chr1:27110641-27119264(+)	Tetrapyrrole (Corrin/Porphyrin) Methylases	1
+FST_breeding	Sobic.004G030600	5.47366072261016	3.36e-06	0.307263	Chr4:2495001-2585000	X2020.primaryBranchNumber.N	Chr4:2500847-2509315(-)	PPR repeat	1
+FST_breeding	Sobic.004G030700	5.47366072261016	3.36e-06	0.307263	Chr4:2495001-2585000	X2020.primaryBranchNumber.N	Chr4:2505548-2513188(-)	conserved protein UCP030365	1
+FST_breeding	Sobic.004G030800	5.47366072261016	3.36e-06	0.307263	Chr4:2495001-2585000	X2020.primaryBranchNumber.N	Chr4:2514642-2527732(+)	Proline-, glutamic acid- and leucine-rich protein	1
+FST_breeding	Sobic.004G030900	5.47366072261016	3.36e-06	0.307263	Chr4:2495001-2585000	X2020.primaryBranchNumber.N	Chr4:2528150-2537894(+)	The RING-variant domain is a C4HC3 zinc-finger like motif found in a number of cellular and viral proteins. Some of these proteins have been shown both in vivo and in vitro to have ubiquitin E3 ligase activity.	1
+FST_breeding	Sobic.004G030966	5.47366072261016	3.36e-06	0.307263	Chr4:2495001-2585000	X2020.primaryBranchNumber.N	Chr4:2537382-2541720(+)		1
+FST_breeding	Sobic.004G031032	5.47366072261016	3.36e-06	0.307263	Chr4:2495001-2585000	X2020.primaryBranchNumber.N	Chr4:2539644-2544198(-)		1
+FST_breeding	Sobic.004G031100	5.47366072261016	3.36e-06	0.307263	Chr4:2495001-2585000	X2020.primaryBranchNumber.N	Chr4:2541063-2546241(-)	bZIP transcription factor	1
+FST_breeding	Sobic.004G031200	5.47366072261016	3.36e-06	0.307263	Chr4:2495001-2585000	X2020.primaryBranchNumber.N	Chr4:2542451-2546576(-)	expressed protein	1
+FST_breeding	Sobic.004G031300	5.47366072261016	3.36e-06	0.307263	Chr4:2495001-2585000	X2020.primaryBranchNumber.N	Chr4:2557003-2571049(-)	Pentatricopeptide repeat domain	1
+FST_breeding	Sobic.006G154600	5.27083521030723	5.36e-06	0.244564	Chr6:52825001-52870000	X2020.panicleGrainWeight.N	Chr6:52840413-52845383(-)	-	1
+FST_breeding	Sobic.006G154800	5.27083521030723	5.36e-06	0.244564	Chr6:52825001-52870000	X2020.panicleGrainWeight.N	Chr6:52852112-52861174(+)	BRO1-like domain	1
+FST_breeding	Sobic.006G154900	5.27083521030723	5.36e-06	0.244564	Chr6:52825001-52870000	X2020.panicleGrainWeight.N	Chr6:52856971-52863863(-)	Belongs to the mitochondrial carrier (TC 2.A.29) family	1
+FST_breeding	Sobic.006G155000	5.27083521030723	5.36e-06	0.244564	Chr6:52825001-52870000	X2020.panicleGrainWeight.N	Chr6:52859490-52866830(+)	Mitochondrial intermembrane space import and assembly protein	1
+FST_breeding	Sobic.006G155100	5.27083521030723	5.36e-06	0.244564	Chr6:52825001-52870000	X2020.panicleGrainWeight.N	Chr6:52863689-52871251(+)	RNA splicing	1
+FST_breeding	Sobic.006G155150	5.27083521030723	5.36e-06	0.244564	Chr6:52825001-52870000	X2020.panicleGrainWeight.N	Chr6:52869087-52873398(+)		1
+FST_breeding	Sobic.008G080400	5.21112488422458	6.15e-06	0.274558	Chr8:14040001-14085000	X2020.panicleGrainWeight.N	Chr8:14043121-14051972(-)	Belongs to the glycosyl hydrolase 1 family	1
+FST_breeding	Sobic.004G323700	5.12842706445412	7.44e-06	0.277638	Chr4:68365001-68410000	X2020.estimatedPlotYield.N	Chr4:68379048-68389284(+)	Ring finger domain	1
+FST_breeding	Sobic.004G323800	5.12842706445412	7.44e-06	0.277638	Chr4:68365001-68410000	X2020.estimatedPlotYield.N	Chr4:68385334-68392337(-)	PCRF	1
+FST_breeding	Sobic.004G323900	5.12842706445412	7.44e-06	0.277638	Chr4:68365001-68410000	X2020.estimatedPlotYield.N	Chr4:68390562-68399126(+)	-	1
+FST_breeding	Sobic.004G324000	5.12842706445412	7.44e-06	0.277638	Chr4:68365001-68410000	X2020.estimatedPlotYield.N	Chr4:68398377-68409236(+)	Glutamate-gated receptor that probably acts as non- selective cation channel	1
+FST_breeding	Sobic.004G324100	5.12842706445412	7.44e-06	0.277638	Chr4:68365001-68410000	X2020.estimatedPlotYield.N	Chr4:68405333-68417162(-)	Diacylglycerol kinase accessory domain (presumed)	1
+FST_breeding	Sobic.002G179700	5.06398920428479	8.63e-06	0.310007	Chr2:57275001-57335000	X2020.rachisLength.N	Chr2:57328904-57334720(-)	3-ketoacyl-CoA synthase	1
+FST_breeding	Sobic.001G279500	5.0287241512619	9.36e-06	0.356079	Chr1:58630001-58705000	X2020.panicleGrainWeight.N	Chr1:58679418-58684139(+)	VQ motif	1
+FST_breeding	Sobic.001G279601	5.0287241512619	9.36e-06	0.319154	Chr1:58725001-58770000	X2020.panicleGrainWeight.N	Chr1:58726537-58733384(+)		1
+FST_breeding	Sobic.001G279701	5.0287241512619	9.36e-06	0.319154	Chr1:58725001-58770000	X2020.panicleGrainWeight.N	Chr1:58741681-58746505(-)	-	1
