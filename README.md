@@ -14,6 +14,7 @@ In this study, we are leveraging existing datasets in sorghum to investigate phe
 - Raw input data (`trimmed fastq`) were copied from Hongyu: `/work/jyanglab/subhash/variant_calling/1.trimmed_data/`
 - Data folders: `/work/jyanglab/subhash/variant_calling`
 - Code: `profiling/1.variant_calling/`
+- Variant calling workflow summary figure: [Supplementary Fig. S8](graphs/01_publication/up_fig/sup_8_variant_calling.pdf)
 
 - Important files: 
   - reference genome: `/work/jyanglab/subhash/variant_calling/2.refrence/Phytozome/PhytozomeV13/Sbicolor/v5.1/assembly/Sbicolor_730_v5.0.fa`
