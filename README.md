@@ -11,12 +11,17 @@ In this study, we are leveraging existing datasets in sorghum to investigate phe
 
 #### Sorghum SNP Calling on V5:
 
-- Raw input data (`trimmed fastq`) were copied from Hongyu: `/work/jyanglab/subhash/variant_calling/1.trimmed_data/`
-- Data folders: `/work/jyanglab/subhash/variant_calling`
-- Code: `profiling/1.variant_calling/`
-- Variant calling workflow summary figure: [Supplementary Fig. S8](graphs/01_publication/up_fig/sup_8_variant_calling.pdf)
+Whole-genome resequencing data from 400 Sorghum Association Panel (SAP) accessions were processed through a SNP-calling workflow based on the *Sorghum bicolor* V5.1 reference genome. Trimmed FASTQ files were aligned, deduplicated BAM files were generated, per-sample gVCFs were produced, and samples were jointly genotyped to generate raw and filtered variant sets.
+
+Data folders: `/work/jyanglab/subhash/variant_calling`  
+Code: `profiling/1.variant_calling/`
+
+[Supplementary Fig. S8 (PDF)](graphs/01_publication/up_fig/sup_8_variant_calling.pdf)
+
+![Variant calling workflow](graphs/01_publication/up_fig/sup_8_variant_calling.png)
 
 - Important files: 
+  - raw input data (`trimmed fastq`): `/work/jyanglab/subhash/variant_calling/1.trimmed_data/`
   - reference genome: `/work/jyanglab/subhash/variant_calling/2.refrence/Phytozome/PhytozomeV13/Sbicolor/v5.1/assembly/Sbicolor_730_v5.0.fa`
   - Deduplicated BAM files: `/work/jyanglab/subhash/variant_calling/4.picard/` (n: 400 bam files)
   - gVCF file: `/work/jyanglab/subhash/variant_calling/5.gvcf/*.g.vcf`
