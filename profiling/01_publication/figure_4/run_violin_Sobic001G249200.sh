@@ -16,6 +16,7 @@ PHENO_FILE="/mnt/nrdstor/jyanglab/subhash/git/GWAS_sorghum_seedling/largedata/1.
 # Lead SNP info for Sobic.001G249200 / third leaf length NR
 SNP_ID="Chr01_27091166"
 OUT_PREFIX="${OUT_DIR}/leadSNP_Sobic001G249200"
+awk '$1=1 && $2==27091166' /work/jyanglab/subhash/sorgsd/bal_s/ans_freq/Sorghum_ancestral_allele_V3.1.txt
 
 mkdir -p "${OUT_DIR}"
 
