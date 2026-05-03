@@ -50,6 +50,12 @@ red_points3 <- gene[gene$group == "imp", ]
 red_points2 <- gene[gene$group == "lan", ]
 red_points1 <- gene[gene$group == "wild", ]
 
+
+
+#explaination of the code below: I am adjusting the 
+#genomic positions for all chromosomes to be continuous across the genome. 
+#This is done by adding the cumulative length of all previous chromosomes (from the ch data frame) to the position of each SNP in the d data frame. 
+#This way, when we plot the data, the x-axis will represent the entire genome as a continuous scale, rather than resetting to zero for each chromosome. After adjusting the positions, I convert them from base pairs to megabases for easier interpretation and plotting.
 dd=NULL
 for (k in 1:10){sub=subset(d,d[,1]==k)
 sub[,2]=sub[,2]+ch[k,4]

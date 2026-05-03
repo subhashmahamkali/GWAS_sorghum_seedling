@@ -12,6 +12,8 @@ knitr::opts_knit$set(root.dir=normalizePath('..//..//'))
 
 #plotting TajimasD
 
+
+
 ```{r}
 library(readr)
 library(dplyr)
